@@ -53,7 +53,7 @@ export default function CourseDetailsPage() {
                 <div className="ep-course__sidebar-data">
                   <h4 className="ep-course__sidebar-title">Course Includes</h4>
                   <ul className="ep-course__sidebar-data-list">
-                    <li><span>Price:</span><strong className="price">${course.price}</strong></li>
+                    <li><span>Price:</span><strong className="price">₹{Number(course.price || 0).toFixed(2)}</strong></li>
                     <li><span>Instructor:</span><strong>{course.instructor}</strong></li>
                     <li><span>Rating:</span><strong>{course.rating || 5}/5</strong></li>
                     <li><span>Access:</span><strong>Lifetime</strong></li>

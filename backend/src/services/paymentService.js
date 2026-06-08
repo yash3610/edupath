@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import razorpay from "../config/razorpay.js";
 
 export async function createRazorpayOrder({ amount, currency = "INR", receipt }) {
-  if (!process.env.RAZORPAY_KEY_ID) {
+  if (!(process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY)) {
     return { id: `order_mock_${Date.now()}`, amount, currency, receipt, mock: true };
   }
 
@@ -10,7 +10,7 @@ export async function createRazorpayOrder({ amount, currency = "INR", receipt })
 }
 
 export function verifyRazorpaySignature({ razorpayOrderId, razorpayPaymentId, razorpaySignature }) {
-  const secret = process.env.RAZORPAY_KEY_SECRET || "rzp_test_secret";
+  const secret = process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET || "rzp_test_secret";
   const body = `${razorpayOrderId}|${razorpayPaymentId}`;
   const expected = crypto.createHmac("sha256", secret).update(body).digest("hex");
   return expected === razorpaySignature;

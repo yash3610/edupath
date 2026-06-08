@@ -17,6 +17,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js";
 import quizRoutes from "./routes/quizRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
@@ -35,6 +36,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ success: true, status: "ok", message: "EduPath LMS API is running" });
 });
 
+app.use("/api", publicRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/learning", learningRoutes);

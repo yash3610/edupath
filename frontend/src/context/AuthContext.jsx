@@ -12,11 +12,12 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
-  const [loading, setLoading] = useState(Boolean(session?.token));
+  const [loading, setLoading] = useState(Boolean(session?.token || session?.accessToken));
 
   useEffect(() => {
-    setAccessToken(session?.token || "");
-    if (!session?.token) {
+    const token = session?.token || session?.accessToken || "";
+    setAccessToken(token);
+    if (!token) {
       setLoading(false);
       return;
     }
@@ -36,14 +37,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   function saveSession(nextSession) {
-    setSession(nextSession);
-    setAccessToken(nextSession.token);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
+    const normalizedSession = {
+      ...nextSession,
+      token: nextSession.token || nextSession.accessToken,
+    };
+    setSession(normalizedSession);
+    setAccessToken(normalizedSession.token || "");
+    localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedSession));
   }
 
   const value = useMemo(() => ({
     user: session?.user || null,
-    token: session?.token || "",
+    token: session?.token || session?.accessToken || "",
     loading,
     login: async (credentials) => {
       const result = await api.login(credentials);

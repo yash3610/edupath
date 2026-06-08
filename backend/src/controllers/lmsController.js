@@ -28,6 +28,7 @@ import {
   User,
   Wishlist,
 } from "../models/index.js";
+import { fallbackCourses } from "../data/fallbackContent.js";
 import { askAI, recommendCourses, summarizeText } from "../services/aiService.js";
 import { buildMLAnalytics } from "../services/mlService.js";
 import { createRazorpayOrder, verifyRazorpaySignature } from "../services/paymentService.js";
@@ -223,8 +224,98 @@ export const createAnswer = asyncHandler(async (req, res) => created(res, await 
 export const upvoteAnswer = asyncHandler(async (req, res) => ok(res, await DiscussionAnswer.findByIdAndUpdate(req.params.answerId, { $addToSet: { upvotes: userId(req) } }, { new: true })));
 export const acceptAnswer = asyncHandler(async (req, res) => ok(res, await DiscussionAnswer.findByIdAndUpdate(req.params.answerId, { accepted: true }, { new: true })));
 
-export const createPaymentOrder = asyncHandler(async (req, res) => ok(res, await createRazorpayOrder({ amount: req.body.amount, receipt: `receipt_${Date.now()}` })));
-export const verifyPayment = asyncHandler(async (req, res) => ok(res, { verified: verifyRazorpaySignature(req.body) }));
+export const createPaymentOrder = asyncHandler(async (req, res) => {
+  const requestedIds = (req.body.items || []).map((item) => item.courseId).filter(Boolean);
+  const courseIds = requestedIds.map((id) => fallbackCourses.find((course) => course.legacyId === id)?._id || id);
+  if (!courseIds.length) throw new ApiError(400, "Select at least one course");
+
+  const invalidIds = courseIds.filter((id) => !/^[a-f\d]{24}$/i.test(String(id)));
+  if (invalidIds.length) throw new ApiError(400, "Invalid course selected. Please remove it from cart and add again.");
+
+  let courses = await Course.find({ _id: { $in: courseIds }, status: "approved" });
+  const foundIds = new Set(courses.map((course) => String(course._id)));
+  const missingFallbacks = fallbackCourses.filter((course) => courseIds.includes(course._id) && !foundIds.has(course._id));
+  if (missingFallbacks.length) {
+    await Promise.all(missingFallbacks.map((course) => Course.findOneAndUpdate(
+      { _id: course._id },
+      {
+        title: course.title,
+        slug: course.slug,
+        category: course.category,
+        thumbnail: course.thumbnail,
+        description: course.description,
+        price: course.price,
+        status: "approved",
+        rating: course.rating,
+      },
+      { upsert: true, new: true }
+    )));
+    courses = await Course.find({ _id: { $in: courseIds }, status: "approved" });
+  }
+  if (courses.length !== courseIds.length) throw new ApiError(400, "One or more courses are unavailable");
+
+  const alreadyEnrolled = await Enrollment.find({ student: userId(req), course: { $in: courseIds } }).select("course");
+  const enrolledIds = new Set(alreadyEnrolled.map((item) => String(item.course)));
+  const payableCourses = courses.filter((course) => !enrolledIds.has(String(course._id)));
+  if (!payableCourses.length) throw new ApiError(409, "You are already enrolled in these courses");
+
+  const amount = payableCourses.reduce((sum, course) => sum + Number(course.price || 0), 0);
+  if (amount <= 0) {
+    await Enrollment.insertMany(payableCourses.map((course) => ({ student: userId(req), course: course._id, status: "active" })), { ordered: false }).catch(() => {});
+    return created(res, { free: true, amount: 0, courses: payableCourses }, "Free course enrollment completed");
+  }
+
+  const order = await Order.create({
+    user: userId(req),
+    course: payableCourses[0]?._id,
+    items: payableCourses.map((course) => ({ course: course._id, title: course.title, price: course.price })),
+    amount,
+    status: "pending",
+    invoiceNumber: `EDU-${Date.now()}`,
+  });
+  const razorpayOrder = await createRazorpayOrder({ amount, receipt: String(order._id) });
+  order.razorpayOrderId = razorpayOrder.id;
+  await order.save();
+
+  ok(res, {
+    key: process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY,
+    orderId: order._id,
+    razorpayOrderId: razorpayOrder.id,
+    amount,
+    currency: razorpayOrder.currency || "INR",
+    courses: payableCourses.map((course) => ({ _id: course._id, title: course.title, price: course.price })),
+  }, "Payment order created");
+});
+export const verifyPayment = asyncHandler(async (req, res) => {
+  const verified = verifyRazorpaySignature(req.body);
+  if (!verified) throw new ApiError(400, "Payment signature verification failed");
+
+  const order = await Order.findOne({ _id: req.body.orderId, user: userId(req), razorpayOrderId: req.body.razorpayOrderId });
+  if (!order) throw new ApiError(404, "Order not found");
+  if (order.status === "paid") return ok(res, { order }, "Payment already verified");
+
+  const payment = await Payment.create({
+    user: userId(req),
+    order: order._id,
+    razorpayOrderId: req.body.razorpayOrderId,
+    razorpayPaymentId: req.body.razorpayPaymentId,
+    amount: order.amount,
+    status: "paid",
+    method: "razorpay",
+  });
+
+  order.status = "paid";
+  await order.save();
+
+  const courseIds = (order.items || []).map((item) => item.course).filter(Boolean);
+  await Promise.all(courseIds.map((courseId) => Enrollment.findOneAndUpdate(
+    { student: userId(req), course: courseId },
+    { status: "active", enrolledAt: new Date() },
+    { upsert: true, new: true }
+  )));
+
+  ok(res, { order, payment, enrolledCourses: courseIds }, "Payment verified and enrollment completed");
+});
 export const paymentHistory = asyncHandler(async (req, res) => ok(res, await Payment.find({ user: userId(req) }).sort({ createdAt: -1 })));
 export const paymentRefundRequest = asyncHandler(async (req, res) => created(res, await RefundRequest.create({ user: userId(req), payment: req.body.paymentId, reason: req.body.reason })));
 

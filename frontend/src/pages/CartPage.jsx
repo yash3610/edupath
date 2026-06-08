@@ -28,7 +28,7 @@ export default function CartPage() {
                         <Link to={`/course/${course.slug}`}><h5>{course.title}</h5></Link>
                         <span>{course.instructor}</span>
                       </div>
-                      <strong>${course.price}</strong>
+                      <strong>₹{Number(course.price || 0).toFixed(2)}</strong>
                       <button type="button" className="cart-remove-button" onClick={() => removeCourse(course._id)} aria-label={`Remove ${course.title}`}>Remove</button>
                     </div>
                   ))}
@@ -39,7 +39,7 @@ export default function CartPage() {
                   <div className="ep-cart__heading"><h4 className="ep-cart__heading-title">Cart Totals</h4></div>
                   <div className="ep-cart__totals">
                     <div className="ep-cart__totals-row"><span>Courses</span><span>{items.length}</span></div>
-                    <div className="ep-cart__totals-row"><span>Total</span><strong>${total.toFixed(2)}</strong></div>
+                    <div className="ep-cart__totals-row"><span>Total</span><strong>₹{total.toFixed(2)}</strong></div>
                   </div>
                   <Link to="/checkout" className="ep-cart__checkout-button cart-checkout-link">Proceed to checkout</Link>
                 </div>

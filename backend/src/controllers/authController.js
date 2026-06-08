@@ -39,6 +39,10 @@ export const login = asyncHandler(async (req, res) => {
   res.json({ success: true, data: session(user) });
 });
 
+export const me = asyncHandler(async (req, res) => {
+  res.json({ success: true, data: { user: req.user } });
+});
+
 export const logout = asyncHandler(async (_req, res) => {
   res.clearCookie("accessToken");
   res.clearCookie("refreshToken");

@@ -13,7 +13,7 @@ export default function CourseCard({ course }) {
         <p>{course.description}</p>
         <div className="ep-course__bottom">
           <span>{course.instructor}</span>
-          <strong>${course.price}</strong>
+          <strong>₹{Number(course.price || 0).toFixed(2)}</strong>
         </div>
       </div>
     </Link>
