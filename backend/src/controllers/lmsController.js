@@ -66,18 +66,37 @@ export const myCourses = asyncHandler(async (req, res) => {
 export const courseProgress = asyncHandler(async (req, res) => ok(res, await LectureProgress.find({ student: userId(req), course: req.params.courseId })));
 
 export const learningCourse = asyncHandler(async (req, res) => ok(res, await Course.findById(req.params.courseId)));
-export const courseModules = asyncHandler(async (req, res) => ok(res, await Module.find({ course: req.params.courseId }).sort({ order: 1 })));
+export const courseModules = asyncHandler(async (req, res) => {
+  const modules = await Module.find({ course: req.params.courseId }).sort({ order: 1 }).lean();
+  const lectures = await Lecture.find({ course: req.params.courseId }).sort({ order: 1 }).lean();
+  ok(res, modules.map((module) => ({
+    ...module,
+    lectures: lectures.filter((lecture) => String(lecture.module) === String(module._id)),
+  })));
+});
 export const lectureDetails = asyncHandler(async (req, res) => ok(res, await Lecture.findById(req.params.lectureId)));
 export const patchLectureProgress = asyncHandler(async (req, res) => {
-  const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: req.body }, { new: true, upsert: true });
+  const lecture = await Lecture.findById(req.params.lectureId).select("course");
+  if (!lecture) throw new ApiError(404, "Lecture not found");
+  const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { ...req.body, course: lecture.course } }, { new: true, upsert: true });
   ok(res, progress, "Progress updated");
 });
 export const completeLecture = asyncHandler(async (req, res) => {
-  const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { completed: true } }, { new: true, upsert: true });
+  const lecture = await Lecture.findById(req.params.lectureId).select("course");
+  if (!lecture) throw new ApiError(404, "Lecture not found");
+  const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { completed: true, course: lecture.course } }, { new: true, upsert: true });
   ok(res, progress, "Lecture completed");
 });
-export const bookmarkLecture = asyncHandler(async (req, res) => ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { bookmarked: true } }, { new: true, upsert: true }), "Bookmarked"));
-export const watchTime = asyncHandler(async (req, res) => ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $inc: { watchTimeSeconds: Number(req.body.seconds || 0) } }, { new: true, upsert: true }), "Watch time saved"));
+export const bookmarkLecture = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId).select("course");
+  if (!lecture) throw new ApiError(404, "Lecture not found");
+  ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { bookmarked: true, course: lecture.course } }, { new: true, upsert: true }), "Bookmarked");
+});
+export const watchTime = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId).select("course");
+  if (!lecture) throw new ApiError(404, "Lecture not found");
+  ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $inc: { watchTimeSeconds: Number(req.body.seconds || 0) }, $set: { course: lecture.course } }, { new: true, upsert: true }), "Watch time saved");
+});
 export const courseResources = asyncHandler(async (req, res) => ok(res, await Lecture.find({ course: req.params.courseId }).select("resources title")));
 
 export const getNotes = asyncHandler(async (req, res) => ok(res, await Note.find({ student: userId(req) }).sort({ pinned: -1, updatedAt: -1 })));

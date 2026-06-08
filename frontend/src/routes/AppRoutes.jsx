@@ -90,6 +90,8 @@ export default function AppRoutes() {
         <Route index element={<DashboardHome />} />
         <Route path="courses" element={<MyCoursesPage />} />
         <Route path="learn" element={<LearningRoomPage />} />
+        <Route path="learn/:courseId" element={<LearningRoomPage />} />
+        <Route path="learn/:courseId/:lectureId" element={<LearningRoomPage />} />
         <Route path="continue-learning" element={<LearningRoomPage />} />
         <Route path="assignments" element={<AssignmentsPage />} />
         <Route path="quizzes" element={<QuizPage />} />

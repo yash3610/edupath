@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../components/dashboard/DashboardPrimitives.jsx";
 import { student } from "../data/dashboardData.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const navItems = [
   ["Dashboard", "/dashboard", "LayoutDashboard"],
@@ -34,6 +35,7 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const displayStudent = useMemo(() => ({ ...student, name: user?.name || student.name, email: user?.email || student.email }), [user]);
@@ -101,7 +103,7 @@ export default function DashboardLayout() {
                   <div className="absolute right-0 top-14 w-56 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-slate-900">
                     <p className="font-black">{displayStudent.name}</p>
                     <p className="break-all text-xs text-slate-500">{displayStudent.email}</p>
-                    <button className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white dark:bg-white dark:text-slate-950" onClick={logout}>
+                    <button className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white dark:bg-white dark:text-slate-950" onClick={() => { logout(); toast.info("You have been logged out."); }}>
                       Logout
                     </button>
                   </div>

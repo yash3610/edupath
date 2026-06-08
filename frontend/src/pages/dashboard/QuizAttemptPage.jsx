@@ -3,9 +3,11 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bookmark, Check, ChevronLeft, ChevronRight, Eraser, Menu, Save, Timer, X } from "lucide-react";
 import { ProgressBar } from "../../components/dashboard/DashboardPrimitives.jsx";
+import { useToast } from "../../context/ToastContext.jsx";
 import { quizApi } from "../../services/quizApi.js";
 
 export default function QuizAttemptPage() {
+  const toast = useToast();
   const { attemptId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,20 +44,40 @@ export default function QuizAttemptPage() {
   async function save(questionId, value) {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
     setSaved("Saving...");
-    await quizApi.saveAnswer(attemptId, normalizePayload(question, value));
-    setSaved("Auto-saved");
+    try {
+      await quizApi.saveAnswer(attemptId, normalizePayload(question, value));
+      setSaved("Auto-saved");
+    } catch (error) {
+      setSaved("Save failed");
+      toast.error(error.message, "Answer save failed");
+    }
   }
   async function markReview() {
     setReview((prev) => ({ ...prev, [question._id]: !prev[question._id] }));
-    await quizApi.markReview(attemptId, normalizePayload(question, answers[question._id], true));
+    try {
+      await quizApi.markReview(attemptId, normalizePayload(question, answers[question._id], true));
+      toast.info("Question marked for review.");
+    } catch (error) {
+      toast.error(error.message, "Review mark failed");
+    }
   }
   async function clearAnswer() {
     setAnswers((prev) => { const next = { ...prev }; delete next[question._id]; return next; });
-    await quizApi.clearAnswer(attemptId, question._id);
+    try {
+      await quizApi.clearAnswer(attemptId, question._id);
+      toast.info("Answer cleared.");
+    } catch (error) {
+      toast.error(error.message, "Clear failed");
+    }
   }
   async function submit(auto = false) {
-    await quizApi.submitQuiz(attemptId);
-    navigate(`/dashboard/quizzes/result/${attemptId}`, { replace: true });
+    try {
+      await quizApi.submitQuiz(attemptId);
+      toast.success(auto ? "Timer ended, quiz auto-submitted." : "Quiz submitted successfully.");
+      navigate(`/dashboard/quizzes/result/${attemptId}`, { replace: true });
+    } catch (error) {
+      toast.error(error.message, "Submit failed");
+    }
   }
 
   if (!question) return <div className="h-80 animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10" />;

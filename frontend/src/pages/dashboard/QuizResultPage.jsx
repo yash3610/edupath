@@ -4,9 +4,11 @@ import { Cell, Pie, PieChart, Radar, RadarChart, PolarGrid, PolarAngleAxis, Resp
 import { CheckCircle2, Download, RotateCcw, Share2, Trophy, XCircle } from "lucide-react";
 import { MotionCard } from "../../components/dashboard/DashboardPrimitives.jsx";
 import { QuizHero, QuizMetric } from "../../components/dashboard/quiz/QuizShell.jsx";
+import { useToast } from "../../context/ToastContext.jsx";
 import { quizApi } from "../../services/quizApi.js";
 
 export default function QuizResultPage() {
+  const toast = useToast();
   const { attemptId } = useParams();
   const [result, setResult] = useState(null);
   const [downloading, setDownloading] = useState(false);
@@ -30,8 +32,10 @@ export default function QuizResultPage() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+      toast.success("Quiz result PDF downloaded.", "Download complete");
     } catch (error) {
       setDownloadError(error.message || "PDF download failed. Please login again and try.");
+      toast.error(error.message || "PDF download failed. Please login again and try.", "Download failed");
     } finally {
       setDownloading(false);
     }
@@ -41,6 +45,7 @@ export default function QuizResultPage() {
     const text = `I scored ${attempt.percentage}% on EduPath quiz.`;
     if (navigator.share) await navigator.share({ title: "EduPath Quiz Result", text });
     else await navigator.clipboard?.writeText(text);
+    toast.success("Result share text is ready.", "Shared");
   }
 
   return (

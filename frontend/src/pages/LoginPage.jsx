@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -16,9 +18,11 @@ export default function LoginPage() {
     setStatus({ loading: true, error: "" });
     try {
       await login(form);
+      toast.success("Welcome back! Redirecting you now.", "Login successful");
       navigate(location.state?.from?.pathname || "/course", { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
+      toast.error(error.message, "Login failed");
     }
   }
 

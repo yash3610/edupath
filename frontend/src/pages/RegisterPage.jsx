@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [status, setStatus] = useState({ loading: false, error: "" });
@@ -13,14 +15,17 @@ export default function RegisterPage() {
     event.preventDefault();
     if (form.password !== form.confirmPassword) {
       setStatus({ loading: false, error: "Passwords do not match" });
+      toast.warning("Passwords do not match.");
       return;
     }
     setStatus({ loading: true, error: "" });
     try {
       await register({ name: form.name, email: form.email, password: form.password });
+      toast.success("Your account is ready. Start learning now.", "Account created");
       navigate("/course", { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
+      toast.error(error.message, "Registration failed");
     }
   }
 

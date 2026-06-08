@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useToast } from "../context/ToastContext.jsx";
 import { api } from "../services/api.js";
 
 export default function ContactPage() {
+  const toast = useToast();
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", subject: "Website enquiry" });
   const [status, setStatus] = useState({ loading: false, message: "", error: "" });
 
@@ -15,9 +17,11 @@ export default function ContactPage() {
     try {
       const result = await api.contact(form);
       setStatus({ loading: false, message: result.message, error: "" });
+      toast.success(result.message || "We received your message.", "Message sent");
       setForm({ name: "", email: "", phone: "", message: "", subject: "Website enquiry" });
     } catch (error) {
       setStatus({ loading: false, message: "", error: error.message });
+      toast.error(error.message, "Message failed");
     }
   }
 
