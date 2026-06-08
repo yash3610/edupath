@@ -25,6 +25,25 @@ import TeamPage from "../pages/TeamPage.jsx";
 import TestimonialPage from "../pages/TestimonialPage.jsx";
 import WishlistPage from "../pages/WishlistPage.jsx";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
+const DashboardLayout = React.lazy(() => import("../layouts/DashboardLayout.jsx"));
+const AssignmentsPage = React.lazy(() => import("../pages/dashboard/AssignmentsPage.jsx"));
+const AIRecommendationsPage = React.lazy(() => import("../pages/dashboard/AIRecommendationsPage.jsx"));
+const AINotesPage = React.lazy(() => import("../pages/dashboard/AINotesPage.jsx"));
+const AITutorPage = React.lazy(() => import("../pages/dashboard/AITutorPage.jsx"));
+const CalendarPage = React.lazy(() => import("../pages/dashboard/CalendarPage.jsx"));
+const DashboardHome = React.lazy(() => import("../pages/dashboard/DashboardHome.jsx"));
+const DownloadsPage = React.lazy(() => import("../pages/dashboard/DownloadsPage.jsx"));
+const FeaturePage = React.lazy(() => import("../pages/dashboard/FeaturePage.jsx"));
+const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
+const MessagesPage = React.lazy(() => import("../pages/dashboard/MessagesPage.jsx"));
+const MyCoursesPage = React.lazy(() => import("../pages/dashboard/MyCoursesPage.jsx"));
+const NotificationsPage = React.lazy(() => import("../pages/dashboard/NotificationsPage.jsx"));
+const ProfilePage = React.lazy(() => import("../pages/dashboard/ProfilePage.jsx"));
+const QuizPage = React.lazy(() => import("../pages/dashboard/QuizPage.jsx"));
+
+function DashboardSuspense({ children }) {
+  return <React.Suspense fallback={<div className="section-gap text-center">Loading dashboard...</div>}>{children}</React.Suspense>;
+}
 
 export default function AppRoutes() {
   return (
@@ -58,6 +77,33 @@ export default function AppRoutes() {
         <Route path="/portfolio" element={<PortfolioPage />} />
         <Route path="/testimonial" element={<TestimonialPage />} />
         <Route path="/404" element={<NotFoundPage />} />
+      </Route>
+
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardSuspense><DashboardLayout /></DashboardSuspense></ProtectedRoute>}>
+        <Route index element={<DashboardHome />} />
+        <Route path="courses" element={<MyCoursesPage />} />
+        <Route path="learn" element={<LearningRoomPage />} />
+        <Route path="continue-learning" element={<LearningRoomPage />} />
+        <Route path="assignments" element={<AssignmentsPage />} />
+        <Route path="quizzes" element={<QuizPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="paths" element={<FeaturePage type="paths" />} />
+        <Route path="certificates" element={<FeaturePage type="certificates" />} />
+        <Route path="achievements" element={<FeaturePage type="achievements" />} />
+        <Route path="wishlist" element={<FeaturePage type="wishlist" />} />
+        <Route path="community" element={<FeaturePage type="community" />} />
+        <Route path="notes" element={<FeaturePage type="notes" />} />
+        <Route path="downloads" element={<DownloadsPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="messages" element={<MessagesPage />} />
+        <Route path="orders" element={<FeaturePage type="orders" />} />
+        <Route path="ai" element={<Navigate to="/dashboard/ai-tutor" replace />} />
+        <Route path="ai-tutor" element={<AITutorPage />} />
+        <Route path="ai-notes" element={<AINotesPage />} />
+        <Route path="ai-recommendations" element={<AIRecommendationsPage />} />
+        <Route path="analytics" element={<FeaturePage type="analytics" />} />
+        <Route path="settings" element={<FeaturePage type="settings" />} />
       </Route>
 
       <Route path="/index" element={<Navigate to="/" replace />} />

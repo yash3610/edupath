@@ -30,9 +30,10 @@ export default function Header() {
                       <i className="fi fi-rr-shopping-cart" /> {items.length}
                     </Link>
                     {user ? (
-                      <button type="button" className="ep-btn ep5-bg" onClick={logout}>
-                        Logout
-                      </button>
+                      <>
+                        <Link to="/dashboard" className="ep-btn ep5-bg">Dashboard</Link>
+                        <button type="button" className="ep-btn ep5-bg" onClick={logout}>Logout</button>
+                      </>
                     ) : (
                       <Link to="/login" className="ep-btn ep5-bg">Login</Link>
                     )}

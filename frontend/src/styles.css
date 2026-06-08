@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+body.dashboard-active::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+
+body.dashboard-active::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+}
+
+.dashboard-active {
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.dashboard-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.dashboard-sidebar-scroll::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.dashboard-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.dashboard-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 999px !important;
+}
+
 .app-form-status {
   margin-top: 14px;
   font-weight: 600;
