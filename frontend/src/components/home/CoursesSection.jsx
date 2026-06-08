@@ -1,6 +1,7 @@
 import React from "react";
 import useApiResource from "../../hooks/useApiResource.js";
 import { fallbackCourses } from "../../data/homeData.js";
+import { Link } from "react-router-dom";
 
 export default function CoursesSection() {
   const { data } = useApiResource("courses");
@@ -26,7 +27,7 @@ export default function CoursesSection() {
               <div className="owl-carousel ep-course__slider">
                 <div className="ep-course__slider-item">
                   <div className="ep-course__slider-content">
-                    <a href="/course-details" className="ep-course__title"><h3>{course.title}</h3></a>
+                    <Link to={`/course/${course.slug || "web-development-bootcamp"}`} className="ep-course__title"><h3>{course.title}</h3></Link>
                     <span className="ep-course__price">${course.price || 25} <del>{course.oldPrice || 29.8}$</del></span>
                     <p className="ep-course__text">{course.description}</p>
                     <div className="ep-course__rattings">

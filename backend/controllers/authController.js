@@ -1,24 +1,31 @@
 import User from "../models/User.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import jwt from "jsonwebtoken";
 
 function createSession(user) {
   return {
     user,
-    token: Buffer.from(`${user._id}:${user.email}`).toString("base64"),
+    token: jwt.sign(
+      { sub: user._id.toString(), role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    ),
   };
 }
 
 export const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const name = String(req.body.name || "").trim();
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = String(req.body.password || "");
 
   if (!name || !email || !password) {
     res.status(400);
     throw new Error("Name, email and password are required");
   }
 
-  if (password.length < 6) {
+  if (password.length < 8) {
     res.status(400);
-    throw new Error("Password must be at least 6 characters");
+    throw new Error("Password must be at least 8 characters");
   }
 
   const exists = await User.findOne({ email });
@@ -28,7 +35,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const user = new User({ name, email });
-  user.setPassword(password);
+  await user.setPassword(password);
   await user.save();
 
   res.status(201).json({
@@ -38,7 +45,8 @@ export const registerUser = asyncHandler(async (req, res) => {
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = String(req.body.password || "");
 
   if (!email || !password) {
     res.status(400);
@@ -46,7 +54,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findOne({ email });
-  if (!user || !user.matchPassword(password)) {
+  if (!user || !(await user.matchPassword(password))) {
     res.status(401);
     throw new Error("Invalid email or password");
   }
@@ -55,4 +63,8 @@ export const loginUser = asyncHandler(async (req, res) => {
     message: "Logged in successfully.",
     data: createSession(user),
   });
+});
+
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  res.json({ data: { user: req.user } });
 });

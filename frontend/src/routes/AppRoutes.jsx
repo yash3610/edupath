@@ -24,6 +24,7 @@ import TeamDetailsPage from "../pages/TeamDetailsPage.jsx";
 import TeamPage from "../pages/TeamPage.jsx";
 import TestimonialPage from "../pages/TestimonialPage.jsx";
 import WishlistPage from "../pages/WishlistPage.jsx";
+import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 
 export default function AppRoutes() {
   return (
@@ -32,18 +33,23 @@ export default function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/course" element={<CoursePage />} />
-        <Route path="/course-details" element={<CourseDetailsPage />} />
+        <Route path="/course/:slug" element={<CourseDetailsPage />} />
+        <Route path="/course-details" element={<Navigate to="/course/web-development-bootcamp" replace />} />
         <Route path="/event" element={<EventPage />} />
         <Route path="/event-details" element={<EventDetailsPage />} />
+        <Route path="/event/:slug" element={<EventDetailsPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog-details" element={<BlogDetailsPage />} />
+        <Route path="/blog/:slug" element={<BlogDetailsPage />} />
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/shop-single" element={<ShopSinglePage />} />
+        <Route path="/shop/:slug" element={<ShopSinglePage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/team-details" element={<TeamDetailsPage />} />
+        <Route path="/team/:slug" element={<TeamDetailsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/contact" element={<ContactPage />} />

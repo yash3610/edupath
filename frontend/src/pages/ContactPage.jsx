@@ -1,6 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
+import { api } from "../services/api.js";
 
 export default function ContactPage() {
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", subject: "Website enquiry" });
+  const [status, setStatus] = useState({ loading: false, message: "", error: "" });
+
+  function updateField(event) {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  async function submitContact(event) {
+    event.preventDefault();
+    setStatus({ loading: true, message: "", error: "" });
+    try {
+      const result = await api.contact(form);
+      setStatus({ loading: false, message: result.message, error: "" });
+      setForm({ name: "", email: "", phone: "", message: "", subject: "Website enquiry" });
+    } catch (error) {
+      setStatus({ loading: false, message: "", error: error.message });
+    }
+  }
+
   return (
     <>
       <div className="ep-breadcrumbs breadcrumbs-bg background-image" style={{backgroundImage: 'url("/assets/images/breadcrumbs-bg.png")'}}>
@@ -84,24 +104,26 @@ export default function ContactPage() {
                               <h3 className="ep-contact__form-title ep-split-text left">
                                 Get in Touch With Us
                               </h3>
-                              <form action="#" method="post">
+                              <form onSubmit={submitContact}>
                                 <div className="form-group">
                                   <label>Your Name</label>
-                                  <input type="text" id="name" name="your-name" placeholder="Name " required />
+                                  <input type="text" id="name" name="name" value={form.name} onChange={updateField} placeholder="Name " required />
                                 </div>
                                 <div className="form-group">
                                   <label>Your Email</label>
-                                  <input type="email" id="email" name="your-email" placeholder="Email " required />
+                                  <input type="email" id="email" name="email" value={form.email} onChange={updateField} placeholder="Email " required />
                                 </div>
                                 <div className="form-group">
                                   <label>Your Number</label>
-                                  <input type="tel" id="phone" name="your-number" placeholder="Phone Number" required />
+                                  <input type="tel" id="phone" name="phone" value={form.phone} onChange={updateField} placeholder="Phone Number" />
                                 </div>
                                 <div className="form-group">
                                   <label>Message</label>
-                                  <textarea name="message" id="message" placeholder="Message here.." required defaultValue={""} />
+                                  <textarea name="message" id="message" value={form.message} onChange={updateField} placeholder="Message here.." required />
                                 </div>
-                                <button type="submit" className="ep-btn">Send Message</button>
+                                {status.message && <p className="form-message">{status.message}</p>}
+                                {status.error && <p className="form-message form-message--error">{status.error}</p>}
+                                <button type="submit" className="ep-btn" disabled={status.loading}>{status.loading ? "Sending..." : "Send Message"}</button>
                               </form>
                             </div>
                           </div>

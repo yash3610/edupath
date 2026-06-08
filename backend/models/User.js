@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -29,12 +29,12 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.methods.setPassword = function setPassword(password) {
-  this.passwordHash = crypto.createHash("sha256").update(password).digest("hex");
+userSchema.methods.setPassword = async function setPassword(password) {
+  this.passwordHash = await bcrypt.hash(password, 12);
 };
 
 userSchema.methods.matchPassword = function matchPassword(password) {
-  return this.passwordHash === crypto.createHash("sha256").update(password).digest("hex");
+  return bcrypt.compare(password, this.passwordHash);
 };
 
 userSchema.methods.toJSON = function toJSON() {

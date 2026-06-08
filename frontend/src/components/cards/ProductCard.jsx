@@ -1,14 +1,15 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function ProductCard({ product }) {
   return (
     <div className="ep-product__card">
-      <a href="/shop-single" className="ep-product__img">
+      <Link to={`/shop/${product.slug}`} className="ep-product__img">
         <img src={product.image} alt={product.title} />
-      </a>
+      </Link>
       <div className="ep-product__content">
         <h5>
-          <a href="/shop-single">{product.title}</a>
+          <Link to={`/shop/${product.slug}`}>{product.title}</Link>
         </h5>
         <div className="ep-product__price">
           <span>${product.price}</span>

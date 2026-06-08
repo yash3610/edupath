@@ -1,8 +1,9 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function CourseCard({ course }) {
   return (
-    <a href={`/course-details`} className="ep-course__card">
+    <Link to={`/course/${course.slug}`} className="ep-course__card">
       <div className="ep-course__img">
         <img src={course.image} alt={course.title} />
       </div>
@@ -15,6 +16,6 @@ export default function CourseCard({ course }) {
           <strong>${course.price}</strong>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }

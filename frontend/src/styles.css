@@ -102,6 +102,82 @@ main > div {
   text-align: left;
 }
 
+.ep-header__btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-cart-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ep-secondary-color);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.toggle-password {
+  border: 0;
+  background: transparent;
+}
+
+.form-message {
+  margin: 12px 0;
+  font-weight: 600;
+}
+
+.form-message--error {
+  color: #c62828;
+}
+
+.course-enroll-button {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.cart-course-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 20px;
+  padding: 18px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ep-border-color);
+  border-radius: 12px;
+  background: var(--ep-white-color);
+}
+
+.cart-course-row img {
+  width: 90px;
+  height: 70px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.cart-remove-button {
+  border: 0;
+  background: transparent;
+  color: #c62828;
+  font-weight: 700;
+}
+
+.cart-checkout-link {
+  display: block;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .cart-course-row {
+    grid-template-columns: 70px 1fr;
+  }
+
+  .cart-course-row img {
+    width: 70px;
+    height: 60px;
+  }
+}
+
 @media (min-width: 1200px) {
   .ep-header--style2 .ep-container {
     max-width: 1320px;

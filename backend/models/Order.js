@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema(
   {
+    course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
     title: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true, min: 0 },
@@ -11,6 +12,7 @@ const orderItemSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
   {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     customerName: { type: String, required: true, trim: true },
     email: {
       type: String,
@@ -27,6 +29,11 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "confirmed", "cancelled"],
       default: "pending",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["bank-transfer", "pay-later"],
+      default: "bank-transfer",
     },
   },
   { timestamps: true }

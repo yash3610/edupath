@@ -1,92 +1,57 @@
-import React from "react";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Breadcrumb from "../components/common/Breadcrumb.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function RegisterPage() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [status, setStatus] = useState({ loading: false, error: "" });
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (form.password !== form.confirmPassword) {
+      setStatus({ loading: false, error: "Passwords do not match" });
+      return;
+    }
+    setStatus({ loading: true, error: "" });
+    try {
+      await register({ name: form.name, email: form.email, password: form.password });
+      navigate("/course", { replace: true });
+    } catch (error) {
+      setStatus({ loading: false, error: error.message });
+    }
+  }
+
   return (
     <>
-      <div className="ep-breadcrumbs breadcrumbs-bg background-image" style={{backgroundImage: 'url("/assets/images/breadcrumbs-bg.png")'}}>
-                      <div className="container">
-                        <div className="row justify-content-center">
-                          <div className="col-lg-6 col-md-6 col-12">
-                            <div className="ep-breadcrumbs__content">
-                              <h3 className="ep-breadcrumbs__title">Registration</h3>
-                              <ul className="ep-breadcrumbs__menu">
-                                <li>
-                                  <a href="/">Home</a>
-                                </li>
-                                <li>
-                                  <i className="fi-bs-angle-right" />
-                                </li>
-                                <li className="active">
-                                  <a href="/register">Registration</a>
-                                </li>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <section className="ep-auth auth-login section-gap position-relative">
-                      <div className="container ep-container">
-                        <div className="row justify-content-center">
-                          <div className="col-lg-8 col-xl-6 col-md-10 col-12">
-                            <div className="ep-auth__card">
-                              <div className="ep-auth__card-head">
-                                <h3 className="ep-auth__card-title">Welcome back!</h3>
-                                <p className="ep-auth__card-text">Log in to your account</p>
-                                <div className="ep-auth__card-social">
-                                  <a href="#" target="_blank">
-                                    <img src="/assets/images/icons/google.svg" alt="google-icon" />Login with Google
-                                  </a>
-                                  <a href="#" target="_blank">
-                                    <img src="/assets/images/icons/facebook.svg" alt="facebook-icon" />Login with Facebook
-                                  </a>
-                                </div>
-                                <div className="ep-auth__another-way">
-                                  Or log in with Email
-                                </div>
-                              </div>
-                              <div className="ep-auth__card-body">
-                                <form action="#" method="post" className="ep-auth__card-form">
-                                  <div className="form-group">
-                                    <label>Your Email</label>
-                                    <input type="email" name="email" placeholder="Email address" required />
-                                  </div>
-                                  <div className="form-group">
-                                    <label>Password</label>
-                                    <div className="form-group-input">
-                                      <input type="password" id="password" name="password" placeholder="Enter Password" required />
-                                      <span className="toggle-password" data-password-toggle="password">Show</span>
-                                    </div>
-                                  </div>
-                                  <div className="form-group">
-                                    <label>Re-type Password</label>
-                                    <div className="form-group-input">
-                                      <input type="password" id="retype-password" name="password" placeholder="Enter Password" required />
-                                      <span className="toggle-password" data-password-toggle="retype-password">Show</span>
-                                    </div>
-                                  </div>
-                                  <div className="ep-auth__card-info">
-                                    <div className="form-check">
-                                      <input type="checkbox" id="custom-checkbox" className="form-check-input" />
-                                      <label title htmlFor="custom-checkbox" className="form-check-label">I am agree to all the
-                                        <a href="#">terms &amp; conditions</a>
-                                      </label>
-                                    </div>
-                                  </div>
-                                  <div className="ep-auth__card-form-btn">
-                                    <button type="submit" className="ep-btn">Sign Up</button>
-                                  </div>
-                                </form>
-                              </div>
-                              <div className="ep-auth__card-bottom">
-                                <span>Already have an account?</span>
-                                <a href="/login">Login</a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </section>
+      <Breadcrumb title="Registration" />
+      <section className="ep-auth auth-login section-gap position-relative">
+        <div className="container ep-container">
+          <div className="row justify-content-center">
+            <div className="col-lg-8 col-xl-6 col-md-10 col-12">
+              <div className="ep-auth__card">
+                <div className="ep-auth__card-head">
+                  <h3 className="ep-auth__card-title">Create your account</h3>
+                  <p className="ep-auth__card-text">Start learning with Edupath</p>
+                </div>
+                <div className="ep-auth__card-body">
+                  <form className="ep-auth__card-form" onSubmit={handleSubmit}>
+                    <div className="form-group"><label htmlFor="register-name">Full Name</label><input id="register-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" required /></div>
+                    <div className="form-group"><label htmlFor="register-email">Your Email</label><input id="register-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} autoComplete="email" required /></div>
+                    <div className="form-group"><label htmlFor="register-password">Password</label><input id="register-password" type="password" minLength="8" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="new-password" required /></div>
+                    <div className="form-group"><label htmlFor="register-confirm">Confirm Password</label><input id="register-confirm" type="password" minLength="8" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} autoComplete="new-password" required /></div>
+                    {status.error && <p className="form-message form-message--error" role="alert">{status.error}</p>}
+                    <div className="ep-auth__card-form-btn"><button type="submit" className="ep-btn" disabled={status.loading}>{status.loading ? "Creating account..." : "Sign Up"}</button></div>
+                  </form>
+                </div>
+                <div className="ep-auth__card-bottom"><span>Already have an account?</span> <Link to="/login">Login</Link></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </>
   );
 }

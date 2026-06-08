@@ -4,7 +4,7 @@ export const navigationGroups = [
     label: "Courses",
     links: [
       { label: "Course", path: "/course" },
-      { label: "Course Details", path: "/course-details" },
+      { label: "Course Details", path: "/course/web-development-bootcamp" },
     ],
   },
   {

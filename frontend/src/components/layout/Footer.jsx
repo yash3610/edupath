@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { api } from "../../services/api.js";
 
 const services = [
   "Reliable Rentals",
@@ -10,6 +11,20 @@ const services = [
 ];
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function subscribe(event) {
+    event.preventDefault();
+    try {
+      const result = await api.newsletter({ email });
+      setMessage(result.message);
+      setEmail("");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
   return (
     <footer className="ep-footer ep-footer--style2 position-relative">
       <div className="ep-footer__overlay" />
@@ -71,10 +86,11 @@ export default function Footer() {
               <div className="ep-footer__widget footer-newsletter">
                 <h4 className="ep-footer__widget-title ep-footer__widget-title--style2">Newsletter</h4>
                 <p className="ep-footer__text m-0">It is a long established fact that a reader will be distracted</p>
-                <form className="ep-footer__newsletter ep-footer__newsletter--style2 mg-top-30">
-                  <input type="email" name="email" placeholder="Your e-mail" required />
+                <form className="ep-footer__newsletter ep-footer__newsletter--style2 mg-top-30" onSubmit={subscribe}>
+                  <input type="email" name="email" placeholder="Your e-mail" value={email} onChange={(event) => setEmail(event.target.value)} required />
                   <button type="submit"><i className="fi fi-ss-paper-plane" /></button>
                 </form>
+                {message && <small className="footer-form-message">{message}</small>}
               </div>
             </div>
           </div>
