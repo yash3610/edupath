@@ -34,12 +34,19 @@ const CalendarPage = React.lazy(() => import("../pages/dashboard/CalendarPage.js
 const DashboardHome = React.lazy(() => import("../pages/dashboard/DashboardHome.jsx"));
 const DownloadsPage = React.lazy(() => import("../pages/dashboard/DownloadsPage.jsx"));
 const FeaturePage = React.lazy(() => import("../pages/dashboard/FeaturePage.jsx"));
+const AdminQuizManagementPage = React.lazy(() => import("../pages/dashboard/AdminQuizManagementPage.jsx"));
+const InstructorQuizAnalyticsPage = React.lazy(() => import("../pages/dashboard/InstructorQuizAnalyticsPage.jsx"));
+const InstructorQuizBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorQuizBuilderPage.jsx"));
 const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
 const MessagesPage = React.lazy(() => import("../pages/dashboard/MessagesPage.jsx"));
 const MyCoursesPage = React.lazy(() => import("../pages/dashboard/MyCoursesPage.jsx"));
 const NotificationsPage = React.lazy(() => import("../pages/dashboard/NotificationsPage.jsx"));
 const ProfilePage = React.lazy(() => import("../pages/dashboard/ProfilePage.jsx"));
+const QuizAttemptPage = React.lazy(() => import("../pages/dashboard/QuizAttemptPage.jsx"));
+const QuizHistoryPage = React.lazy(() => import("../pages/dashboard/QuizHistoryPage.jsx"));
+const QuizInstructionsPage = React.lazy(() => import("../pages/dashboard/QuizInstructionsPage.jsx"));
 const QuizPage = React.lazy(() => import("../pages/dashboard/QuizPage.jsx"));
+const QuizResultPage = React.lazy(() => import("../pages/dashboard/QuizResultPage.jsx"));
 
 function DashboardSuspense({ children }) {
   return <React.Suspense fallback={<div className="section-gap text-center">Loading dashboard...</div>}>{children}</React.Suspense>;
@@ -86,6 +93,13 @@ export default function AppRoutes() {
         <Route path="continue-learning" element={<LearningRoomPage />} />
         <Route path="assignments" element={<AssignmentsPage />} />
         <Route path="quizzes" element={<QuizPage />} />
+        <Route path="quizzes/:quizId/instructions" element={<QuizInstructionsPage />} />
+        <Route path="quizzes/attempt/:attemptId" element={<QuizAttemptPage />} />
+        <Route path="quizzes/result/:attemptId" element={<QuizResultPage />} />
+        <Route path="quizzes/history/:quizId" element={<QuizHistoryPage />} />
+        <Route path="instructor/quizzes/builder" element={<InstructorQuizBuilderPage />} />
+        <Route path="instructor/quizzes/:quizId/analytics" element={<InstructorQuizAnalyticsPage />} />
+        <Route path="admin/quizzes" element={<AdminQuizManagementPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="paths" element={<FeaturePage type="paths" />} />
         <Route path="certificates" element={<FeaturePage type="certificates" />} />

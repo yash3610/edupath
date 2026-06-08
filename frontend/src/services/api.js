@@ -23,6 +23,29 @@ export async function apiRequest(endpoint, options = {}) {
   return result;
 }
 
+export async function apiBlobRequest(endpoint, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    let message = "Download failed";
+    try {
+      const result = await response.json();
+      message = result.message || message;
+    } catch {
+      message = response.statusText || message;
+    }
+    throw new Error(message);
+  }
+
+  return response.blob();
+}
+
 export const api = {
   health: () => apiRequest("/api/health"),
   courses: () => apiRequest("/api/courses"),

@@ -116,8 +116,123 @@ export const Enrollment = makeModel("Enrollment", new Schema({ student: { type: 
 export const LectureProgress = makeModel("LectureProgress", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, lecture: { type: objectId, ref: "Lecture", required: true }, completed: { type: Boolean, default: false }, watchTimeSeconds: { type: Number, default: 0 }, bookmarked: { type: Boolean, default: false } }, baseOptions));
 export const Note = makeModel("Note", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course" }, lecture: { type: objectId, ref: "Lecture" }, title: String, content: String, pinned: { type: Boolean, default: false } }, baseOptions));
 
-export const Quiz = makeModel("Quiz", new Schema({ course: { type: objectId, ref: "Course" }, title: String, durationMinutes: Number, questions: [{ question: String, options: [String], correctIndex: Number, explanation: String }] }, baseOptions));
-export const QuizAttempt = makeModel("QuizAttempt", new Schema({ quiz: { type: objectId, ref: "Quiz" }, student: { type: objectId, ref: "User" }, answers: [Number], score: Number, correct: Number, wrong: Number, submittedAt: Date }, baseOptions));
+const quizOptionSchema = new Schema(
+  {
+    label: String,
+    text: String,
+    isCorrect: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const questionSchema = new Schema(
+  {
+    questionText: String,
+    question: String,
+    questionType: {
+      type: String,
+      enum: ["single-choice", "multiple-choice", "true-false", "fill-blank", "short-answer", "code"],
+      default: "single-choice",
+    },
+    options: [quizOptionSchema],
+    correctAnswer: String,
+    correctAnswers: [String],
+    correctIndex: Number,
+    explanation: String,
+    marks: { type: Number, default: 1 },
+    negativeMarks: { type: Number, default: 0 },
+    difficulty: { type: String, enum: ["easy", "medium", "hard"], default: "medium" },
+    topicTag: String,
+    image: String,
+    order: { type: Number, default: 0 },
+  },
+  baseOptions
+);
+
+const answerSchema = new Schema(
+  {
+    questionId: { type: objectId },
+    selectedOption: String,
+    selectedOptions: [String],
+    textAnswer: String,
+    codeAnswer: String,
+    isCorrect: { type: Boolean, default: false },
+    marksEarned: { type: Number, default: 0 },
+    timeSpent: { type: Number, default: 0 },
+    markedForReview: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+export const Quiz = makeModel(
+  "Quiz",
+  new Schema(
+    {
+      title: { type: String, required: true, trim: true },
+      slug: { type: String, trim: true, index: true },
+      description: String,
+      course: { type: objectId, ref: "Course", required: true },
+      module: { type: objectId, ref: "Module" },
+      lecture: { type: objectId, ref: "Lecture" },
+      instructor: { type: objectId, ref: "User" },
+      questions: [questionSchema],
+      duration: { type: Number, default: 15 },
+      durationMinutes: Number,
+      totalMarks: { type: Number, default: 0 },
+      passingMarks: { type: Number, default: 0 },
+      difficulty: { type: String, enum: ["easy", "medium", "hard"], default: "medium" },
+      attemptsAllowed: { type: Number, default: 1 },
+      negativeMarking: { type: Boolean, default: false },
+      negativeMarksPerQuestion: { type: Number, default: 0 },
+      shuffleQuestions: { type: Boolean, default: false },
+      shuffleOptions: { type: Boolean, default: false },
+      showResultImmediately: { type: Boolean, default: true },
+      showCorrectAnswers: { type: Boolean, default: true },
+      lockUntilLectureComplete: { type: Boolean, default: false },
+      status: { type: String, enum: ["draft", "published", "archived"], default: "draft", index: true },
+      isApproved: { type: Boolean, default: false, index: true },
+      startDate: Date,
+      endDate: Date,
+    },
+    baseOptions
+  )
+);
+
+export const QuizAttempt = makeModel(
+  "QuizAttempt",
+  new Schema(
+    {
+      quiz: { type: objectId, ref: "Quiz", required: true },
+      course: { type: objectId, ref: "Course" },
+      student: { type: objectId, ref: "User", required: true },
+      attemptNumber: { type: Number, default: 1 },
+      answers: [answerSchema],
+      score: { type: Number, default: 0 },
+      percentage: { type: Number, default: 0 },
+      totalMarks: { type: Number, default: 0 },
+      passingMarks: { type: Number, default: 0 },
+      status: {
+        type: String,
+        enum: ["in-progress", "submitted", "auto-submitted", "passed", "failed"],
+        default: "in-progress",
+        index: true,
+      },
+      startedAt: { type: Date, default: Date.now },
+      submittedAt: Date,
+      timeTaken: { type: Number, default: 0 },
+      isPassed: { type: Boolean, default: false },
+      correctCount: { type: Number, default: 0 },
+      wrongCount: { type: Number, default: 0 },
+      unansweredCount: { type: Number, default: 0 },
+      markedForReview: [{ type: objectId }],
+      browserInfo: Schema.Types.Mixed,
+      ipAddress: String,
+      correct: Number,
+      wrong: Number,
+    },
+    baseOptions
+  )
+);
 export const Assignment = makeModel("Assignment", new Schema({ course: { type: objectId, ref: "Course" }, title: String, description: String, dueDate: Date, allowedFileTypes: [String], maxMarks: Number }, baseOptions));
 export const AssignmentSubmission = makeModel("AssignmentSubmission", new Schema({ assignment: { type: objectId, ref: "Assignment" }, student: { type: objectId, ref: "User" }, fileUrl: String, status: { type: String, enum: ["pending", "submitted", "graded", "overdue"], default: "submitted" }, grade: String, feedback: String }, baseOptions));
 export const Certificate = makeModel("Certificate", new Schema({ student: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, certificateCode: { type: String, unique: true }, issuedAt: Date, pdfUrl: String }, baseOptions));
