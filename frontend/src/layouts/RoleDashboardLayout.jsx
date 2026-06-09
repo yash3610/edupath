@@ -1,47 +1,96 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../components/dashboard/DashboardPrimitives.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { api } from "../services/api.js";
 
-const roleConfig = {
+const configs = {
   admin: {
-    label: "Admin Dashboard",
-    accent: "#7c3aed",
-    loginPath: "/staff/login",
+    label: "Admin workspace",
+    title: "Platform Administration",
     homePath: "/admin/dashboard",
-    navItems: [
-      ["Overview", "/admin/dashboard", "LayoutDashboard"],
-      ["Quiz Management", "/admin/dashboard/quizzes", "BadgeHelp"],
+    loginPath: "/staff/login",
+    groups: [
+      { label: "Overview", items: [["Dashboard", "", "LayoutDashboard"], ["Reports", "reports", "ChartNoAxesCombined"]] },
+      { label: "People", items: [["Students", "students", "Users"], ["Instructors", "instructors", "GraduationCap"]] },
+      { label: "Learning", items: [["Courses", "courses", "BookOpen"], ["Course Approvals", "approvals", "PackageCheck"], ["Categories", "categories", "FolderKanban"], ["Quizzes", "quizzes", "BadgeHelp"], ["Assignments", "assignments", "FileCheck2"], ["Certificates", "certificates", "Award"]] },
+      { label: "Commerce", items: [["Orders", "orders", "ReceiptText"], ["Payments", "payments", "CreditCard"], ["Refunds", "refunds", "RefreshCcw"], ["Coupons", "coupons", "Megaphone"]] },
+      { label: "Platform", items: [["Reviews", "reviews", "Star"], ["Community", "moderation", "ShieldCheck"], ["Settings", "settings", "Settings"]] },
     ],
   },
   instructor: {
-    label: "Instructor Dashboard",
-    accent: "#0f9f82",
-    loginPath: "/staff/login",
+    label: "Instructor workspace",
+    title: "Teaching Studio",
     homePath: "/instructor/dashboard",
-    navItems: [
-      ["Overview", "/instructor/dashboard", "LayoutDashboard"],
-      ["Quiz Builder", "/instructor/dashboard/quizzes/new", "NotebookPen"],
-      ["Quiz Analytics", "/instructor/dashboard/quizzes/demo/analytics", "LineChart"],
+    loginPath: "/staff/login",
+    groups: [
+      { label: "Overview", items: [["Dashboard", "", "LayoutDashboard"], ["Analytics", "analytics", "LineChart"]] },
+      { label: "Courses", items: [["My Courses", "my-courses", "BookOpen"], ["Create Course", "create-course", "Plus"], ["Course Builder", "course-builder", "PanelTop"], ["Students", "students", "Users"], ["Live Classes", "live-classes", "Video"]] },
+      { label: "Teaching", items: [["Quizzes", "quizzes", "BadgeHelp"], ["Create Quiz", "quizzes/new", "Plus"], ["Assignments", "assignments", "FileCheck2"], ["Doubts / Q&A", "doubts", "MessagesSquare"], ["Reviews", "reviews", "Star"]] },
+      { label: "Business", items: [["Earnings", "earnings", "WalletCards"], ["Payouts", "payouts", "CreditCard"]] },
+      { label: "Account", items: [["Messages", "messages", "MessageCircle"], ["Profile", "profile", "UserRound"], ["Settings", "settings", "Settings"]] },
     ],
   },
 };
 
+const notificationIcons = { course: "BookOpen", quiz: "BadgeHelp", assignment: "UploadCloud", payment: "CreditCard" };
+
 export default function RoleDashboardLayout({ role }) {
-  const config = roleConfig[role];
+  const config = configs[role];
   const [dark, setDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const notificationRef = useRef(null);
   const { user, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const firstName = useMemo(() => user?.name?.split(" ")[0] || config.label.split(" ")[0], [config.label, user]);
+  const location = useLocation();
+  const firstName = useMemo(() => user?.name?.split(" ")[0] || (role === "admin" ? "Admin" : "Instructor"), [role, user]);
+  const navItems = useMemo(() => config.groups.flatMap((group) => group.items), [config]);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const result = await api.notifications(5);
+      setNotifications(result.data || []);
+    } catch {
+      setNotifications([]);
+    }
+  }, []);
 
   useEffect(() => {
     document.body.classList.add("dashboard-active");
+    loadNotifications();
     return () => document.body.classList.remove("dashboard-active");
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    setNotificationOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function closeDropdown(event) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) setNotificationOpen(false);
+    }
+    document.addEventListener("mousedown", closeDropdown);
+    return () => document.removeEventListener("mousedown", closeDropdown);
   }, []);
+
+  function pathFor(segment) {
+    return segment ? `${config.homePath}/${segment}` : config.homePath;
+  }
+
+  async function removeNotification(id) {
+    try {
+      await api.deleteNotification(id);
+      await loadNotifications();
+    } catch (error) {
+      toast.error(error.message);
+    }
+  }
 
   function handleLogout() {
     logout();
@@ -50,67 +99,90 @@ export default function RoleDashboardLayout({ role }) {
   }
 
   return (
-    <div className={dark ? "dark" : ""} style={{ "--role-accent": config.accent }}>
-      <div className="min-h-screen bg-[#f6f7fb] text-slate-900 dark:bg-slate-950 dark:text-white">
-        <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-64 flex-col border-r border-slate-200 bg-white px-4 py-5 dark:border-white/10 dark:bg-slate-900 lg:flex">
-          <Sidebar config={config} onNavigate={() => {}} />
+    <div className={dark ? "dark" : ""}>
+      <div className="min-h-screen bg-[#f7f8fc] text-slate-900 dark:bg-slate-950 dark:text-white">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col border-r border-slate-200/80 bg-white px-4 py-5 dark:border-white/10 dark:bg-slate-900 lg:flex">
+          <RoleSidebar config={config} pathFor={pathFor} onNavigate={() => {}} />
         </aside>
 
         {mobileOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <button className="absolute inset-0 bg-slate-950/45" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
-            <aside className="relative h-full w-[82vw] max-w-80 bg-white px-4 py-5 shadow-2xl dark:bg-slate-900">
+            <aside className="relative flex h-full w-[84vw] max-w-80 flex-col bg-white px-4 py-5 shadow-2xl dark:bg-slate-900">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-black uppercase tracking-[0.16em]" style={{ color: config.accent }}>Menu</span>
-                <button className="rounded-xl border border-slate-200 p-2 dark:border-white/10" onClick={() => setMobileOpen(false)} aria-label="Close menu">
-                  <Icon name="X" className="h-5 w-5" />
-                </button>
+                <span className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#ff723a]">{role} menu</span>
+                <button className="rounded-xl border border-slate-200 p-2 dark:border-white/10" onClick={() => setMobileOpen(false)}><Icon name="X" /></button>
               </div>
-              <Sidebar config={config} onNavigate={() => setMobileOpen(false)} />
+              <RoleSidebar config={config} pathFor={pathFor} onNavigate={() => setMobileOpen(false)} />
             </aside>
           </div>
         )}
 
-        <div className="min-w-0 lg:pl-64">
-          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-900/95 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 lg:pl-[276px]">
+          <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 px-4 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
+            <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <button className="rounded-xl border border-slate-200 p-2.5 dark:border-white/10 lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
-                  <Icon name="Menu" className="h-5 w-5" />
-                </button>
+                <button className="rounded-xl border border-slate-200 p-2.5 dark:border-white/10 lg:hidden" onClick={() => setMobileOpen(true)}><Icon name="Menu" /></button>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: config.accent }}>{config.label}</p>
-                  <h1 className="truncate text-lg font-black sm:text-2xl">Welcome back, {firstName}</h1>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#ff723a]">{config.label}</p>
+                  <h1 className="truncate text-lg font-extrabold tracking-[-0.02em] sm:text-xl">Welcome back, {firstName}</h1>
                 </div>
               </div>
-              <div className="relative flex shrink-0 items-center gap-2">
-                <button className="rounded-xl border border-slate-200 bg-white p-2.5 dark:border-white/10 dark:bg-white/10" onClick={() => setDark((value) => !value)} aria-label="Toggle theme">
-                  <Icon name={dark ? "Sun" : "Moon"} className="h-5 w-5" />
-                </button>
-                <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 dark:border-white/10 dark:bg-white/10" onClick={() => setProfileOpen((value) => !value)}>
-                  <Icon name="UserRound" className="h-5 w-5" />
-                  <span className="hidden text-sm font-black sm:block">{firstName}</span>
-                </button>
-                {profileOpen && (
-                  <div className="absolute right-0 top-14 w-60 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-slate-900">
-                    <p className="font-black">{user?.name}</p>
-                    <p className="break-all text-xs text-slate-500">{user?.email}</p>
-                    <p className="mt-2 text-xs font-black uppercase tracking-wider" style={{ color: config.accent }}>{user?.role}</p>
-                    <button className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white dark:bg-white dark:text-slate-950" onClick={handleLogout}>Logout</button>
-                  </div>
-                )}
+
+              <div className="hidden min-w-0 flex-1 px-5 xl:block">
+                <div className="mx-auto flex max-w-lg items-center gap-2.5 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 focus-within:border-[#ff723a]/40 focus-within:ring-4 focus-within:ring-orange-50 dark:border-white/10 dark:bg-slate-800">
+                  <Icon name="Search" className="h-4 w-4 text-slate-400" />
+                  <input className="dashboard-search-input min-w-0 flex-1 text-sm font-semibold" placeholder={`Search ${role} workspace...`} />
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <div ref={notificationRef} className="relative">
+                  <button onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) loadNotifications(); }} className="relative rounded-xl border border-slate-200 bg-white p-2.5 hover:bg-orange-50 dark:border-white/10 dark:bg-white/10">
+                    <Icon name="Bell" />
+                    {notifications.length > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#ff723a] ring-2 ring-white" />}
+                  </button>
+                  {notificationOpen && (
+                    <div className="absolute right-0 top-14 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(31,28,53,.16)] dark:border-white/10 dark:bg-slate-900">
+                      <div className="border-b border-slate-100 px-4 py-3.5 dark:border-white/10">
+                        <p className="font-extrabold">Notifications</p>
+                        <p className="text-xs text-slate-400">{notifications.length} new updates</p>
+                      </div>
+                      {notifications.map((item) => (
+                        <button key={item._id} onClick={() => removeNotification(item._id)} className="flex w-full gap-3 border-b border-slate-100 px-4 py-3.5 text-left last:border-0 hover:bg-[#fff8f2] dark:border-white/10">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fff1e8] text-[#ff723a]"><Icon name={notificationIcons[item.type?.toLowerCase()] || "Bell"} className="h-[18px] w-[18px]" /></span>
+                          <span className="min-w-0"><span className="block text-sm font-extrabold">{item.title}</span><span className="mt-1 block truncate text-xs text-slate-500">{item.message || item.type}</span></span>
+                        </button>
+                      ))}
+                      {!notifications.length && <p className="px-4 py-8 text-center text-sm font-bold text-slate-400">No new notifications</p>}
+                    </div>
+                  )}
+                </div>
+                <button className="rounded-xl border border-slate-200 bg-white p-2.5 dark:border-white/10 dark:bg-white/10" onClick={() => setDark((value) => !value)}><Icon name={dark ? "Sun" : "Moon"} /></button>
+                <div className="relative">
+                  <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pr-3 dark:border-white/10 dark:bg-white/10">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1f1c35] text-sm font-extrabold text-white">{firstName[0]}</span>
+                    <span className="hidden text-sm font-extrabold sm:block">{firstName}</span>
+                  </button>
+                  {profileOpen && (
+                    <div className="absolute right-0 top-14 w-60 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-slate-900">
+                      <p className="font-extrabold">{user?.name || firstName}</p>
+                      <p className="break-all text-xs text-slate-500">{user?.email}</p>
+                      <p className="mt-2 text-[10px] font-extrabold uppercase tracking-widest text-[#ff723a]">{role}</p>
+                      <button className="mt-3 w-full rounded-xl bg-[#1f1c35] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#ff723a]" onClick={handleLogout}>Logout</button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 lg:hidden">
-              {config.navItems.map(([label, path, icon]) => (
-                <RoleNavLink key={path} label={label} path={path} icon={icon} homePath={config.homePath} />
-              ))}
+              {navItems.map(([label, segment, icon]) => <RoleNavItem key={`${label}-${segment}`} label={label} path={pathFor(segment)} icon={icon} homePath={config.homePath} />)}
             </nav>
           </header>
 
-          <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-            <Outlet context={{ role, user, accent: config.accent }} />
+          <main className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+            <Outlet context={{ role, user, config }} />
           </main>
         </div>
       </div>
@@ -118,34 +190,29 @@ export default function RoleDashboardLayout({ role }) {
   );
 }
 
-function RoleNavLink({ label, path, icon, homePath, onNavigate }) {
-  return (
-    <NavLink
-      to={path}
-      end={path === homePath}
-      onClick={onNavigate}
-      className={({ isActive }) => `flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-black transition-colors ${isActive ? "bg-[var(--role-accent)] text-white" : "bg-slate-100 text-slate-700 hover:text-slate-950 dark:bg-white/10 dark:text-slate-200"}`}
-    >
-      <Icon name={icon} className="h-4 w-4" />
-      {label}
-    </NavLink>
-  );
-}
-
-function Sidebar({ config, onNavigate }) {
+function RoleSidebar({ config, pathFor, onNavigate }) {
   return (
     <>
-      <NavLink to={config.homePath} className="mb-5 flex shrink-0 items-center gap-3 rounded-2xl px-2 py-2" onClick={onNavigate}>
-        <img src="/assets/images/logo.svg" alt="EduPath" className="h-10 w-auto" />
-      </NavLink>
-      <div className="mb-4 rounded-2xl bg-slate-100 px-4 py-3 text-xs font-black uppercase tracking-[0.15em] dark:bg-white/10" style={{ color: config.accent }}>
-        {config.label}
-      </div>
-      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-        {config.navItems.map(([label, path, icon]) => (
-          <RoleNavLink key={path} label={label} path={path} icon={icon} homePath={config.homePath} onNavigate={onNavigate} />
+      <NavLink to={config.homePath} className="mb-5 flex shrink-0 items-center px-2 py-1" onClick={onNavigate}><img src="/assets/images/logo.svg" alt="EduPath" className="h-10 w-auto" /></NavLink>
+      <nav className="dashboard-sidebar-scroll min-h-0 flex-1 overflow-y-auto pr-1 pb-4">
+        {config.groups.map((group, index) => (
+          <div key={group.label} className={index ? "mt-4" : ""}>
+            <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">{group.label}</p>
+            <div className="space-y-1">
+              {group.items.map(([label, segment, icon]) => <RoleNavItem key={`${label}-${segment}`} label={label} path={pathFor(segment)} icon={icon} homePath={config.homePath} onNavigate={onNavigate} />)}
+            </div>
+          </div>
         ))}
       </nav>
     </>
+  );
+}
+
+function RoleNavItem({ label, path, icon, homePath, onNavigate }) {
+  return (
+    <NavLink to={path} end={path === homePath} onClick={onNavigate} className={({ isActive }) => `group flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}>
+      <Icon name={icon} className="h-[18px] w-[18px]" />
+      <span>{label}</span>
+    </NavLink>
   );
 }

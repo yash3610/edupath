@@ -1,23 +1,110 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Copy, GripVertical, Plus, Save, Trash2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { MotionCard } from "../../components/dashboard/DashboardPrimitives.jsx";
 import { QuizHero } from "../../components/dashboard/quiz/QuizShell.jsx";
+import { apiRequest } from "../../services/api.js";
+import { useToast } from "../../context/ToastContext.jsx";
 
 const initialQuestion = { questionType: "single-choice", questionText: "", marks: 10, difficulty: "medium", topicTag: "", options: ["", "", "", ""], correctAnswer: "A", explanation: "" };
 
 export default function InstructorQuizBuilderPage() {
-  const [quiz, setQuiz] = useState({ title: "", description: "", course: "react-mastery", duration: 20, passingMarks: 50, totalMarks: 100, difficulty: "medium", attemptsAllowed: 2, negativeMarking: true, shuffleQuestions: true, showResultImmediately: true, lockUntilLectureComplete: false, status: "draft" });
+  const toast = useToast();
+  const navigate = useNavigate();
+  const { quizId } = useParams();
+  const isEditing = Boolean(quizId);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(isEditing);
+  const [saving, setSaving] = useState(false);
+  const [quiz, setQuiz] = useState({ title: "", description: "", course: "", duration: 20, passingMarks: 50, totalMarks: 100, difficulty: "medium", attemptsAllowed: 2, negativeMarking: true, shuffleQuestions: true, showResultImmediately: true, lockUntilLectureComplete: false, status: "draft" });
   const [questions, setQuestions] = useState([{ ...initialQuestion, questionText: "Which hook memoizes expensive derived values?", options: ["useMemo", "useEffect", "useRef", "useId"], correctAnswer: "A", topicTag: "Hooks" }]);
   const updateQuiz = (key, value) => setQuiz((prev) => ({ ...prev, [key]: value }));
   const updateQuestion = (index, patch) => setQuestions((prev) => prev.map((q, i) => i === index ? { ...q, ...patch } : q));
 
+  useEffect(() => {
+    async function load() {
+      try {
+        const coursesResult = await apiRequest("/api/instructor/my-courses");
+        const courseData = coursesResult.data || [];
+        setCourses(courseData);
+        if (!quizId) {
+          setQuiz((current) => ({ ...current, course: current.course || courseData[0]?._id || "" }));
+          return;
+        }
+
+        const result = await apiRequest(`/api/instructor/quizzes/${quizId}`);
+        const data = result.data;
+        if (!data) throw new Error("Quiz not found.");
+        setQuiz({
+          title: data.title || "",
+          description: data.description || "",
+          course: data.course?._id || data.course || "",
+          duration: data.duration || data.durationMinutes || 20,
+          passingMarks: data.passingMarks ?? 50,
+          totalMarks: data.totalMarks ?? 100,
+          difficulty: data.difficulty || "medium",
+          attemptsAllowed: data.attemptsAllowed ?? 2,
+          negativeMarking: Boolean(data.negativeMarking),
+          shuffleQuestions: Boolean(data.shuffleQuestions),
+          showResultImmediately: data.showResultImmediately !== false,
+          lockUntilLectureComplete: Boolean(data.lockUntilLectureComplete),
+          status: data.status || "draft",
+        });
+        setQuestions((data.questions || []).map((question) => ({
+          _id: question._id,
+          questionType: question.questionType || "single-choice",
+          questionText: question.questionText || "",
+          marks: question.marks ?? 1,
+          difficulty: question.difficulty || "medium",
+          topicTag: question.topicTag || "",
+          options: (question.options || []).map((option) => typeof option === "string" ? option : option.text),
+          correctAnswer: question.correctAnswer || question.options?.find((option) => option.isCorrect)?.label || "A",
+          explanation: question.explanation || "",
+        })));
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [quizId, toast]);
+
+  async function saveQuiz() {
+    try {
+      setSaving(true);
+      const payload = {
+        ...quiz,
+        duration: Number(quiz.duration),
+        passingMarks: Number(quiz.passingMarks),
+        totalMarks: Number(quiz.totalMarks),
+        attemptsAllowed: Number(quiz.attemptsAllowed),
+        questions: questions.map((question, index) => ({
+          ...question,
+          marks: Number(question.marks),
+          order: index + 1,
+          options: question.options.map((text, optionIndex) => ({ label: String.fromCharCode(65 + optionIndex), text, isCorrect: String.fromCharCode(65 + optionIndex) === question.correctAnswer })),
+        })),
+      };
+      await apiRequest(isEditing ? `/api/instructor/quizzes/${quizId}` : "/api/instructor/quizzes", { method: isEditing ? "PATCH" : "POST", body: JSON.stringify(payload) });
+      toast.success(isEditing ? "Quiz updated successfully." : "Quiz saved to the database.");
+      navigate("/instructor/dashboard/quizzes");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <MotionCard className="text-center text-sm font-bold text-slate-400">Loading quiz...</MotionCard>;
+
   return (
     <div className="space-y-6">
-      <QuizHero title="Instructor Quiz Builder" subtitle="Create secure assessments with marks, explanations, shuffle settings, and publish controls." action={<button className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950"><Save className="h-4 w-4" /> Save Draft</button>} />
+      <QuizHero title={isEditing ? "Edit Quiz" : "Instructor Quiz Builder"} subtitle={isEditing ? "Update quiz details, settings, questions, answers, and explanations." : "Create secure assessments with marks, explanations, shuffle settings, and publish controls."} action={<button onClick={saveQuiz} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-60"><Save className="h-4 w-4" /> {saving ? "Saving..." : isEditing ? "Update Quiz" : "Save Quiz"}</button>} />
       <MotionCard>
         <div className="grid gap-4 lg:grid-cols-2">
           <Input label="Quiz title" value={quiz.title} onChange={(value) => updateQuiz("title", value)} placeholder="React Hooks Final Assessment" />
-          <Input label="Course" value={quiz.course} onChange={(value) => updateQuiz("course", value)} />
+          <label className="block text-sm font-black">Course<select value={quiz.course} onChange={(event) => updateQuiz("course", event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900"><option value="">Select course</option>{courses.map((course) => <option key={course._id} value={course._id}>{course.title}</option>)}</select></label>
           <Input label="Duration (minutes)" type="number" value={quiz.duration} onChange={(value) => updateQuiz("duration", value)} />
           <Input label="Passing marks" type="number" value={quiz.passingMarks} onChange={(value) => updateQuiz("passingMarks", value)} />
           <Input label="Total marks" type="number" value={quiz.totalMarks} onChange={(value) => updateQuiz("totalMarks", value)} />

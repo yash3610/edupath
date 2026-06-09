@@ -153,14 +153,32 @@ export const downloadResultPdf = asyncHandler(async (req, res) => {
 });
 
 export const instructorCreateQuiz = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.body.course, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
   const totalMarks = req.body.totalMarks || req.body.questions?.reduce((sum, question) => sum + Number(question.marks || 1), 0) || 0;
   const quiz = await Quiz.create({ ...req.body, slug: req.body.slug || `${slugify(req.body.title)}-${Date.now()}`, instructor: userId(req), totalMarks });
   created(res, quiz);
 });
 
 export const instructorQuizzes = asyncHandler(async (req, res) => ok(res, await Quiz.find({ instructor: userId(req) }).populate("course", "title thumbnail").sort({ createdAt: -1 })));
-export const instructorQuizDetails = asyncHandler(async (req, res) => ok(res, await Quiz.findOne({ _id: req.params.quizId, instructor: userId(req) }).populate("course module lecture")));
-export const instructorUpdateQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findOneAndUpdate({ _id: req.params.quizId, instructor: userId(req) }, req.body, { new: true })));
+export const instructorQuizDetails = asyncHandler(async (req, res) => {
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, instructor: userId(req) }).populate("course module lecture");
+  if (!quiz) throw new ApiError(404, "Quiz not found");
+  ok(res, quiz);
+});
+export const instructorUpdateQuiz = asyncHandler(async (req, res) => {
+  if (req.body.course) {
+    const course = await Course.findOne({ _id: req.body.course, instructor: userId(req) });
+    if (!course) throw new ApiError(404, "Course not found");
+  }
+  const update = { ...req.body };
+  if (Array.isArray(update.questions)) {
+    update.totalMarks = update.questions.reduce((sum, question) => sum + Number(question.marks || 1), 0);
+  }
+  const quiz = await Quiz.findOneAndUpdate({ _id: req.params.quizId, instructor: userId(req) }, update, { new: true, runValidators: true });
+  if (!quiz) throw new ApiError(404, "Quiz not found");
+  ok(res, quiz, "Quiz updated");
+});
 export const instructorDeleteQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.deleteOne({ _id: req.params.quizId, instructor: userId(req) }), "Quiz deleted"));
 
 export const addQuestion = asyncHandler(async (req, res) => ok(res, await Quiz.findOneAndUpdate({ _id: req.params.quizId, instructor: userId(req) }, { $push: { questions: req.body }, $inc: { totalMarks: Number(req.body.marks || 1) } }, { new: true }), "Question added"));
@@ -193,6 +211,8 @@ export const reorderQuestions = asyncHandler(async (req, res) => {
 export const publishQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findOneAndUpdate({ _id: req.params.quizId, instructor: userId(req) }, { status: "published" }, { new: true }), "Quiz published"));
 
 export const quizAnalytics = asyncHandler(async (req, res) => {
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, instructor: userId(req) });
+  if (!quiz) throw new ApiError(404, "Quiz not found");
   const attempts = await QuizAttempt.find({ quiz: req.params.quizId, status: { $ne: "in-progress" } }).populate("student", "name email");
   const totalAttempts = attempts.length;
   const passed = attempts.filter((attempt) => attempt.isPassed).length;
@@ -209,7 +229,11 @@ export const quizAnalytics = asyncHandler(async (req, res) => {
     studentResults: attempts,
   });
 });
-export const quizAttempts = asyncHandler(async (req, res) => ok(res, await QuizAttempt.find({ quiz: req.params.quizId }).populate("student", "name email")));
+export const quizAttempts = asyncHandler(async (req, res) => {
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, instructor: userId(req) });
+  if (!quiz) throw new ApiError(404, "Quiz not found");
+  ok(res, await QuizAttempt.find({ quiz: req.params.quizId }).populate("student", "name email"));
+});
 
 export const adminQuizzes = asyncHandler(async (req, res) => {
   const query = {};

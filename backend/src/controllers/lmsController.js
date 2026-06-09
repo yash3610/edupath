@@ -4,6 +4,7 @@ import {
   Assignment,
   AssignmentSubmission,
   CalendarEvent,
+  Category,
   Certificate,
   Conversation,
   Course,
@@ -11,8 +12,10 @@ import {
   DiscussionAnswer,
   DiscussionQuestion,
   Enrollment,
+  InstructorProfile,
   Lecture,
   LectureProgress,
+  LiveClass,
   MLAnalytics,
   Message,
   Module,
@@ -20,10 +23,12 @@ import {
   Notification,
   Order,
   Payment,
+  Payout,
   Quiz,
   QuizAttempt,
   RefundRequest,
   Reminder,
+  Review,
   StudentProfile,
   User,
   Wishlist,
@@ -186,8 +191,9 @@ export const orderDetails = asyncHandler(async (req, res) => ok(res, await Order
 export const orderInvoice = asyncHandler(async (req, res) => ok(res, { invoiceUrl: `/api/orders/${req.params.orderId}/invoice.pdf` }));
 export const orderRefundRequest = asyncHandler(async (req, res) => created(res, await RefundRequest.create({ user: userId(req), order: req.params.orderId, reason: req.body.reason })));
 
-export const profileMe = asyncHandler(async (req, res) => ok(res, { user: req.user, profile: await StudentProfile.findOne({ user: userId(req) }) }));
-export const updateProfile = asyncHandler(async (req, res) => ok(res, await StudentProfile.findOneAndUpdate({ user: userId(req) }, req.body, { new: true, upsert: true })));
+const profileModelFor = (role) => role === "instructor" ? InstructorProfile : StudentProfile;
+export const profileMe = asyncHandler(async (req, res) => ok(res, { user: req.user, profile: await profileModelFor(req.user?.role).findOne({ user: userId(req) }) }));
+export const updateProfile = asyncHandler(async (req, res) => ok(res, await profileModelFor(req.user?.role).findOneAndUpdate({ user: userId(req) }, req.body, { new: true, upsert: true })));
 export const updateAvatar = asyncHandler(async (req, res) => {
   const avatar = await uploadBuffer(req.file, "avatars");
   ok(res, await StudentProfile.findOneAndUpdate({ user: userId(req) }, { avatar: avatar?.url }, { new: true, upsert: true }));
@@ -332,24 +338,194 @@ export const checkEnrollment = asyncHandler(async (req, res) => ok(res, { enroll
 export const myEnrollments = asyncHandler(async (req, res) => ok(res, await Enrollment.find({ student: userId(req) }).populate("course")));
 
 export const instructorDashboard = asyncHandler(async (req, res) => ok(res, { courses: await Course.countDocuments({ instructor: userId(req) }), students: await Enrollment.countDocuments({}) }));
+export const instructorStats = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  const revenue = await Order.aggregate([{ $match: { course: { $in: courseIds }, status: "paid" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]);
+  ok(res, {
+    courses: courseIds.length,
+    publishedCourses: await Course.countDocuments({ instructor: userId(req), status: "approved" }),
+    draftCourses: await Course.countDocuments({ instructor: userId(req), status: "draft" }),
+    students: await Enrollment.distinct("student", { course: { $in: courseIds } }).then((items) => items.length),
+    enrollments: await Enrollment.countDocuments({ course: { $in: courseIds } }),
+    revenue: revenue[0]?.total || 0,
+    pendingAssignmentReviews: await AssignmentSubmission.countDocuments({ assignment: { $in: await Assignment.find({ course: { $in: courseIds } }).distinct("_id") }, status: "submitted" }),
+  });
+});
+export const instructorMyCourses = asyncHandler(async (req, res) => ok(res, await Course.find({ instructor: userId(req) }).sort({ updatedAt: -1 })));
+export const instructorCoursePerformance = asyncHandler(async (req, res) => {
+  const courses = await Course.find({ instructor: userId(req) }).lean();
+  const data = await Promise.all(courses.map(async (course) => ({ ...course, enrollments: await Enrollment.countDocuments({ course: course._id }) })));
+  ok(res, data);
+});
+export const instructorEarningsAnalytics = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await Order.aggregate([{ $match: { course: { $in: courseIds }, status: "paid" } }, { $group: { _id: { $month: "$createdAt" }, revenue: { $sum: "$amount" }, orders: { $sum: 1 } } }, { $sort: { _id: 1 } }]));
+});
+export const instructorStudentEngagement = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await LectureProgress.aggregate([{ $match: { course: { $in: courseIds } } }, { $group: { _id: "$course", watchTimeSeconds: { $sum: "$watchTimeSeconds" }, completedLectures: { $sum: { $cond: ["$completed", 1, 0] } } } }]));
+});
+export const instructorPendingTasks = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  const assignmentIds = await Assignment.find({ course: { $in: courseIds } }).distinct("_id");
+  ok(res, { assignmentReviews: await AssignmentSubmission.countDocuments({ assignment: { $in: assignmentIds }, status: "submitted" }), draftCourses: await Course.countDocuments({ instructor: userId(req), status: "draft" }) });
+});
+export const instructorRecentActivity = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await Enrollment.find({ course: { $in: courseIds } }).populate("student", "name email").populate("course", "title").sort({ createdAt: -1 }).limit(10));
+});
+export const instructorUpcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(10)));
 export const instructorCreateCourse = asyncHandler(async (req, res) => created(res, await Course.create({ ...req.body, instructor: userId(req), status: "draft" })));
 export const instructorUpdateCourse = asyncHandler(async (req, res) => ok(res, await Course.findOneAndUpdate({ _id: req.params.courseId, instructor: userId(req) }, req.body, { new: true })));
 export const instructorDeleteCourse = asyncHandler(async (req, res) => ok(res, await Course.deleteOne({ _id: req.params.courseId, instructor: userId(req) })));
-export const instructorCreateModule = asyncHandler(async (req, res) => created(res, await Module.create({ ...req.body, course: req.params.courseId })));
-export const instructorCreateLecture = asyncHandler(async (req, res) => created(res, await Lecture.create({ ...req.body, module: req.params.moduleId })));
+export const instructorCreateModule = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  created(res, await Module.create({ ...req.body, course: course._id }));
+});
+export const instructorModules = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  ok(res, await Module.find({ course: course._id }).sort({ order: 1 }));
+});
+export const instructorUpdateModule = asyncHandler(async (req, res) => {
+  const module = await Module.findById(req.params.moduleId);
+  if (!module || !(await Course.exists({ _id: module.course, instructor: userId(req) }))) throw new ApiError(404, "Module not found");
+  ok(res, await Module.findByIdAndUpdate(module._id, req.body, { new: true }));
+});
+export const instructorDeleteModule = asyncHandler(async (req, res) => {
+  const module = await Module.findById(req.params.moduleId);
+  if (!module || !(await Course.exists({ _id: module.course, instructor: userId(req) }))) throw new ApiError(404, "Module not found");
+  await Lecture.deleteMany({ module: module._id });
+  ok(res, await Module.deleteOne({ _id: module._id }), "Module deleted");
+});
+export const instructorCreateLecture = asyncHandler(async (req, res) => {
+  const module = await Module.findById(req.params.moduleId);
+  if (!module || !(await Course.exists({ _id: module.course, instructor: userId(req) }))) throw new ApiError(404, "Module not found");
+  created(res, await Lecture.create({ ...req.body, course: module.course, module: module._id }));
+});
+export const instructorLectures = asyncHandler(async (req, res) => {
+  const module = await Module.findById(req.params.moduleId);
+  if (!module || !(await Course.exists({ _id: module.course, instructor: userId(req) }))) throw new ApiError(404, "Module not found");
+  ok(res, await Lecture.find({ module: module._id }).sort({ order: 1 }));
+});
+export const instructorUpdateLecture = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId);
+  if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
+  ok(res, await Lecture.findByIdAndUpdate(lecture._id, req.body, { new: true }));
+});
+export const instructorDeleteLecture = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId);
+  if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
+  ok(res, await Lecture.deleteOne({ _id: lecture._id }), "Lecture deleted");
+});
 export const instructorCreateQuiz = asyncHandler(async (req, res) => created(res, await Quiz.create({ ...req.body, course: req.params.courseId })));
-export const instructorCreateAssignment = asyncHandler(async (req, res) => created(res, await Assignment.create({ ...req.body, course: req.params.courseId })));
-export const instructorStudentsProgress = asyncHandler(async (_req, res) => ok(res, await Enrollment.find({}).populate("student course")));
+export const instructorCreateAssignment = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  created(res, await Assignment.create({ ...req.body, course: course._id }));
+});
+export const instructorAssignments = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await Assignment.find({ course: { $in: courseIds } }).populate("course", "title").sort({ dueDate: 1 }));
+});
+export const instructorDeleteAssignment = asyncHandler(async (req, res) => {
+  const assignment = await Assignment.findById(req.params.assignmentId);
+  if (!assignment || !(await Course.exists({ _id: assignment.course, instructor: userId(req) }))) throw new ApiError(404, "Assignment not found");
+  await AssignmentSubmission.deleteMany({ assignment: assignment._id });
+  ok(res, await Assignment.deleteOne({ _id: assignment._id }), "Assignment deleted");
+});
+export const instructorSubmissions = asyncHandler(async (req, res) => {
+  const assignment = await Assignment.findById(req.params.assignmentId);
+  if (!assignment || !(await Course.exists({ _id: assignment.course, instructor: userId(req) }))) throw new ApiError(404, "Assignment not found");
+  ok(res, await AssignmentSubmission.find({ assignment: assignment._id }).populate("student", "name email"));
+});
+export const instructorStudentsProgress = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await Enrollment.find({ course: { $in: courseIds } }).populate("student", "name email").populate("course", "title"));
+});
 export const instructorGradeAssignment = asyncHandler(async (req, res) => ok(res, await AssignmentSubmission.findByIdAndUpdate(req.params.submissionId, { grade: req.body.grade, feedback: req.body.feedback, status: "graded" }, { new: true })));
+export const instructorDoubts = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await DiscussionQuestion.find({ course: { $in: courseIds } }).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 }));
+});
+export const instructorReviews = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await Review.find({ course: { $in: courseIds } }).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 }));
+});
+export const instructorLiveClasses = asyncHandler(async (req, res) => ok(res, await LiveClass.find({ instructor: userId(req) }).populate("course", "title").sort({ startAt: 1 })));
+export const instructorCreateLiveClass = asyncHandler(async (req, res) => created(res, await LiveClass.create({ ...req.body, instructor: userId(req) })));
+export const instructorUpdateLiveClass = asyncHandler(async (req, res) => ok(res, await LiveClass.findOneAndUpdate({ _id: req.params.liveClassId, instructor: userId(req) }, req.body, { new: true })));
+export const instructorDeleteLiveClass = asyncHandler(async (req, res) => ok(res, await LiveClass.deleteOne({ _id: req.params.liveClassId, instructor: userId(req) }), "Live class deleted"));
+export const instructorPayouts = asyncHandler(async (req, res) => ok(res, await Payout.find({ instructor: userId(req) }).sort({ createdAt: -1 })));
+export const instructorEarnings = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, await Order.aggregate([{ $match: { course: { $in: courseIds }, status: "paid" } }, { $group: { _id: "$course", sales: { $sum: 1 }, gross: { $sum: "$amount" } } }, { $lookup: { from: "courses", localField: "_id", foreignField: "_id", as: "course" } }, { $unwind: "$course" }]));
+});
 
-export const adminDashboard = asyncHandler(async (_req, res) => ok(res, { users: await User.countDocuments(), courses: await Course.countDocuments(), orders: await Order.countDocuments(), payments: await Payment.countDocuments() }));
+export const adminDashboard = asyncHandler(async (_req, res) => ok(res, { users: await User.countDocuments(), students: await User.countDocuments({ role: "student" }), instructors: await User.countDocuments({ role: "instructor" }), courses: await Course.countDocuments(), orders: await Order.countDocuments(), payments: await Payment.countDocuments() }));
+export const adminStats = asyncHandler(async (_req, res) => {
+  const revenue = await Payment.aggregate([{ $match: { status: { $in: ["paid", "success", "captured"] } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]);
+  ok(res, {
+    students: await User.countDocuments({ role: "student" }),
+    instructors: await User.countDocuments({ role: "instructor" }),
+    courses: await Course.countDocuments(),
+    publishedCourses: await Course.countDocuments({ status: "approved" }),
+    pendingApprovals: await Course.countDocuments({ status: "pending" }),
+    orders: await Order.countDocuments(),
+    refunds: await RefundRequest.countDocuments({ status: "pending" }),
+    revenue: revenue[0]?.total || 0,
+  });
+});
+export const adminRevenueAnalytics = asyncHandler(async (_req, res) => ok(res, await Payment.aggregate([{ $match: { status: { $in: ["paid", "success", "captured"] } } }, { $group: { _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } }, revenue: { $sum: "$amount" }, payments: { $sum: 1 } } }, { $sort: { "_id.year": 1, "_id.month": 1 } }])));
+export const adminUserGrowth = asyncHandler(async (_req, res) => ok(res, await User.aggregate([{ $group: { _id: { month: { $month: "$createdAt" }, role: "$role" }, users: { $sum: 1 } } }, { $sort: { "_id.month": 1 } }])));
+export const adminCourseAnalytics = asyncHandler(async (_req, res) => ok(res, await Course.aggregate([{ $group: { _id: "$status", courses: { $sum: 1 } } }])));
+export const adminTopCourses = asyncHandler(async (_req, res) => ok(res, await Enrollment.aggregate([{ $group: { _id: "$course", enrollments: { $sum: 1 } } }, { $sort: { enrollments: -1 } }, { $limit: 10 }, { $lookup: { from: "courses", localField: "_id", foreignField: "_id", as: "course" } }, { $unwind: "$course" }])));
+export const adminRecentOrders = asyncHandler(async (_req, res) => ok(res, await Order.find({}).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 }).limit(10)));
+export const adminPendingApprovals = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: "pending" }).populate("instructor", "name email").sort({ createdAt: 1 }).limit(20)));
+export const adminRecentActivity = asyncHandler(async (_req, res) => ok(res, await Notification.find({}).sort({ createdAt: -1 }).limit(15)));
 export const adminUsers = asyncHandler(async (_req, res) => ok(res, await User.find({}).select("-passwordHash")));
+export const adminStudents = asyncHandler(async (_req, res) => ok(res, await User.find({ role: "student" }).select("-passwordHash").sort({ createdAt: -1 })));
+export const adminInstructors = asyncHandler(async (_req, res) => ok(res, await User.find({ role: "instructor" }).select("-passwordHash").sort({ createdAt: -1 })));
 export const adminUserStatus = asyncHandler(async (req, res) => ok(res, await User.findByIdAndUpdate(req.params.userId, { status: req.body.status }, { new: true }).select("-passwordHash")));
 export const adminDeleteUser = asyncHandler(async (req, res) => ok(res, await User.findByIdAndDelete(req.params.userId)));
 export const adminCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({})));
+export const adminDeleteCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndDelete(req.params.courseId), "Course deleted"));
 export const adminApproveCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndUpdate(req.params.courseId, { status: "approved" }, { new: true })));
+export const adminRejectCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndUpdate(req.params.courseId, { status: "rejected" }, { new: true })));
 export const adminOrders = asyncHandler(async (_req, res) => ok(res, await Order.find({}).sort({ createdAt: -1 })));
 export const adminPayments = asyncHandler(async (_req, res) => ok(res, await Payment.find({}).sort({ createdAt: -1 })));
-export const adminReports = asyncHandler(async (_req, res) => ok(res, { revenue: 24999, activeStudents: 1200, completionRate: 78 }));
+export const adminRefunds = asyncHandler(async (_req, res) => ok(res, await RefundRequest.find({}).populate("user", "name email").sort({ createdAt: -1 })));
+export const adminRefundStatus = asyncHandler(async (req, res) => ok(res, await RefundRequest.findByIdAndUpdate(req.params.refundId, { status: req.body.status }, { new: true })));
+export const adminCoupons = asyncHandler(async (_req, res) => ok(res, await Coupon.find({}).sort({ createdAt: -1 })));
+export const adminCategories = asyncHandler(async (_req, res) => ok(res, await Category.find({}).sort({ name: 1 })));
+export const adminCreateCategory = asyncHandler(async (req, res) => created(res, await Category.create(req.body)));
+export const adminUpdateCategory = asyncHandler(async (req, res) => ok(res, await Category.findByIdAndUpdate(req.params.categoryId, req.body, { new: true })));
+export const adminDeleteCategory = asyncHandler(async (req, res) => ok(res, await Category.findByIdAndDelete(req.params.categoryId), "Category deleted"));
+export const adminAssignments = asyncHandler(async (_req, res) => ok(res, await Assignment.find({}).populate("course", "title").sort({ dueDate: 1 })));
+export const adminDeleteAssignment = asyncHandler(async (req, res) => ok(res, await Assignment.findByIdAndDelete(req.params.assignmentId), "Assignment deleted"));
+export const adminCertificates = asyncHandler(async (_req, res) => ok(res, await Certificate.find({}).populate("student", "name email").populate("course", "title").sort({ createdAt: -1 })));
+export const adminDeleteCertificate = asyncHandler(async (req, res) => ok(res, await Certificate.findByIdAndDelete(req.params.certificateId), "Certificate deleted"));
+export const adminReviews = asyncHandler(async (_req, res) => ok(res, await Review.find({}).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 })));
+export const adminDeleteReview = asyncHandler(async (req, res) => ok(res, await Review.findByIdAndDelete(req.params.reviewId), "Review deleted"));
+export const adminCommunity = asyncHandler(async (_req, res) => ok(res, await DiscussionQuestion.find({}).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 })));
+export const adminDeleteDiscussion = asyncHandler(async (req, res) => {
+  await DiscussionAnswer.deleteMany({ question: req.params.questionId });
+  ok(res, await DiscussionQuestion.findByIdAndDelete(req.params.questionId), "Discussion deleted");
+});
+export const adminReports = asyncHandler(async (_req, res) => {
+  const revenue = await Payment.aggregate([{ $match: { status: { $in: ["paid", "success", "captured"] } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]);
+  const totalEnrollments = await Enrollment.countDocuments();
+  const completedEnrollments = await Enrollment.countDocuments({ status: "completed" });
+  ok(res, {
+    revenue: revenue[0]?.total || 0,
+    activeStudents: await User.countDocuments({ role: "student", status: "active" }),
+    activeInstructors: await User.countDocuments({ role: "instructor", status: "active" }),
+    publishedCourses: await Course.countDocuments({ status: "approved" }),
+    totalOrders: await Order.countDocuments(),
+    completionRate: totalEnrollments ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0,
+  });
+});
 export const adminCreateCoupon = asyncHandler(async (req, res) => created(res, await Coupon.create(req.body)));
 export const adminUpdateCoupon = asyncHandler(async (req, res) => ok(res, await Coupon.findByIdAndUpdate(req.params.couponId, req.body, { new: true })));
+export const adminDeleteCoupon = asyncHandler(async (req, res) => ok(res, await Coupon.findByIdAndDelete(req.params.couponId), "Coupon deleted"));

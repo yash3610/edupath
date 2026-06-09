@@ -73,6 +73,11 @@ export const InstructorProfile = makeModel(
   )
 );
 
+export const Category = makeModel(
+  "Category",
+  new Schema({ name: { type: String, required: true, unique: true, trim: true }, slug: { type: String, required: true, unique: true, trim: true }, description: String, active: { type: Boolean, default: true } }, baseOptions)
+);
+
 export const Course = makeModel(
   "Course",
   new Schema(
@@ -248,6 +253,8 @@ export const Review = makeModel("Review", new Schema({ user: { type: objectId, r
 export const DiscussionQuestion = makeModel("DiscussionQuestion", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, body: String, tags: [String] }, baseOptions));
 export const DiscussionAnswer = makeModel("DiscussionAnswer", new Schema({ question: { type: objectId, ref: "DiscussionQuestion" }, user: { type: objectId, ref: "User" }, body: String, upvotes: [{ type: objectId, ref: "User" }], accepted: { type: Boolean, default: false } }, baseOptions));
 export const CalendarEvent = makeModel("CalendarEvent", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, type: String, startAt: Date, endAt: Date }, baseOptions));
+export const LiveClass = makeModel("LiveClass", new Schema({ instructor: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course" }, title: { type: String, required: true }, description: String, meetingUrl: String, startAt: Date, endAt: Date, status: { type: String, enum: ["scheduled", "live", "completed", "cancelled"], default: "scheduled" }, registrations: { type: Number, default: 0 } }, baseOptions));
+export const Payout = makeModel("Payout", new Schema({ instructor: { type: objectId, ref: "User", required: true }, amount: { type: Number, default: 0 }, period: String, status: { type: String, enum: ["pending", "processing", "paid", "failed"], default: "pending" }, paidAt: Date, reference: String }, baseOptions));
 export const Reminder = makeModel("Reminder", new Schema({ user: { type: objectId, ref: "User" }, event: { type: objectId, ref: "CalendarEvent" }, remindAt: Date, enabled: { type: Boolean, default: true } }, baseOptions));
 export const Coupon = makeModel("Coupon", new Schema({ code: { type: String, unique: true }, discountType: { type: String, enum: ["flat", "percent"], default: "percent" }, value: Number, active: { type: Boolean, default: true }, expiresAt: Date }, baseOptions));
 export const AIChat = makeModel("AIChat", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, question: String, answer: String }, baseOptions));

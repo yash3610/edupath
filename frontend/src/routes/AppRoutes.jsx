@@ -40,6 +40,10 @@ const FeaturePage = React.lazy(() => import("../pages/dashboard/FeaturePage.jsx"
 const AdminQuizManagementPage = React.lazy(() => import("../pages/dashboard/AdminQuizManagementPage.jsx"));
 const InstructorQuizAnalyticsPage = React.lazy(() => import("../pages/dashboard/InstructorQuizAnalyticsPage.jsx"));
 const InstructorQuizBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorQuizBuilderPage.jsx"));
+const InstructorQuizManagementPage = React.lazy(() => import("../pages/dashboard/InstructorQuizManagementPage.jsx"));
+const InstructorCourseBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorCourseBuilderPage.jsx"));
+const InstructorAssignmentsPage = React.lazy(() => import("../pages/dashboard/InstructorAssignmentsPage.jsx"));
+const InstructorMessagesPage = React.lazy(() => import("../pages/dashboard/InstructorMessagesPage.jsx"));
 const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
 const MessagesPage = React.lazy(() => import("../pages/dashboard/MessagesPage.jsx"));
 const MyCoursesPage = React.lazy(() => import("../pages/dashboard/MyCoursesPage.jsx"));
@@ -50,6 +54,7 @@ const QuizInstructionsPage = React.lazy(() => import("../pages/dashboard/QuizIns
 const QuizPage = React.lazy(() => import("../pages/dashboard/QuizPage.jsx"));
 const QuizResultPage = React.lazy(() => import("../pages/dashboard/QuizResultPage.jsx"));
 const RoleDashboardHome = React.lazy(() => import("../pages/dashboard/RoleDashboardHome.jsx"));
+const RoleManagementPage = React.lazy(() => import("../pages/dashboard/RoleManagementPage.jsx"));
 
 function DashboardSuspense({ children }) {
   return <React.Suspense fallback={<div className="section-gap text-center">Loading dashboard...</div>}>{children}</React.Suspense>;
@@ -133,7 +138,22 @@ export default function AppRoutes() {
         element={<ProtectedRoute allowedRoles={["admin"]} loginPath="/staff/login"><DashboardSuspense><RoleDashboardLayout role="admin" /></DashboardSuspense></ProtectedRoute>}
       >
         <Route index element={<RoleDashboardHome />} />
+        <Route path="students" element={<RoleManagementPage type="students" />} />
+        <Route path="instructors" element={<RoleManagementPage type="instructors" />} />
+        <Route path="courses" element={<RoleManagementPage type="courses" />} />
+        <Route path="approvals" element={<RoleManagementPage type="approvals" />} />
+        <Route path="categories" element={<RoleManagementPage type="categories" />} />
+        <Route path="orders" element={<RoleManagementPage type="orders" />} />
+        <Route path="payments" element={<RoleManagementPage type="payments" />} />
+        <Route path="refunds" element={<RoleManagementPage type="refunds" />} />
+        <Route path="coupons" element={<RoleManagementPage type="coupons" />} />
         <Route path="quizzes" element={<AdminQuizManagementPage />} />
+        <Route path="assignments" element={<RoleManagementPage type="assignments" />} />
+        <Route path="certificates" element={<RoleManagementPage type="certificates" />} />
+        <Route path="reviews" element={<RoleManagementPage type="reviews" />} />
+        <Route path="moderation" element={<RoleManagementPage type="moderation" />} />
+        <Route path="reports" element={<RoleManagementPage type="reports" />} />
+        <Route path="settings" element={<RoleManagementPage type="settings" />} />
       </Route>
 
       <Route
@@ -141,8 +161,24 @@ export default function AppRoutes() {
         element={<ProtectedRoute allowedRoles={["instructor"]} loginPath="/staff/login"><DashboardSuspense><RoleDashboardLayout role="instructor" /></DashboardSuspense></ProtectedRoute>}
       >
         <Route index element={<RoleDashboardHome />} />
+        <Route path="my-courses" element={<RoleManagementPage type="my-courses" />} />
+        <Route path="create-course" element={<RoleManagementPage type="create-course" />} />
+        <Route path="course-builder" element={<InstructorCourseBuilderPage />} />
+        <Route path="students" element={<RoleManagementPage type="studentsProgress" />} />
+        <Route path="live-classes" element={<RoleManagementPage type="liveClasses" />} />
+        <Route path="quizzes" element={<InstructorQuizManagementPage />} />
         <Route path="quizzes/new" element={<InstructorQuizBuilderPage />} />
+        <Route path="quizzes/:quizId/edit" element={<InstructorQuizBuilderPage />} />
         <Route path="quizzes/:quizId/analytics" element={<InstructorQuizAnalyticsPage />} />
+        <Route path="assignments" element={<InstructorAssignmentsPage />} />
+        <Route path="doubts" element={<RoleManagementPage type="doubts" />} />
+        <Route path="reviews" element={<RoleManagementPage type="reviews" />} />
+        <Route path="earnings" element={<RoleManagementPage type="earnings" />} />
+        <Route path="payouts" element={<RoleManagementPage type="payouts" />} />
+        <Route path="analytics" element={<RoleManagementPage type="analytics" />} />
+        <Route path="messages" element={<InstructorMessagesPage />} />
+        <Route path="profile" element={<RoleManagementPage type="profile" />} />
+        <Route path="settings" element={<RoleManagementPage type="settings" />} />
       </Route>
 
       <Route path="/index" element={<Navigate to="/" replace />} />
