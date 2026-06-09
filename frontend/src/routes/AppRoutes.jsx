@@ -42,6 +42,10 @@ const InstructorQuizAnalyticsPage = React.lazy(() => import("../pages/dashboard/
 const InstructorQuizBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorQuizBuilderPage.jsx"));
 const InstructorQuizManagementPage = React.lazy(() => import("../pages/dashboard/InstructorQuizManagementPage.jsx"));
 const InstructorCourseBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorCourseBuilderPage.jsx"));
+const InstructorCourseEditorPage = React.lazy(() => import("../pages/dashboard/InstructorCourseEditorPage.jsx"));
+const InstructorCoursesPage = React.lazy(() => import("../pages/dashboard/InstructorCoursesPage.jsx"));
+const CourseAnalyticsPage = React.lazy(() => import("../pages/dashboard/CourseAnalyticsPage.jsx"));
+const AdminCoursesPage = React.lazy(() => import("../pages/dashboard/AdminCoursesPage.jsx"));
 const InstructorAssignmentsPage = React.lazy(() => import("../pages/dashboard/InstructorAssignmentsPage.jsx"));
 const InstructorMessagesPage = React.lazy(() => import("../pages/dashboard/InstructorMessagesPage.jsx"));
 const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
@@ -140,7 +144,7 @@ export default function AppRoutes() {
         <Route index element={<RoleDashboardHome />} />
         <Route path="students" element={<RoleManagementPage type="students" />} />
         <Route path="instructors" element={<RoleManagementPage type="instructors" />} />
-        <Route path="courses" element={<RoleManagementPage type="courses" />} />
+        <Route path="courses" element={<AdminCoursesPage />} />
         <Route path="approvals" element={<RoleManagementPage type="approvals" />} />
         <Route path="categories" element={<RoleManagementPage type="categories" />} />
         <Route path="orders" element={<RoleManagementPage type="orders" />} />
@@ -161,8 +165,10 @@ export default function AppRoutes() {
         element={<ProtectedRoute allowedRoles={["instructor"]} loginPath="/staff/login"><DashboardSuspense><RoleDashboardLayout role="instructor" /></DashboardSuspense></ProtectedRoute>}
       >
         <Route index element={<RoleDashboardHome />} />
-        <Route path="my-courses" element={<RoleManagementPage type="my-courses" />} />
-        <Route path="create-course" element={<RoleManagementPage type="create-course" />} />
+        <Route path="my-courses" element={<InstructorCoursesPage />} />
+        <Route path="create-course" element={<InstructorCourseEditorPage />} />
+        <Route path="courses/:courseId/edit" element={<InstructorCourseEditorPage />} />
+        <Route path="courses/:courseId/analytics" element={<CourseAnalyticsPage />} />
         <Route path="course-builder" element={<InstructorCourseBuilderPage />} />
         <Route path="students" element={<RoleManagementPage type="studentsProgress" />} />
         <Route path="live-classes" element={<RoleManagementPage type="liveClasses" />} />

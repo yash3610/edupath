@@ -18,3 +18,21 @@ export const upload = multer({
     cb(null, true);
   },
 });
+
+const courseAssetTypes = [
+  ...allowedTypes,
+  "video/mp4",
+  "video/quicktime",
+  "video/x-matroska",
+  "text/vtt",
+  "application/x-zip-compressed",
+];
+
+export const courseUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 250 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!courseAssetTypes.includes(file.mimetype)) return cb(new ApiError(400, "Unsupported course asset type"));
+    cb(null, true);
+  },
+});

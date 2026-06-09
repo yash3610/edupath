@@ -46,6 +46,20 @@ export async function apiBlobRequest(endpoint, options = {}) {
   return response.blob();
 }
 
+export async function apiFormRequest(endpoint, formData, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: options.method || "POST",
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...options.headers,
+    },
+    body: formData,
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || "Upload failed");
+  return result;
+}
+
 export const api = {
   health: () => apiRequest("/api/health"),
   courses: () => apiRequest("/api/courses"),

@@ -9,6 +9,7 @@ const recentContactKeys = new Map();
 const CONTACT_DEDUPE_MS = 30 * 1000;
 
 const normalizeCourse = (course) => ({
+  ...course,
   _id: course._id,
   title: course.title,
   slug: course.slug,
@@ -23,12 +24,12 @@ const normalizeCourse = (course) => ({
 });
 
 export const publicCourses = asyncHandler(async (_req, res) => {
-  const courses = await Course.find({ status: "approved" }).populate("instructor", "name").sort({ createdAt: -1 }).lean();
+  const courses = await Course.find({ status: "approved", disabled: { $ne: true } }).populate("instructor", "name").sort({ featured: -1, createdAt: -1 }).lean();
   ok(res, courses.length ? courses.map(normalizeCourse) : fallbackCourses);
 });
 
 export const publicCourseDetails = asyncHandler(async (req, res) => {
-  const course = await Course.findOne({ slug: req.params.slug, status: "approved" }).populate("instructor", "name").lean();
+  const course = await Course.findOne({ slug: req.params.slug, status: "approved", disabled: { $ne: true } }).populate("instructor", "name").lean();
   const fallback = fallbackCourses.find((item) => item.slug === req.params.slug || item._id === req.params.slug || item.legacyId === req.params.slug);
   if (!course && !fallback) return res.status(404).json({ success: false, message: "Course not found" });
   ok(res, course ? normalizeCourse(course) : fallback);

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Download, FileText, PlayCircle } from "lucide-react";
+import { Bookmark, Download, FileText, Lock, PlayCircle } from "lucide-react";
 import { Icon, MotionCard, ProgressBar, SectionHeading } from "../../components/dashboard/DashboardPrimitives.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { learningApi } from "../../services/learningApi.js";
@@ -46,6 +46,11 @@ export default function LearningRoomPage() {
   const progress = lectures.length ? Math.round((completed.size / lectures.length) * 100) : 0;
 
   function selectLecture(id) {
+    const selected = lectures.find((lecture) => String(lecture._id) === String(id));
+    if (selected?.locked) {
+      toast.info(selected.unlockDate ? `This lesson unlocks on ${new Date(selected.unlockDate).toLocaleDateString()}.` : "Complete the previous lesson first.");
+      return;
+    }
     setSelectedLectureId(id);
     if (course?._id || course?.id) navigate(`/dashboard/learn/${course._id || course.id}/${id}`, { replace: true });
   }
@@ -62,6 +67,24 @@ export default function LearningRoomPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveVideoProgress(event) {
+    const video = event.currentTarget;
+    if (!video.duration || !currentLecture) return;
+    await learningApi.saveProgress(currentLecture._id, {
+      watchedPercentage: Math.round((video.currentTime / video.duration) * 100),
+      lastPositionSeconds: Math.round(video.currentTime),
+      watchTimeSeconds: Math.round(video.currentTime),
+    });
+  }
+
+  async function bookmark() {
+    if (!currentLecture) return;
+    try {
+      await learningApi.bookmarkLecture(currentLecture._id);
+      toast.success("Lecture bookmarked.");
+    } catch (error) { toast.error(error.message); }
   }
 
   function go(offset) {
@@ -86,8 +109,8 @@ export default function LearningRoomPage() {
                   const done = completed.has(String(lecture._id)) || lecture.completed;
                   const active = String(currentLecture?._id) === String(lecture._id);
                   return (
-                    <button key={lecture._id} onClick={() => selectLecture(lecture._id)} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm transition ${active ? "bg-[#ff6b35] text-white shadow-lg shadow-orange-500/20" : "bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15"}`}>
-                      <Icon name={done ? "CheckCircle2" : "PlayCircle"} className={`h-4 w-4 shrink-0 ${active ? "text-white" : done ? "text-emerald-500" : "text-slate-400"}`} />
+                    <button key={lecture._id} onClick={() => selectLecture(lecture._id)} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm transition ${lecture.locked ? "cursor-not-allowed opacity-60" : ""} ${active ? "bg-[#ff6b35] text-white shadow-lg shadow-orange-500/20" : "bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15"}`}>
+                      {lecture.locked ? <Lock className="h-4 w-4 shrink-0" /> : <Icon name={done ? "CheckCircle2" : lecture.type === "video" ? "PlayCircle" : "FileText"} className={`h-4 w-4 shrink-0 ${active ? "text-white" : done ? "text-emerald-500" : "text-slate-400"}`} />}
                       <span className="min-w-0 flex-1 truncate font-bold">{lecture.title}</span>
                       <span className={`shrink-0 text-xs ${active ? "text-white/80" : "text-slate-500"}`}>{formatDuration(lecture.duration || lecture.durationSeconds)}</span>
                     </button>
@@ -102,7 +125,7 @@ export default function LearningRoomPage() {
       <div className="space-y-5">
         <MotionCard className="overflow-hidden bg-slate-950 p-0">
           <div className="relative flex aspect-video items-center justify-center bg-gradient-to-br from-slate-950 via-[#181438] to-[#ff6b35] text-white">
-            {currentLecture?.videoUrl ? <video src={currentLecture.videoUrl} controls className="h-full w-full" /> : (
+            {currentLecture?.videoUrl ? <video src={currentLecture.videoUrl} controls onPause={saveVideoProgress} onEnded={markComplete} className="h-full w-full" /> : currentLecture?.type === "article" ? <div className="max-h-full overflow-y-auto p-8 text-left"><p className="whitespace-pre-wrap text-sm leading-7 text-white/85">{currentLecture.articleContent || currentLecture.description}</p></div> : (
               <>
                 <button className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15 backdrop-blur">
                   <Icon name="Play" className="h-8 w-8 fill-white" />
@@ -125,17 +148,18 @@ export default function LearningRoomPage() {
             <button disabled={currentIndex <= 0} onClick={() => go(-1)} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black disabled:opacity-40 dark:border-white/10 dark:bg-white/10">Previous</button>
             <button onClick={markComplete} disabled={saving || completed.has(String(currentLecture?._id))} className="rounded-xl bg-[#ff6b35] px-5 py-3 text-sm font-black text-white disabled:opacity-60">{completed.has(String(currentLecture?._id)) ? "Completed" : saving ? "Saving..." : "Mark Complete"}</button>
             <button disabled={currentIndex >= lectures.length - 1} onClick={() => go(1)} className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white disabled:opacity-40 dark:bg-white dark:text-slate-950">Next</button>
+            <button onClick={bookmark} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-black dark:border-white/10"><Bookmark className="h-4 w-4" /> Bookmark</button>
           </div>
         </MotionCard>
 
         <MotionCard>
           <SectionHeading eyebrow="Resources" title="Lecture materials" />
           <div className="grid gap-3 sm:grid-cols-2">
-            {(currentLecture?.resources?.length ? currentLecture.resources : [{ title: "Lesson Notes", type: "PDF" }, { title: "Source Files", type: "ZIP" }]).map((resource) => (
-              <div key={resource.title} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
+            {resourceList(currentLecture).map((resource) => (
+              <a key={`${resource.title}-${resource.url}`} href={resource.url || "#"} target={resource.url ? "_blank" : undefined} rel="noreferrer" className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
                 {resource.type === "ZIP" ? <Download className="h-5 w-5 text-[#ff6b35]" /> : <FileText className="h-5 w-5 text-[#ff6b35]" />}
                 <div><p className="font-black">{resource.title}</p><p className="text-xs font-bold text-slate-500">{resource.type || "Resource"}</p></div>
-              </div>
+              </a>
             ))}
           </div>
         </MotionCard>
@@ -173,4 +197,12 @@ function formatDuration(value) {
   const minutes = Math.floor(value / 60);
   const seconds = String(value % 60).padStart(2, "0");
   return `${minutes}:${seconds}`;
+}
+
+function resourceList(lecture) {
+  if (!lecture) return [];
+  const resources = [...(lecture.resources || [])];
+  if (lecture.notesPdfUrl) resources.unshift({ title: "Lecture Notes", type: "PDF", url: lecture.notesPdfUrl });
+  if (lecture.captionsUrl) resources.push({ title: "Captions", type: "VTT", url: lecture.captionsUrl });
+  return resources.length ? resources : [{ title: "No resources added", type: "Resource", url: "" }];
 }

@@ -2,12 +2,13 @@ import express from "express";
 import { adminApproveQuiz, adminDeleteQuiz, adminQuizzes, adminRejectQuiz } from "../controllers/quizController.js";
 import {
   adminApproveCourse, adminAssignments, adminCategories, adminCertificates, adminCommunity, adminCoupons,
+  adminCourseControl, adminCourseDetails,
   adminCourseAnalytics, adminCourses, adminCreateCategory, adminCreateCoupon, adminDashboard,
   adminDeleteAssignment, adminDeleteCategory, adminDeleteCertificate, adminDeleteCoupon, adminDeleteCourse,
   adminDeleteDiscussion, adminDeleteReview, adminDeleteUser, adminInstructors, adminOrders, adminPayments,
   adminPendingApprovals, adminRecentActivity, adminRecentOrders, adminRefunds, adminRefundStatus,
   adminRejectCourse, adminReports, adminRevenueAnalytics, adminReviews, adminStats, adminStudents,
-  adminTopCourses, adminUpdateCategory, adminUpdateCoupon, adminUserGrowth, adminUsers, adminUserStatus,
+  adminTopCourses, adminUpdateCategory, adminUpdateCoupon, adminUpdateCourse, adminUserGrowth, adminUsers, adminUserStatus,
 } from "../controllers/lmsController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
 import validate from "../middleware/validate.js";
@@ -31,6 +32,9 @@ router.get("/instructors", adminInstructors);
 router.patch("/users/:userId/status", adminUserStatus);
 router.delete("/users/:userId", adminDeleteUser);
 router.get("/courses", adminCourses);
+router.get("/courses/:courseId", adminCourseDetails);
+router.patch("/courses/:courseId", adminUpdateCourse);
+router.patch("/courses/:courseId/control", adminCourseControl);
 router.delete("/courses/:courseId", adminDeleteCourse);
 router.patch("/courses/:courseId/approve", adminApproveCourse);
 router.patch("/courses/:courseId/reject", adminRejectCourse);

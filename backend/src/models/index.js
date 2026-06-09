@@ -83,14 +83,45 @@ export const Course = makeModel(
   new Schema(
     {
       title: { type: String, required: true, trim: true },
+      subtitle: String,
       slug: { type: String, required: true, unique: true, trim: true },
       instructor: { type: objectId, ref: "User" },
       category: String,
+      subcategory: String,
+      language: { type: String, default: "English" },
       level: { type: String, enum: ["beginner", "intermediate", "advanced"], default: "beginner" },
       thumbnail: String,
+      promoVideoUrl: String,
+      shortDescription: String,
       description: String,
+      learningOutcomes: [String],
+      objectives: [String],
+      skills: [String],
+      requirements: [String],
+      prerequisites: [String],
+      targetAudience: [String],
+      pricingType: { type: String, enum: ["free", "paid"], default: "paid" },
       price: { type: Number, default: 0 },
+      discountPrice: { type: Number, default: 0 },
+      currency: { type: String, default: "USD" },
+      couponEnabled: { type: Boolean, default: true },
+      subscriptionAccess: { type: Boolean, default: false },
+      sequentialLearning: { type: Boolean, default: false },
+      certificateEnabled: { type: Boolean, default: true },
+      certificateRules: {
+        requireFullProgress: { type: Boolean, default: true },
+        requireQuizzes: { type: Boolean, default: false },
+        requireAssignments: { type: Boolean, default: false },
+      },
+      landingPage: {
+        heroBanner: String,
+        faqs: [{ question: String, answer: String }],
+        instructorBio: String,
+      },
       status: { type: String, enum: ["draft", "pending", "approved", "rejected"], default: "pending" },
+      featured: { type: Boolean, default: false },
+      disabled: { type: Boolean, default: false },
+      rejectionReason: String,
       rating: { type: Number, default: 0 },
       tags: [String],
     },
@@ -98,7 +129,7 @@ export const Course = makeModel(
   )
 );
 
-export const Module = makeModel("Module", new Schema({ course: { type: objectId, ref: "Course", required: true }, title: String, order: Number }, baseOptions));
+export const Module = makeModel("Module", new Schema({ course: { type: objectId, ref: "Course", required: true }, title: String, description: String, order: Number, published: { type: Boolean, default: true } }, baseOptions));
 export const Lecture = makeModel(
   "Lecture",
   new Schema(
@@ -107,18 +138,33 @@ export const Lecture = makeModel(
       module: { type: objectId, ref: "Module", required: true },
       title: String,
       description: String,
+      type: { type: String, enum: ["video", "pdf", "article", "resource", "assignment", "quiz", "live"], default: "video" },
       videoUrl: String,
+      articleContent: String,
+      transcript: String,
+      captionsUrl: String,
+      notesPdfUrl: String,
       durationSeconds: Number,
+      estimatedDurationMinutes: Number,
       order: Number,
       isPreview: { type: Boolean, default: false },
+      isLocked: { type: Boolean, default: false },
+      published: { type: Boolean, default: true },
+      downloadable: { type: Boolean, default: true },
+      dripEnabled: { type: Boolean, default: false },
+      unlockType: { type: String, enum: ["immediate", "days", "date"], default: "immediate" },
+      daysAfterEnrollment: { type: Number, default: 0 },
+      unlockAt: Date,
       resources: [{ title: String, url: String, type: String }],
+      externalLinks: [{ title: String, url: String }],
     },
     baseOptions
   )
 );
 
 export const Enrollment = makeModel("Enrollment", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, status: { type: String, enum: ["active", "completed", "cancelled"], default: "active" }, progress: { type: Number, default: 0 }, enrolledAt: { type: Date, default: Date.now } }, baseOptions));
-export const LectureProgress = makeModel("LectureProgress", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, lecture: { type: objectId, ref: "Lecture", required: true }, completed: { type: Boolean, default: false }, watchTimeSeconds: { type: Number, default: 0 }, bookmarked: { type: Boolean, default: false } }, baseOptions));
+export const LectureProgress = makeModel("LectureProgress", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, lecture: { type: objectId, ref: "Lecture", required: true }, completed: { type: Boolean, default: false }, watchedPercentage: { type: Number, default: 0 }, lastPositionSeconds: { type: Number, default: 0 }, watchTimeSeconds: { type: Number, default: 0 }, bookmarked: { type: Boolean, default: false }, bookmarkTimestamps: [{ seconds: Number, label: String }] }, baseOptions));
+export const CourseAnalytics = makeModel("CourseAnalytics", new Schema({ course: { type: objectId, ref: "Course", required: true, unique: true }, totalViews: { type: Number, default: 0 }, totalWatchTimeSeconds: { type: Number, default: 0 }, activeStudents: { type: Number, default: 0 }, completionRate: { type: Number, default: 0 }, quizPassRate: { type: Number, default: 0 }, assignmentSubmissionRate: { type: Number, default: 0 }, revenue: { type: Number, default: 0 } }, baseOptions));
 export const Note = makeModel("Note", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course" }, lecture: { type: objectId, ref: "Lecture" }, title: String, content: String, pinned: { type: Boolean, default: false } }, baseOptions));
 
 const quizOptionSchema = new Schema(

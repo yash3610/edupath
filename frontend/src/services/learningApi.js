@@ -54,6 +54,7 @@ export const learningApi = {
   getProgress: (courseId) => withFallback(() => apiRequest(`/api/student/course-progress/${courseId}`), fallbackModuleDocs.flatMap((module) => module.lectures).filter((lecture) => lecture.completed).map((lecture) => ({ lecture: lecture._id, completed: true }))),
   completeLecture: (lectureId) => withFallback(() => apiRequest(`/api/learning/lecture/${lectureId}/complete`, { method: "PATCH", body: JSON.stringify({ completed: true }) }), { lecture: lectureId, completed: true }),
   saveProgress: (lectureId, payload) => withFallback(() => apiRequest(`/api/learning/lecture/${lectureId}/progress`, { method: "PATCH", body: JSON.stringify(payload) }), payload),
+  bookmarkLecture: (lectureId, payload = {}) => withFallback(() => apiRequest(`/api/learning/lecture/${lectureId}/bookmark`, { method: "POST", body: JSON.stringify(payload) }), { bookmarked: true }),
 };
 
 function parseDuration(value) {

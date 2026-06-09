@@ -8,6 +8,7 @@ import {
   Certificate,
   Conversation,
   Course,
+  CourseAnalytics,
   Coupon,
   DiscussionAnswer,
   DiscussionQuestion,
@@ -45,6 +46,21 @@ import asyncHandler from "../utils/asyncHandler.js";
 const ok = (res, data, message = "OK") => res.json({ success: true, message, data });
 const created = (res, data, message = "Created") => res.status(201).json({ success: true, message, data });
 const userId = (req) => req.user?._id;
+const toList = (value) => Array.isArray(value) ? value : String(value || "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+const normalizeCoursePayload = (body) => {
+  const payload = { ...body };
+  ["learningOutcomes", "objectives", "skills", "requirements", "prerequisites", "targetAudience", "tags"].forEach((key) => {
+    if (payload[key] !== undefined) payload[key] = toList(payload[key]);
+  });
+  ["price", "discountPrice"].forEach((key) => {
+    if (payload[key] !== undefined && payload[key] !== "") payload[key] = Number(payload[key]);
+  });
+  if (payload.pricingType === "free") {
+    payload.price = 0;
+    payload.discountPrice = 0;
+  }
+  return payload;
+};
 
 export const dashboardStats = asyncHandler(async (req, res) => ok(res, {
   enrolledCourses: await Enrollment.countDocuments({ student: userId(req) }),
@@ -54,7 +70,7 @@ export const dashboardStats = asyncHandler(async (req, res) => ok(res, {
   quizAverage: 88,
 }));
 export const continueLearning = asyncHandler(async (req, res) => ok(res, await Enrollment.findOne({ student: userId(req) }).populate("course")));
-export const recommendedCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: "approved" }).limit(6)));
+export const recommendedCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: "approved", disabled: { $ne: true } }).sort({ featured: -1, rating: -1 }).limit(6)));
 export const upcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(8)));
 export const recentNotifications = asyncHandler(async (req, res) => ok(res, await Notification.find({ user: userId(req) }).sort({ createdAt: -1 }).limit(10)));
 export const achievements = asyncHandler(async (req, res) => ok(res, { streak: 18, badges: ["Quiz Champion", "Fast Finisher"], student: userId(req) }));
@@ -71,26 +87,62 @@ export const myCourses = asyncHandler(async (req, res) => {
 });
 export const courseProgress = asyncHandler(async (req, res) => ok(res, await LectureProgress.find({ student: userId(req), course: req.params.courseId })));
 
-export const learningCourse = asyncHandler(async (req, res) => ok(res, await Course.findById(req.params.courseId)));
+export const learningCourse = asyncHandler(async (req, res) => {
+  const enrollment = await Enrollment.findOne({ student: userId(req), course: req.params.courseId });
+  if (!enrollment) throw new ApiError(403, "Enroll in this course to access the learning room");
+  const course = await Course.findOne({ _id: req.params.courseId, status: "approved", disabled: { $ne: true } }).populate("instructor", "name");
+  if (!course) throw new ApiError(404, "Course is unavailable");
+  ok(res, course);
+});
 export const courseModules = asyncHandler(async (req, res) => {
+  const enrollment = await Enrollment.findOne({ student: userId(req), course: req.params.courseId });
+  if (!enrollment) throw new ApiError(403, "Enrollment required");
+  const course = await Course.findOne({ _id: req.params.courseId, status: "approved", disabled: { $ne: true } });
+  if (!course) throw new ApiError(404, "Course is unavailable");
   const modules = await Module.find({ course: req.params.courseId }).sort({ order: 1 }).lean();
-  const lectures = await Lecture.find({ course: req.params.courseId }).sort({ order: 1 }).lean();
+  const lectures = await Lecture.find({ course: req.params.courseId, published: { $ne: false } }).sort({ order: 1 }).lean();
+  const progress = await LectureProgress.find({ student: userId(req), course: req.params.courseId }).lean();
+  const completed = new Set(progress.filter((item) => item.completed).map((item) => String(item.lecture)));
+  const now = new Date();
+  let previousComplete = true;
+  const orderedLectures = modules.flatMap((module) => lectures.filter((lecture) => String(lecture.module) === String(module._id)));
+  const hydratedLectures = orderedLectures.map((lecture) => {
+    const unlockDate = lecture.unlockType === "date" ? lecture.unlockAt
+      : lecture.unlockType === "days" ? new Date(new Date(enrollment.enrolledAt).getTime() + Number(lecture.daysAfterEnrollment || 0) * 86400000)
+      : null;
+    const dripLocked = Boolean(lecture.dripEnabled && unlockDate && unlockDate > now);
+    const locked = Boolean(lecture.isLocked || dripLocked || (course.sequentialLearning && !previousComplete));
+    const isComplete = completed.has(String(lecture._id));
+    previousComplete = isComplete;
+    return { ...lecture, completed: isComplete, locked, unlockDate };
+  });
   ok(res, modules.map((module) => ({
     ...module,
-    lectures: lectures.filter((lecture) => String(lecture.module) === String(module._id)),
+    lectures: hydratedLectures.filter((lecture) => String(lecture.module) === String(module._id)),
   })));
 });
-export const lectureDetails = asyncHandler(async (req, res) => ok(res, await Lecture.findById(req.params.lectureId)));
+export const lectureDetails = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId);
+  if (!lecture || !(await Enrollment.exists({ student: userId(req), course: lecture.course }))) throw new ApiError(404, "Lecture not found");
+  ok(res, lecture);
+});
 export const patchLectureProgress = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
   if (!lecture) throw new ApiError(404, "Lecture not found");
   const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { ...req.body, course: lecture.course } }, { new: true, upsert: true });
+  const totalLectures = await Lecture.countDocuments({ course: lecture.course, published: { $ne: false } });
+  const completedLectures = await LectureProgress.countDocuments({ student: userId(req), course: lecture.course, completed: true });
+  await Enrollment.findOneAndUpdate({ student: userId(req), course: lecture.course }, { progress: totalLectures ? Math.round((completedLectures / totalLectures) * 100) : 0 });
   ok(res, progress, "Progress updated");
 });
 export const completeLecture = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
   if (!lecture) throw new ApiError(404, "Lecture not found");
   const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { completed: true, course: lecture.course } }, { new: true, upsert: true });
+  const totalLectures = await Lecture.countDocuments({ course: lecture.course, published: { $ne: false } });
+  const completedLectures = await LectureProgress.countDocuments({ student: userId(req), course: lecture.course, completed: true });
+  const percent = totalLectures ? Math.round((completedLectures / totalLectures) * 100) : 0;
+  await Enrollment.findOneAndUpdate({ student: userId(req), course: lecture.course }, { progress: percent, ...(percent === 100 ? { status: "completed" } : {}) });
   ok(res, progress, "Lecture completed");
 });
 export const bookmarkLecture = asyncHandler(async (req, res) => {
@@ -375,8 +427,35 @@ export const instructorRecentActivity = asyncHandler(async (req, res) => {
   ok(res, await Enrollment.find({ course: { $in: courseIds } }).populate("student", "name email").populate("course", "title").sort({ createdAt: -1 }).limit(10));
 });
 export const instructorUpcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(10)));
-export const instructorCreateCourse = asyncHandler(async (req, res) => created(res, await Course.create({ ...req.body, instructor: userId(req), status: "draft" })));
-export const instructorUpdateCourse = asyncHandler(async (req, res) => ok(res, await Course.findOneAndUpdate({ _id: req.params.courseId, instructor: userId(req) }, req.body, { new: true })));
+export const instructorCreateCourse = asyncHandler(async (req, res) => created(res, await Course.create({ ...normalizeCoursePayload(req.body), instructor: userId(req), status: "draft" })));
+export const instructorCourseDetails = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) }).populate("instructor", "name email");
+  if (!course) throw new ApiError(404, "Course not found");
+  ok(res, course);
+});
+export const instructorUpdateCourse = asyncHandler(async (req, res) => {
+  const course = await Course.findOneAndUpdate({ _id: req.params.courseId, instructor: userId(req) }, normalizeCoursePayload(req.body), { new: true, runValidators: true });
+  if (!course) throw new ApiError(404, "Course not found");
+  ok(res, course, "Course saved");
+});
+export const instructorSubmitCourse = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  const moduleCount = await Module.countDocuments({ course: course._id });
+  const lectureCount = await Lecture.countDocuments({ course: course._id });
+  if (!course.title || !course.slug || !course.description || !moduleCount || !lectureCount) throw new ApiError(400, "Complete course details and add at least one module and lecture");
+  course.status = "pending";
+  course.rejectionReason = undefined;
+  await course.save();
+  ok(res, course, "Course submitted for review");
+});
+export const instructorUploadCourseAsset = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  if (!req.file) throw new ApiError(400, "Select a file to upload");
+  const asset = await uploadBuffer(req.file, `courses/${course._id}`);
+  created(res, { url: asset?.url, publicId: asset?.publicId, format: asset?.format, bytes: asset?.bytes, resourceType: asset?.resourceType }, "Course asset uploaded");
+});
 export const instructorDeleteCourse = asyncHandler(async (req, res) => ok(res, await Course.deleteOne({ _id: req.params.courseId, instructor: userId(req) })));
 export const instructorCreateModule = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
@@ -392,6 +471,12 @@ export const instructorUpdateModule = asyncHandler(async (req, res) => {
   const module = await Module.findById(req.params.moduleId);
   if (!module || !(await Course.exists({ _id: module.course, instructor: userId(req) }))) throw new ApiError(404, "Module not found");
   ok(res, await Module.findByIdAndUpdate(module._id, req.body, { new: true }));
+});
+export const instructorReorderModules = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  await Promise.all((req.body.order || []).map((id, index) => Module.updateOne({ _id: id, course: course._id }, { order: index + 1 })));
+  ok(res, await Module.find({ course: course._id }).sort({ order: 1 }), "Modules reordered");
 });
 export const instructorDeleteModule = asyncHandler(async (req, res) => {
   const module = await Module.findById(req.params.moduleId);
@@ -414,10 +499,39 @@ export const instructorUpdateLecture = asyncHandler(async (req, res) => {
   if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
   ok(res, await Lecture.findByIdAndUpdate(lecture._id, req.body, { new: true }));
 });
+export const instructorDuplicateLecture = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId).lean();
+  if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
+  delete lecture._id;
+  delete lecture.createdAt;
+  delete lecture.updatedAt;
+  created(res, await Lecture.create({ ...lecture, title: `${lecture.title} Copy`, order: Number(lecture.order || 0) + 1 }), "Lecture duplicated");
+});
+export const instructorReorderLectures = asyncHandler(async (req, res) => {
+  const module = await Module.findById(req.params.moduleId);
+  if (!module || !(await Course.exists({ _id: module.course, instructor: userId(req) }))) throw new ApiError(404, "Module not found");
+  await Promise.all((req.body.order || []).map((id, index) => Lecture.updateOne({ _id: id, module: module._id }, { order: index + 1 })));
+  ok(res, await Lecture.find({ module: module._id }).sort({ order: 1 }), "Lectures reordered");
+});
 export const instructorDeleteLecture = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId);
   if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
   ok(res, await Lecture.deleteOne({ _id: lecture._id }), "Lecture deleted");
+});
+export const instructorCourseAnalytics = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  const enrollments = await Enrollment.find({ course: course._id });
+  const progress = await LectureProgress.find({ course: course._id });
+  const revenue = await Order.aggregate([{ $match: { course: course._id, status: "paid" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]);
+  ok(res, {
+    totalStudents: enrollments.length,
+    activeStudents: enrollments.filter((item) => item.status === "active").length,
+    completionRate: enrollments.length ? Math.round(enrollments.reduce((sum, item) => sum + Number(item.progress || 0), 0) / enrollments.length) : 0,
+    averageWatchTimeSeconds: progress.length ? Math.round(progress.reduce((sum, item) => sum + Number(item.watchTimeSeconds || 0), 0) / progress.length) : 0,
+    revenue: revenue[0]?.total || 0,
+    rating: course.rating || 0,
+  });
 });
 export const instructorCreateQuiz = asyncHandler(async (req, res) => created(res, await Quiz.create({ ...req.body, course: req.params.courseId })));
 export const instructorCreateAssignment = asyncHandler(async (req, res) => {
@@ -489,10 +603,27 @@ export const adminStudents = asyncHandler(async (_req, res) => ok(res, await Use
 export const adminInstructors = asyncHandler(async (_req, res) => ok(res, await User.find({ role: "instructor" }).select("-passwordHash").sort({ createdAt: -1 })));
 export const adminUserStatus = asyncHandler(async (req, res) => ok(res, await User.findByIdAndUpdate(req.params.userId, { status: req.body.status }, { new: true }).select("-passwordHash")));
 export const adminDeleteUser = asyncHandler(async (req, res) => ok(res, await User.findByIdAndDelete(req.params.userId)));
-export const adminCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({})));
+export const adminCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({}).populate("instructor", "name email").sort({ updatedAt: -1 })));
+export const adminCourseDetails = asyncHandler(async (req, res) => {
+  const course = await Course.findById(req.params.courseId).populate("instructor", "name email");
+  if (!course) throw new ApiError(404, "Course not found");
+  const modules = await Module.find({ course: course._id }).sort({ order: 1 }).lean();
+  const lectures = await Lecture.find({ course: course._id }).sort({ order: 1 }).lean();
+  ok(res, { course, modules: modules.map((module) => ({ ...module, lectures: lectures.filter((lecture) => String(lecture.module) === String(module._id)) })) });
+});
+export const adminUpdateCourse = asyncHandler(async (req, res) => {
+  const course = await Course.findByIdAndUpdate(req.params.courseId, normalizeCoursePayload(req.body), { new: true, runValidators: true });
+  if (!course) throw new ApiError(404, "Course not found");
+  ok(res, course, "Course updated");
+});
 export const adminDeleteCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndDelete(req.params.courseId), "Course deleted"));
 export const adminApproveCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndUpdate(req.params.courseId, { status: "approved" }, { new: true })));
-export const adminRejectCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndUpdate(req.params.courseId, { status: "rejected" }, { new: true })));
+export const adminRejectCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndUpdate(req.params.courseId, { status: "rejected", rejectionReason: req.body.reason }, { new: true })));
+export const adminCourseControl = asyncHandler(async (req, res) => {
+  const allowed = ["featured", "disabled", "price", "discountPrice", "status"];
+  const payload = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+  ok(res, await Course.findByIdAndUpdate(req.params.courseId, payload, { new: true, runValidators: true }), "Course control updated");
+});
 export const adminOrders = asyncHandler(async (_req, res) => ok(res, await Order.find({}).sort({ createdAt: -1 })));
 export const adminPayments = asyncHandler(async (_req, res) => ok(res, await Payment.find({}).sort({ createdAt: -1 })));
 export const adminRefunds = asyncHandler(async (_req, res) => ok(res, await RefundRequest.find({}).populate("user", "name email").sort({ createdAt: -1 })));
