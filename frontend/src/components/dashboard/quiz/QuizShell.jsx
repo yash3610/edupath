@@ -9,7 +9,7 @@ export function StatusPill({ status }) {
     Locked: "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-300",
     "In Progress": "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
   };
-  return <span className={`rounded-full px-3 py-1 text-xs font-black ${styles[status] || "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"}`}>{status}</span>;
+  return <span className={`rounded-full px-3 py-1 text-xs font-black ${styles[status] || "bg-[#fff1e8] text-[#c94d1e] dark:bg-orange-500/15 dark:text-orange-200"}`}>{status}</span>;
 }
 
 export function QuizMetric({ icon: Icon = Trophy, label, value }) {
@@ -24,7 +24,7 @@ export function QuizMetric({ icon: Icon = Trophy, label, value }) {
 
 export function QuizHero({ title, subtitle, action }) {
   return (
-    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[28px] bg-gradient-to-br from-slate-950 via-[#181438] to-[#ff6b35] p-6 text-white shadow-xl sm:p-8">
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#1f1c35] via-[#2b2746] to-[#ff723a] p-6 text-white shadow-[0_20px_45px_rgba(31,28,53,.18)] sm:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">Premium Quiz System</p>

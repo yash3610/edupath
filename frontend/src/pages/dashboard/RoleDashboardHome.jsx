@@ -56,7 +56,7 @@ export default function RoleDashboardHome() {
           return (
             <MotionCard key={label} className="p-5" delay={index * 0.025}>
               <div className="flex items-start justify-between gap-3">
-                <div><p className="text-xs font-bold text-slate-500">{label}</p><p className="mt-2 text-2xl font-extrabold tracking-[-0.03em]">{value}</p><p className="mt-2 text-[11px] font-bold text-emerald-600">{change}</p></div>
+                <div><p className="text-xs font-bold text-slate-500">{label}</p><p className="mt-2 text-2xl font-extrabold tracking-[-0.03em] text-[#1f1c35] dark:text-white">{value}</p><p className="mt-2 text-[11px] font-bold text-[#d95524] dark:text-[#fec961]">{change}</p></div>
                 <span className="rounded-2xl bg-[#fff1e8] p-3 text-[#ff723a] dark:bg-orange-500/10"><Icon name={icon} className="h-5 w-5" /></span>
               </div>
             </MotionCard>

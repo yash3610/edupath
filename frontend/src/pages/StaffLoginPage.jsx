@@ -41,9 +41,10 @@ export default function StaffLoginPage() {
     event.preventDefault();
     setStatus({ loading: true, error: "" });
     try {
-      await login({ ...form, role });
-      toast.success(`Welcome to the ${content.label} portal.`, "Login successful");
-      navigate(location.state?.from?.pathname || dashboardPathForRole(role), { replace: true });
+      const result = await login(form);
+      const loggedInUser = result.data?.user;
+      toast.success(`Welcome, ${loggedInUser?.name || content.label}.`, "Login successful");
+      navigate(dashboardPathForRole(loggedInUser?.role), { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
       toast.error(error.message, "Login failed");

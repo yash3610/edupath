@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
+import { dashboardPathForRole, useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 
 export default function LoginPage() {
@@ -17,9 +17,11 @@ export default function LoginPage() {
     event.preventDefault();
     setStatus({ loading: true, error: "" });
     try {
-      await login({ ...form, role: "student" });
+      const result = await login(form);
+      const user = result.data?.user;
       toast.success("Welcome back! Redirecting you now.", "Login successful");
-      navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+      const requestedPath = location.state?.from?.pathname;
+      navigate(requestedPath || dashboardPathForRole(user?.role), { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
       toast.error(error.message, "Login failed");

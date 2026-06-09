@@ -99,16 +99,16 @@ export default function RoleDashboardLayout({ role }) {
   }
 
   return (
-    <div className={dark ? "dark" : ""}>
-      <div className="min-h-screen bg-[#f7f8fc] text-slate-900 dark:bg-slate-950 dark:text-white">
-        <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col border-r border-slate-200/80 bg-white px-4 py-5 dark:border-white/10 dark:bg-slate-900 lg:flex">
+    <div className={`role-dashboard role-dashboard--${role} ${dark ? "dark" : ""}`}>
+      <div className="role-dashboard-shell min-h-screen text-slate-900 dark:text-white">
+        <aside className="role-dashboard-sidebar fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col px-4 py-5 lg:flex">
           <RoleSidebar config={config} pathFor={pathFor} onNavigate={() => {}} />
         </aside>
 
         {mobileOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <button className="absolute inset-0 bg-slate-950/45" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
-            <aside className="relative flex h-full w-[84vw] max-w-80 flex-col bg-white px-4 py-5 shadow-2xl dark:bg-slate-900">
+            <aside className="role-dashboard-sidebar relative flex h-full w-[84vw] max-w-80 flex-col px-4 py-5 shadow-2xl">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#ff723a]">{role} menu</span>
                 <button className="rounded-xl border border-slate-200 p-2 dark:border-white/10" onClick={() => setMobileOpen(false)}><Icon name="X" /></button>
@@ -119,7 +119,7 @@ export default function RoleDashboardLayout({ role }) {
         )}
 
         <div className="min-w-0 lg:pl-[276px]">
-          <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 px-4 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
+          <header className="role-dashboard-header sticky top-0 z-30 px-4 py-3.5 backdrop-blur-xl sm:px-6">
             <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <button className="rounded-xl border border-slate-200 p-2.5 dark:border-white/10 lg:hidden" onClick={() => setMobileOpen(true)}><Icon name="Menu" /></button>
@@ -130,7 +130,7 @@ export default function RoleDashboardLayout({ role }) {
               </div>
 
               <div className="hidden min-w-0 flex-1 px-5 xl:block">
-                <div className="mx-auto flex max-w-lg items-center gap-2.5 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 focus-within:border-[#ff723a]/40 focus-within:ring-4 focus-within:ring-orange-50 dark:border-white/10 dark:bg-slate-800">
+                <div className="role-dashboard-search mx-auto flex max-w-lg items-center gap-2.5 rounded-2xl px-4 py-2.5">
                   <Icon name="Search" className="h-4 w-4 text-slate-400" />
                   <input className="dashboard-search-input min-w-0 flex-1 text-sm font-semibold" placeholder={`Search ${role} workspace...`} />
                 </div>
@@ -138,12 +138,12 @@ export default function RoleDashboardLayout({ role }) {
 
               <div className="flex shrink-0 items-center gap-2">
                 <div ref={notificationRef} className="relative">
-                  <button onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) loadNotifications(); }} className="relative rounded-xl border border-slate-200 bg-white p-2.5 hover:bg-orange-50 dark:border-white/10 dark:bg-white/10">
+                  <button onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) loadNotifications(); }} className="role-dashboard-icon-button relative rounded-xl p-2.5">
                     <Icon name="Bell" />
                     {notifications.length > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#ff723a] ring-2 ring-white" />}
                   </button>
                   {notificationOpen && (
-                    <div className="absolute right-0 top-14 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_rgba(31,28,53,.16)] dark:border-white/10 dark:bg-slate-900">
+                    <div className="role-dashboard-dropdown absolute right-0 top-14 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl">
                       <div className="border-b border-slate-100 px-4 py-3.5 dark:border-white/10">
                         <p className="font-extrabold">Notifications</p>
                         <p className="text-xs text-slate-400">{notifications.length} new updates</p>
@@ -158,14 +158,14 @@ export default function RoleDashboardLayout({ role }) {
                     </div>
                   )}
                 </div>
-                <button className="rounded-xl border border-slate-200 bg-white p-2.5 dark:border-white/10 dark:bg-white/10" onClick={() => setDark((value) => !value)}><Icon name={dark ? "Sun" : "Moon"} /></button>
+                <button className="role-dashboard-icon-button rounded-xl p-2.5" onClick={() => setDark((value) => !value)}><Icon name={dark ? "Sun" : "Moon"} /></button>
                 <div className="relative">
-                  <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pr-3 dark:border-white/10 dark:bg-white/10">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1f1c35] text-sm font-extrabold text-white">{firstName[0]}</span>
+                  <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="role-dashboard-profile flex items-center gap-2 rounded-xl p-1.5 pr-3">
+                    <span className="role-dashboard-avatar flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold text-white">{firstName[0]}</span>
                     <span className="hidden text-sm font-extrabold sm:block">{firstName}</span>
                   </button>
                   {profileOpen && (
-                    <div className="absolute right-0 top-14 w-60 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-slate-900">
+                    <div className="role-dashboard-dropdown absolute right-0 top-14 w-60 rounded-2xl p-3">
                       <p className="font-extrabold">{user?.name || firstName}</p>
                       <p className="break-all text-xs text-slate-500">{user?.email}</p>
                       <p className="mt-2 text-[10px] font-extrabold uppercase tracking-widest text-[#ff723a]">{role}</p>
@@ -181,7 +181,7 @@ export default function RoleDashboardLayout({ role }) {
             </nav>
           </header>
 
-          <main className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+          <main className="role-dashboard-main mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
             <Outlet context={{ role, user, config }} />
           </main>
         </div>

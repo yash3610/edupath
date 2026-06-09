@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { api, setAccessToken } from "../services/api.js";
 
 const AuthContext = createContext(null);
@@ -13,14 +14,19 @@ export function dashboardPathForRole(role) {
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(SESSION_KEY)) || null;
+      const stored = JSON.parse(localStorage.getItem(SESSION_KEY)) || null;
+      setAccessToken(stored?.token || stored?.accessToken || "");
+      return stored;
     } catch {
+      setAccessToken("");
       return null;
     }
   });
   const [loading, setLoading] = useState(Boolean(session?.token || session?.accessToken));
+  const sessionVersion = useRef(0);
 
   useEffect(() => {
+    const version = ++sessionVersion.current;
     const token = session?.token || session?.accessToken || "";
     setAccessToken(token);
     if (!token) {
@@ -30,16 +36,20 @@ export function AuthProvider({ children }) {
 
     api.me()
       .then((result) => {
+        if (sessionVersion.current !== version) return;
         const nextSession = { ...session, user: result.data.user };
         setSession(nextSession);
         localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
       })
       .catch(() => {
+        if (sessionVersion.current !== version) return;
         setSession(null);
         setAccessToken("");
         localStorage.removeItem(SESSION_KEY);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (sessionVersion.current === version) setLoading(false);
+      });
   }, []);
 
   function saveSession(nextSession) {
@@ -47,9 +57,14 @@ export function AuthProvider({ children }) {
       ...nextSession,
       token: nextSession.token || nextSession.accessToken,
     };
-    setSession(normalizedSession);
+    sessionVersion.current += 1;
     setAccessToken(normalizedSession.token || "");
     localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedSession));
+    flushSync(() => {
+      setSession(normalizedSession);
+      setLoading(false);
+    });
+    return normalizedSession;
   }
 
   const value = useMemo(() => ({
@@ -57,17 +72,31 @@ export function AuthProvider({ children }) {
     token: session?.token || session?.accessToken || "",
     loading,
     login: async (credentials) => {
-      const result = await api.login(credentials);
-      saveSession(result.data);
-      return result;
+      setLoading(true);
+      try {
+        const result = await api.login(credentials);
+        const saved = saveSession(result.data);
+        return { ...result, data: saved };
+      } catch (error) {
+        setLoading(false);
+        throw error;
+      }
     },
     register: async (details) => {
-      const result = await api.register(details);
-      saveSession(result.data);
-      return result;
+      setLoading(true);
+      try {
+        const result = await api.register(details);
+        const saved = saveSession(result.data);
+        return { ...result, data: saved };
+      } catch (error) {
+        setLoading(false);
+        throw error;
+      }
     },
     logout: () => {
+      sessionVersion.current += 1;
       setSession(null);
+      setLoading(false);
       setAccessToken("");
       localStorage.removeItem(SESSION_KEY);
     },

@@ -238,28 +238,136 @@ main > div {
   }
 }
 
+/* Admin and instructor dashboards share the original EduPath warm palette. */
+.role-dashboard {
+  --dash-orange: #ff723a;
+  --dash-orange-dark: #d95524;
+  --dash-yellow: #fec961;
+  --dash-ink: #1f1c35;
+  --dash-ink-soft: #312c4d;
+  --dash-cream: #fbf7f2;
+  --dash-surface: #fffdf9;
+  --dash-soft: #fff4e9;
+  --dash-border: #eee2d6;
+  --dash-muted: #6f6b7d;
+}
+
+.role-dashboard-shell {
+  background:
+    radial-gradient(circle at 82% 5%, rgba(254, 201, 97, 0.14), transparent 24rem),
+    var(--dash-cream);
+}
+
+.role-dashboard-sidebar {
+  border-right: 1px solid var(--dash-border);
+  background: rgba(255, 253, 249, 0.97);
+  box-shadow: 10px 0 36px rgba(31, 28, 53, 0.035);
+}
+
+.role-dashboard-header {
+  border-bottom: 1px solid var(--dash-border);
+  background: rgba(255, 253, 249, 0.9);
+  box-shadow: 0 5px 24px rgba(31, 28, 53, 0.035);
+}
+
+.role-dashboard-search {
+  border: 1px solid var(--dash-border);
+  background: #fffaf4;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.role-dashboard-search:focus-within {
+  border-color: rgba(255, 114, 58, 0.55);
+  box-shadow: 0 0 0 4px rgba(255, 114, 58, 0.08);
+}
+
+.role-dashboard-icon-button,
+.role-dashboard-profile {
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-ink);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.role-dashboard-icon-button:hover,
+.role-dashboard-profile:hover {
+  border-color: rgba(255, 114, 58, 0.4);
+  background: var(--dash-soft);
+  color: var(--dash-orange-dark);
+}
+
+.role-dashboard-avatar {
+  background: linear-gradient(135deg, var(--dash-ink), var(--dash-ink-soft));
+  box-shadow: 0 6px 14px rgba(31, 28, 53, 0.16);
+}
+
+.role-dashboard-dropdown {
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  box-shadow: 0 20px 55px rgba(31, 28, 53, 0.14);
+}
+
+.role-dashboard-main > div > .border,
+.role-dashboard-main > div > section.border {
+  border-color: var(--dash-border);
+}
+
+.role-dashboard-main input,
+.role-dashboard-main select,
+.role-dashboard-main textarea {
+  border-color: var(--dash-border);
+}
+
+.role-dashboard-main input:focus,
+.role-dashboard-main select:focus,
+.role-dashboard-main textarea:focus {
+  border-color: rgba(255, 114, 58, 0.62);
+  box-shadow: 0 0 0 3px rgba(255, 114, 58, 0.07);
+}
+
+.role-dashboard.dark .role-dashboard-shell {
+  background:
+    radial-gradient(circle at 82% 5%, rgba(255, 114, 58, 0.08), transparent 24rem),
+    #171427;
+}
+
+.role-dashboard.dark .role-dashboard-sidebar,
+.role-dashboard.dark .role-dashboard-header,
+.role-dashboard.dark .role-dashboard-dropdown {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(31, 28, 53, 0.97);
+}
+
+.role-dashboard.dark .role-dashboard-search,
+.role-dashboard.dark .role-dashboard-icon-button,
+.role-dashboard.dark .role-dashboard-profile {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
+}
+
 .role-auth {
   background:
-    radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.12), transparent 30%),
-    radial-gradient(circle at 85% 75%, rgba(15, 159, 130, 0.12), transparent 28%);
+    radial-gradient(circle at 15% 20%, rgba(255, 114, 58, 0.13), transparent 30%),
+    radial-gradient(circle at 85% 75%, rgba(254, 201, 97, 0.16), transparent 28%);
 }
 
 .role-auth__card {
   position: relative;
   overflow: hidden;
-  border-top: 4px solid #7c3aed;
+  border-top: 4px solid #ff723a;
 }
 
 .role-auth--instructor .role-auth__card {
-  border-top-color: #0f9f82;
+  border-top-color: #ff723a;
 }
 
 .role-auth--admin .ep-auth__card-form-btn .ep-btn {
-  background: #7c3aed;
+  background: #ff723a;
 }
 
 .role-auth--instructor .ep-auth__card-form-btn .ep-btn {
-  background: #0f9f82;
+  background: #ff723a;
 }
 
 .staff-role-tabs {
@@ -283,12 +391,12 @@ main > div {
 }
 
 .role-auth--admin .staff-role-tab.is-active {
-  background: #7c3aed;
+  background: #ff723a;
   color: #fff;
 }
 
 .role-auth--instructor .staff-role-tab.is-active {
-  background: #0f9f82;
+  background: #ff723a;
   color: #fff;
 }
 
