@@ -14,9 +14,10 @@ function session(user) {
 }
 
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password, role = "student" } = req.body;
+  const { name, email, password } = req.body;
+  const role = "student";
   if (!name || !email || !password) throw new ApiError(400, "Name, email and password are required");
-  if (!["student", "instructor", "admin"].includes(role)) throw new ApiError(400, "Invalid role");
+  if (req.body.role && req.body.role !== "student") throw new ApiError(403, "Instructor and admin accounts require administrator approval");
 
   const exists = await User.findOne({ email: email.toLowerCase() });
   if (exists) throw new ApiError(409, "User already exists");
@@ -32,9 +33,10 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
   const user = await User.findOne({ email: String(email || "").toLowerCase() });
   if (!user || !(await user.matchPassword(password || ""))) throw new ApiError(401, "Invalid email or password");
+  if (role && user.role !== role) throw new ApiError(403, `This account cannot access the ${role} portal`);
 
   res.json({ success: true, data: session(user) });
 });

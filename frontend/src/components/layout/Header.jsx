@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Navigation from "./Navigation.jsx";
-import { useAuth } from "../../context/AuthContext.jsx";
+import { dashboardPathForRole, useAuth } from "../../context/AuthContext.jsx";
 import { useCart } from "../../context/CartContext.jsx";
 
 export default function Header() {
@@ -31,7 +31,7 @@ export default function Header() {
                     </Link>
                     {user ? (
                       <>
-                        <Link to="/dashboard" className="ep-btn ep5-bg">Dashboard</Link>
+                        <Link to={dashboardPathForRole(user.role)} className="ep-btn ep5-bg">Dashboard</Link>
                         <button type="button" className="ep-btn ep5-bg" onClick={logout}>Logout</button>
                       </>
                     ) : (

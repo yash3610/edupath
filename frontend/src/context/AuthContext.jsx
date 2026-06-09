@@ -4,6 +4,12 @@ import { api, setAccessToken } from "../services/api.js";
 const AuthContext = createContext(null);
 const SESSION_KEY = "edupath_session";
 
+export function dashboardPathForRole(role) {
+  if (role === "admin") return "/admin/dashboard";
+  if (role === "instructor") return "/instructor/dashboard";
+  return "/dashboard";
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => {
     try {

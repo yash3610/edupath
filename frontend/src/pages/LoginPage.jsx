@@ -17,9 +17,9 @@ export default function LoginPage() {
     event.preventDefault();
     setStatus({ loading: true, error: "" });
     try {
-      await login(form);
+      await login({ ...form, role: "student" });
       toast.success("Welcome back! Redirecting you now.", "Login successful");
-      navigate(location.state?.from?.pathname || "/course", { replace: true });
+      navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
       toast.error(error.message, "Login failed");

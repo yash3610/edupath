@@ -20,6 +20,24 @@ JWT_SECRET=use-a-long-random-secret-at-least-32-chars
 JWT_REFRESH_SECRET=use-another-long-random-secret
 ```
 
+Development staff accounts can be seeded automatically:
+
+```env
+SEED_DATABASE=true
+SEED_ADMIN_EMAIL=admin@edupath.com
+SEED_ADMIN_PASSWORD=use-a-strong-password
+SEED_INSTRUCTOR_EMAIL=instructor@edupath.com
+SEED_INSTRUCTOR_PASSWORD=use-another-strong-password
+```
+
+Start the backend once after setting these values. Missing accounts are created without duplicating existing users.
+
+To seed without starting the API server:
+
+```bash
+npm run seed
+```
+
 ## Folder Structure
 ```txt
 src/

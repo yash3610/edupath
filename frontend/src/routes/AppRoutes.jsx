@@ -14,6 +14,7 @@ import EventPage from "../pages/EventPage.jsx";
 import FaqPage from "../pages/FaqPage.jsx";
 import HomePage from "../pages/HomePage.jsx";
 import LoginPage from "../pages/LoginPage.jsx";
+import StaffLoginPage from "../pages/StaffLoginPage.jsx";
 import NotFoundPage from "../pages/NotFoundPage.jsx";
 import PortfolioPage from "../pages/PortfolioPage.jsx";
 import RegisterPage from "../pages/RegisterPage.jsx";
@@ -26,6 +27,7 @@ import TestimonialPage from "../pages/TestimonialPage.jsx";
 import WishlistPage from "../pages/WishlistPage.jsx";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 const DashboardLayout = React.lazy(() => import("../layouts/DashboardLayout.jsx"));
+const RoleDashboardLayout = React.lazy(() => import("../layouts/RoleDashboardLayout.jsx"));
 const AssignmentsPage = React.lazy(() => import("../pages/dashboard/AssignmentsPage.jsx"));
 const AIRecommendationsPage = React.lazy(() => import("../pages/dashboard/AIRecommendationsPage.jsx"));
 const AINotesPage = React.lazy(() => import("../pages/dashboard/AINotesPage.jsx"));
@@ -47,6 +49,7 @@ const QuizHistoryPage = React.lazy(() => import("../pages/dashboard/QuizHistoryP
 const QuizInstructionsPage = React.lazy(() => import("../pages/dashboard/QuizInstructionsPage.jsx"));
 const QuizPage = React.lazy(() => import("../pages/dashboard/QuizPage.jsx"));
 const QuizResultPage = React.lazy(() => import("../pages/dashboard/QuizResultPage.jsx"));
+const RoleDashboardHome = React.lazy(() => import("../pages/dashboard/RoleDashboardHome.jsx"));
 
 function DashboardSuspense({ children }) {
   return <React.Suspense fallback={<div className="section-gap text-center">Loading dashboard...</div>}>{children}</React.Suspense>;
@@ -77,6 +80,9 @@ export default function AppRoutes() {
         <Route path="/team-details" element={<TeamDetailsPage />} />
         <Route path="/team/:slug" element={<TeamDetailsPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/staff/login" element={<StaffLoginPage />} />
+        <Route path="/admin/login" element={<Navigate to="/staff/login" replace />} />
+        <Route path="/instructor/login" element={<Navigate to="/staff/login" replace />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/faq" element={<FaqPage />} />
@@ -86,7 +92,7 @@ export default function AppRoutes() {
         <Route path="/404" element={<NotFoundPage />} />
       </Route>
 
-      <Route path="/dashboard" element={<ProtectedRoute><DashboardSuspense><DashboardLayout /></DashboardSuspense></ProtectedRoute>}>
+      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={["student"]}><DashboardSuspense><DashboardLayout /></DashboardSuspense></ProtectedRoute>}>
         <Route index element={<DashboardHome />} />
         <Route path="courses" element={<MyCoursesPage />} />
         <Route path="learn" element={<LearningRoomPage />} />
@@ -99,9 +105,6 @@ export default function AppRoutes() {
         <Route path="quizzes/attempt/:attemptId" element={<QuizAttemptPage />} />
         <Route path="quizzes/result/:attemptId" element={<QuizResultPage />} />
         <Route path="quizzes/history/:quizId" element={<QuizHistoryPage />} />
-        <Route path="instructor/quizzes/builder" element={<InstructorQuizBuilderPage />} />
-        <Route path="instructor/quizzes/:quizId/analytics" element={<InstructorQuizAnalyticsPage />} />
-        <Route path="admin/quizzes" element={<AdminQuizManagementPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="paths" element={<FeaturePage type="paths" />} />
         <Route path="certificates" element={<FeaturePage type="certificates" />} />
@@ -120,6 +123,27 @@ export default function AppRoutes() {
         <Route path="ai-recommendations" element={<AIRecommendationsPage />} />
         <Route path="analytics" element={<FeaturePage type="analytics" />} />
         <Route path="settings" element={<FeaturePage type="settings" />} />
+      </Route>
+
+      <Route path="/dashboard/admin/quizzes" element={<Navigate to="/admin/dashboard/quizzes" replace />} />
+      <Route path="/dashboard/instructor/quizzes/builder" element={<Navigate to="/instructor/dashboard/quizzes/new" replace />} />
+      <Route path="/dashboard/instructor/quizzes/:quizId/analytics" element={<Navigate to="/instructor/dashboard/quizzes/demo/analytics" replace />} />
+
+      <Route
+        path="/admin/dashboard"
+        element={<ProtectedRoute allowedRoles={["admin"]} loginPath="/staff/login"><DashboardSuspense><RoleDashboardLayout role="admin" /></DashboardSuspense></ProtectedRoute>}
+      >
+        <Route index element={<RoleDashboardHome />} />
+        <Route path="quizzes" element={<AdminQuizManagementPage />} />
+      </Route>
+
+      <Route
+        path="/instructor/dashboard"
+        element={<ProtectedRoute allowedRoles={["instructor"]} loginPath="/staff/login"><DashboardSuspense><RoleDashboardLayout role="instructor" /></DashboardSuspense></ProtectedRoute>}
+      >
+        <Route index element={<RoleDashboardHome />} />
+        <Route path="quizzes/new" element={<InstructorQuizBuilderPage />} />
+        <Route path="quizzes/:quizId/analytics" element={<InstructorQuizAnalyticsPage />} />
       </Route>
 
       <Route path="/index" element={<Navigate to="/" replace />} />
