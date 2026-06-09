@@ -12,6 +12,36 @@ body.dashboard-active::-webkit-scrollbar-track {
 
 .dashboard-active {
   scrollbar-color: #cbd5e1 #f8fafc;
+  background: #f7f8fc;
+}
+
+body.dashboard-active,
+body.dashboard-active button,
+body.dashboard-active input,
+body.dashboard-active textarea,
+body.dashboard-active select {
+  font-family: var(--ep-font-family, "Outfit", sans-serif);
+}
+
+body.dashboard-active button,
+body.dashboard-active a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dashboard-search-input,
+.dashboard-search-input:hover,
+.dashboard-search-input:focus,
+.dashboard-search-input:active {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: none;
 }
 
 .dashboard-sidebar-scroll {

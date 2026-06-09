@@ -33,6 +33,7 @@ const AIRecommendationsPage = React.lazy(() => import("../pages/dashboard/AIReco
 const AINotesPage = React.lazy(() => import("../pages/dashboard/AINotesPage.jsx"));
 const AITutorPage = React.lazy(() => import("../pages/dashboard/AITutorPage.jsx"));
 const CalendarPage = React.lazy(() => import("../pages/dashboard/CalendarPage.jsx"));
+const CommunityPage = React.lazy(() => import("../pages/dashboard/CommunityPage.jsx"));
 const DashboardHome = React.lazy(() => import("../pages/dashboard/DashboardHome.jsx"));
 const DownloadsPage = React.lazy(() => import("../pages/dashboard/DownloadsPage.jsx"));
 const FeaturePage = React.lazy(() => import("../pages/dashboard/FeaturePage.jsx"));
@@ -42,7 +43,6 @@ const InstructorQuizBuilderPage = React.lazy(() => import("../pages/dashboard/In
 const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
 const MessagesPage = React.lazy(() => import("../pages/dashboard/MessagesPage.jsx"));
 const MyCoursesPage = React.lazy(() => import("../pages/dashboard/MyCoursesPage.jsx"));
-const NotificationsPage = React.lazy(() => import("../pages/dashboard/NotificationsPage.jsx"));
 const ProfilePage = React.lazy(() => import("../pages/dashboard/ProfilePage.jsx"));
 const QuizAttemptPage = React.lazy(() => import("../pages/dashboard/QuizAttemptPage.jsx"));
 const QuizHistoryPage = React.lazy(() => import("../pages/dashboard/QuizHistoryPage.jsx"));
@@ -110,11 +110,10 @@ export default function AppRoutes() {
         <Route path="certificates" element={<FeaturePage type="certificates" />} />
         <Route path="achievements" element={<FeaturePage type="achievements" />} />
         <Route path="wishlist" element={<FeaturePage type="wishlist" />} />
-        <Route path="community" element={<FeaturePage type="community" />} />
+        <Route path="community" element={<CommunityPage />} />
         <Route path="notes" element={<FeaturePage type="notes" />} />
         <Route path="downloads" element={<DownloadsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="orders" element={<FeaturePage type="orders" />} />
         <Route path="ai" element={<Navigate to="/dashboard/ai-tutor" replace />} />

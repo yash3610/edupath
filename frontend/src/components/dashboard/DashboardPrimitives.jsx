@@ -8,14 +8,17 @@ import {
   Brain,
   BriefcaseBusiness,
   CalendarDays,
+  ChevronRight,
   CheckCircle2,
   Circle,
   Clock3,
   Compass,
   Download,
+  Ellipsis,
   Flame,
   Gauge,
   Heart,
+  Image,
   LayoutDashboard,
   LineChart,
   Lock,
@@ -32,11 +35,14 @@ import {
   Search,
   Send,
   Settings,
+  SlidersHorizontal,
   Sparkles,
   Sun,
+  ThumbsUp,
   Trophy,
   UploadCloud,
   UserRound,
+  Users,
   X,
   Zap,
 } from "lucide-react";
@@ -49,14 +55,17 @@ const icons = {
   Brain,
   BriefcaseBusiness,
   CalendarDays,
+  ChevronRight,
   CheckCircle2,
   Circle,
   Clock3,
   Compass,
   Download,
+  Ellipsis,
   Flame,
   Gauge,
   Heart,
+  Image,
   LayoutDashboard,
   LineChart,
   Lock,
@@ -73,11 +82,14 @@ const icons = {
   Search,
   Send,
   Settings,
+  SlidersHorizontal,
   Sparkles,
   Sun,
+  ThumbsUp,
   Trophy,
   UploadCloud,
   UserRound,
+  Users,
   X,
   Zap,
 };
@@ -92,8 +104,8 @@ export function MotionCard({ children, className = "", delay = 0 }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, delay, ease: "easeOut" }}
-      className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900 ${className}`}
+      transition={{ duration: 0.28, delay, ease: "easeOut" }}
+      className={`rounded-[22px] border border-slate-200/80 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-slate-900 ${className}`}
     >
       {children}
     </motion.div>
@@ -102,19 +114,19 @@ export function MotionCard({ children, className = "", delay = 0 }) {
 
 export function SectionHeading({ eyebrow, title, action }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#ff6b35]">{eyebrow}</p>
-        <h2 className="mt-1 text-xl font-black leading-tight text-slate-950 dark:text-white sm:text-2xl">{title}</h2>
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#ff723a]">{eyebrow}</p>
+        <h2 className="mt-1.5 text-xl font-extrabold leading-tight tracking-[-0.02em] text-slate-950 dark:text-white sm:text-2xl">{title}</h2>
       </div>
       {action}
     </div>
   );
 }
 
-export function ProgressBar({ value, color = "from-[#ff6b35] to-[#7c3aed]" }) {
+export function ProgressBar({ value, color = "from-[#ff723a] to-[#fec961]" }) {
   return (
-    <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+    <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
       <motion.div initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 0.4, ease: "easeOut" }} className={`h-full rounded-full bg-gradient-to-r ${color}`} />
     </div>
   );

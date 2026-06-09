@@ -59,6 +59,8 @@ export const api = {
   login: (payload) => apiRequest("/api/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   register: (payload) => apiRequest("/api/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   me: () => apiRequest("/api/auth/me"),
+  notifications: (limit = 5) => apiRequest(`/api/notifications?unread=true&limit=${limit}`),
+  deleteNotification: (notificationId) => apiRequest(`/api/notifications/${encodeURIComponent(notificationId)}`, { method: "DELETE" }),
   order: (payload) => apiRequest("/api/orders", { method: "POST", body: JSON.stringify(payload) }),
   myOrders: () => apiRequest("/api/orders/my"),
 };

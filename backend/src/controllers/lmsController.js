@@ -164,7 +164,14 @@ export const calendarEvents = asyncHandler(async (req, res) => {
 export const createReminder = asyncHandler(async (req, res) => created(res, await Reminder.create({ ...req.body, user: userId(req) })));
 export const updateReminder = asyncHandler(async (req, res) => ok(res, await Reminder.findOneAndUpdate({ _id: req.params.reminderId, user: userId(req) }, req.body, { new: true })));
 
-export const notifications = asyncHandler(async (req, res) => ok(res, await Notification.find({ user: userId(req) }).sort({ createdAt: -1 })));
+export const notifications = asyncHandler(async (req, res) => {
+  const query = { user: userId(req) };
+  if (req.query.unread === "true") query.read = false;
+  const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 0, 0), 50);
+  let notificationQuery = Notification.find(query).sort({ createdAt: -1 });
+  if (limit) notificationQuery = notificationQuery.limit(limit);
+  ok(res, await notificationQuery);
+});
 export const readNotification = asyncHandler(async (req, res) => ok(res, await Notification.findOneAndUpdate({ _id: req.params.notificationId, user: userId(req) }, { read: true }, { new: true })));
 export const readAllNotifications = asyncHandler(async (req, res) => ok(res, await Notification.updateMany({ user: userId(req) }, { read: true })));
 export const deleteNotification = asyncHandler(async (req, res) => ok(res, await Notification.deleteOne({ _id: req.params.notificationId, user: userId(req) })));
