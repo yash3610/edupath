@@ -1,15 +1,24 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export default function Preloader() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(false), 450);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <>
-      <div id="preloader">
-        <div id="ep-preloader" className="ep-preloader">
-          <div className="animation-preloader">
-            <div className="spinner" />
+      {visible && (
+        <div id="preloader">
+          <div id="ep-preloader" className="ep-preloader">
+            <div className="animation-preloader">
+              <div className="spinner" />
+            </div>
           </div>
         </div>
-      </div>
+      )}
       <div className="cursor" />
       <div className="cursor2" />
       <div id="magic-cursor"><div id="ball" /></div>

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Save } from "lucide-react";
 import { MotionCard } from "../../components/dashboard/DashboardPrimitives.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
-import { apiRequest } from "../../services/api.js";
+import { apiFormRequest, apiRequest } from "../../services/api.js";
 
 const initialForm = {
   title: "",
@@ -37,6 +37,18 @@ export default function AdminCourseEditorPage() {
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
+
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview("");
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [thumbnailFile]);
 
   useEffect(() => {
     Promise.all([
@@ -83,13 +95,16 @@ export default function AdminCourseEditorPage() {
     if (!ready) return toast.error("Title, slug, instructor, category and description are required.");
     try {
       setSaving(true);
-      await apiRequest(courseId ? `/api/admin/courses/${courseId}` : "/api/admin/courses", {
+      const body = new FormData();
+      Object.entries({
+        ...form,
+        price: Number(form.price || 0),
+        discountPrice: Number(form.discountPrice || 0),
+      }).forEach(([key, value]) => body.append(key, value ?? ""));
+      if (thumbnailFile) body.append("thumbnailFile", thumbnailFile);
+
+      await apiFormRequest(courseId ? `/api/admin/courses/${courseId}` : "/api/admin/courses", body, {
         method: courseId ? "PATCH" : "POST",
-        body: JSON.stringify({
-          ...form,
-          price: Number(form.price || 0),
-          discountPrice: Number(form.discountPrice || 0),
-        }),
       });
       toast.success(courseId ? "Course and instructor assignment updated." : "Course created and assigned to instructor.");
       navigate("/admin/dashboard/courses");
@@ -123,7 +138,12 @@ export default function AdminCourseEditorPage() {
           <Field label="Subcategory" value={form.subcategory} onChange={(value) => update("subcategory", value)} />
           <Select label="Level" value={form.level} onChange={(value) => update("level", value)}>{["beginner", "intermediate", "advanced"].map(option)}</Select>
           <Field label="Language" value={form.language} onChange={(value) => update("language", value)} />
-          <Field label="Thumbnail URL" value={form.thumbnail} onChange={(value) => update("thumbnail", value)} />
+          <ThumbnailField
+            currentUrl={form.thumbnail}
+            previewUrl={thumbnailPreview}
+            onFile={setThumbnailFile}
+            onUrlChange={(value) => update("thumbnail", value)}
+          />
           <Select label="Catalog status" value={form.status} onChange={(value) => update("status", value)}>{["approved", "draft"].map((value) => <option key={value} value={value}>{value === "approved" ? "Published" : value}</option>)}</Select>
           <Area label="Card description" value={form.shortDescription} onChange={(value) => update("shortDescription", value)} />
           <Area label="Full course description" value={form.description} onChange={(value) => update("description", value)} />
@@ -161,6 +181,39 @@ function Field({ label, value, onChange, type = "text", disabled = false }) {
 
 function Area({ label, value, onChange }) {
   return <label className="text-sm font-extrabold">{label}<textarea rows={4} value={value || ""} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#ff723a] dark:border-white/10 dark:bg-slate-900" /></label>;
+}
+
+function ThumbnailField({ currentUrl, previewUrl, onFile, onUrlChange }) {
+  const imageUrl = previewUrl || currentUrl;
+  return (
+    <div className="space-y-3">
+      <label className="block text-sm font-extrabold">
+        Course thumbnail
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(event) => onFile(event.target.files?.[0] || null)}
+          className="mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-slate-900"
+        />
+      </label>
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt="Course thumbnail preview"
+          className="h-40 w-full rounded-2xl border border-slate-200 object-cover dark:border-white/10"
+        />
+      )}
+      <label className="block text-xs font-bold text-slate-500">
+        Or use an image URL
+        <input
+          type="url"
+          value={currentUrl || ""}
+          onChange={(event) => onUrlChange(event.target.value)}
+          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-[#ff723a] dark:border-white/10 dark:bg-slate-900 dark:text-white"
+        />
+      </label>
+    </div>
+  );
 }
 
 function Select({ label, value, onChange, children }) {

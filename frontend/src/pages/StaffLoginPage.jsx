@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import { dashboardPathForRole, useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -20,8 +20,6 @@ const roleContent = {
 export default function StaffLoginPage() {
   const { user, login } = useAuth();
   const toast = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
   const [role, setRole] = useState("admin");
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -29,8 +27,8 @@ export default function StaffLoginPage() {
   const content = roleContent[role];
 
   useEffect(() => {
-    if (user) navigate(dashboardPathForRole(user.role), { replace: true });
-  }, [navigate, user]);
+    if (user) window.location.replace(dashboardPathForRole(user.role));
+  }, [user]);
 
   function selectRole(nextRole) {
     setRole(nextRole);
@@ -44,6 +42,7 @@ export default function StaffLoginPage() {
       const result = await login(form);
       const loggedInUser = result.data?.user;
       toast.success(`Welcome, ${loggedInUser?.name || content.label}.`, "Login successful");
+      window.location.replace(dashboardPathForRole(loggedInUser?.role));
     } catch (error) {
       setStatus({ loading: false, error: error.message });
       toast.error(error.message, "Login failed");

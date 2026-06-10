@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import { dashboardPathForRole, useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -7,7 +7,6 @@ import { useToast } from "../context/ToastContext.jsx";
 export default function LoginPage() {
   const { user, login } = useAuth();
   const toast = useToast();
-  const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -16,15 +15,18 @@ export default function LoginPage() {
   useEffect(() => {
     if (!user) return;
     const requestedPath = location.state?.from?.pathname;
-    navigate(requestedPath || dashboardPathForRole(user.role), { replace: true });
-  }, [location.state, navigate, user]);
+    window.location.replace(requestedPath || dashboardPathForRole(user.role));
+  }, [location.state, user]);
 
   async function handleSubmit(event) {
     event.preventDefault();
     setStatus({ loading: true, error: "" });
     try {
-      await login(form);
+      const result = await login(form);
+      const loggedInUser = result.data?.user;
       toast.success("Welcome back! Redirecting you now.", "Login successful");
+      const requestedPath = location.state?.from?.pathname;
+      window.location.replace(requestedPath || dashboardPathForRole(loggedInUser?.role));
     } catch (error) {
       setStatus({ loading: false, error: error.message });
       toast.error(error.message, "Login failed");

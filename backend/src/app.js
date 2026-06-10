@@ -1,5 +1,6 @@
 import express from "express";
 import morgan from "morgan";
+import { fileURLToPath } from "node:url";
 import adminRoutes from "./routes/adminRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
@@ -30,6 +31,7 @@ const app = express();
 applySecurity(app);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use("/uploads", express.static(fileURLToPath(new URL("../uploads/", import.meta.url))));
 if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 
 app.get("/api/health", (_req, res) => {

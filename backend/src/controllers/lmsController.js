@@ -580,6 +580,10 @@ export const adminDeleteUser = asyncHandler(async (req, res) => ok(res, await Us
 export const adminCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({}).populate("instructor", "name email").sort({ updatedAt: -1 })));
 export const adminCreateCourse = asyncHandler(async (req, res) => {
   const payload = normalizeCoursePayload(req.body);
+  if (req.file) {
+    const thumbnail = await uploadBuffer(req.file, "courses/thumbnails");
+    payload.thumbnail = thumbnail.url;
+  }
   if (!payload.instructor || !(await User.exists({ _id: payload.instructor, role: "instructor" }))) {
     throw new ApiError(400, "Select a valid instructor");
   }
@@ -594,6 +598,10 @@ export const adminCourseDetails = asyncHandler(async (req, res) => {
 });
 export const adminUpdateCourse = asyncHandler(async (req, res) => {
   const payload = normalizeCoursePayload(req.body);
+  if (req.file) {
+    const thumbnail = await uploadBuffer(req.file, "courses/thumbnails");
+    payload.thumbnail = thumbnail.url;
+  }
   if (payload.instructor && !(await User.exists({ _id: payload.instructor, role: "instructor" }))) {
     throw new ApiError(400, "Select a valid instructor");
   }

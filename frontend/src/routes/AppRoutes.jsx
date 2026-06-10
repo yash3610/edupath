@@ -26,15 +26,16 @@ import TeamPage from "../pages/TeamPage.jsx";
 import TestimonialPage from "../pages/TestimonialPage.jsx";
 import WishlistPage from "../pages/WishlistPage.jsx";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
-const DashboardLayout = React.lazy(() => import("../layouts/DashboardLayout.jsx"));
-const RoleDashboardLayout = React.lazy(() => import("../layouts/RoleDashboardLayout.jsx"));
+import DashboardLayout from "../layouts/DashboardLayout.jsx";
+import RoleDashboardLayout from "../layouts/RoleDashboardLayout.jsx";
+import DashboardHome from "../pages/dashboard/DashboardHome.jsx";
+import RoleDashboardHome from "../pages/dashboard/RoleDashboardHome.jsx";
 const AssignmentsPage = React.lazy(() => import("../pages/dashboard/AssignmentsPage.jsx"));
 const AIRecommendationsPage = React.lazy(() => import("../pages/dashboard/AIRecommendationsPage.jsx"));
 const AINotesPage = React.lazy(() => import("../pages/dashboard/AINotesPage.jsx"));
 const AITutorPage = React.lazy(() => import("../pages/dashboard/AITutorPage.jsx"));
 const CalendarPage = React.lazy(() => import("../pages/dashboard/CalendarPage.jsx"));
 const CommunityPage = React.lazy(() => import("../pages/dashboard/CommunityPage.jsx"));
-const DashboardHome = React.lazy(() => import("../pages/dashboard/DashboardHome.jsx"));
 const DownloadsPage = React.lazy(() => import("../pages/dashboard/DownloadsPage.jsx"));
 const FeaturePage = React.lazy(() => import("../pages/dashboard/FeaturePage.jsx"));
 const AdminQuizManagementPage = React.lazy(() => import("../pages/dashboard/AdminQuizManagementPage.jsx"));
@@ -62,7 +63,6 @@ const QuizHistoryPage = React.lazy(() => import("../pages/dashboard/QuizHistoryP
 const QuizInstructionsPage = React.lazy(() => import("../pages/dashboard/QuizInstructionsPage.jsx"));
 const QuizPage = React.lazy(() => import("../pages/dashboard/QuizPage.jsx"));
 const QuizResultPage = React.lazy(() => import("../pages/dashboard/QuizResultPage.jsx"));
-const RoleDashboardHome = React.lazy(() => import("../pages/dashboard/RoleDashboardHome.jsx"));
 const RoleManagementPage = React.lazy(() => import("../pages/dashboard/RoleManagementPage.jsx"));
 
 function DashboardSuspense({ children }) {

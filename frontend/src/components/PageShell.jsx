@@ -218,6 +218,8 @@ export default function PageShell({ title, children }) {
     };
 
     const onClick = (event) => {
+      if (event.defaultPrevented) return;
+
       const mobileButton = event.target.closest(".mobile-menu-offcanvas-toggler");
       if (mobileButton) {
         event.preventDefault();
@@ -306,9 +308,6 @@ export default function PageShell({ title, children }) {
     document.addEventListener("click", onClick);
     document.addEventListener("submit", onSubmit);
     onScroll();
-
-    const preloader = document.querySelector("#preloader");
-    if (preloader) window.setTimeout(() => preloader.remove(), 450);
 
     return () => {
       window.removeEventListener("scroll", onScroll);
