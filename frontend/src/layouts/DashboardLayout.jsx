@@ -149,7 +149,7 @@ export default function DashboardLayout() {
         )}
 
         <div className="min-w-0 max-w-full overflow-x-hidden xl:pl-[276px]">
-          <header className="sticky top-0 z-30 max-w-full border-b border-slate-200/80 bg-white/90 px-3 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
+          <header className="dashboard-topbar sticky top-0 z-30 max-w-full border-b border-slate-200/80 bg-white/90 px-3 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
             <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <button className="shrink-0 rounded-xl border border-slate-200 p-2.5 dark:border-white/10 xl:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
@@ -271,7 +271,7 @@ function NavItem({ label, path, icon, onNavigate }) {
       to={path}
       end={path === "/dashboard"}
       onClick={onNavigate}
-      className={({ isActive }) => `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-all ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,0.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
+      className={({ isActive }) => `dashboard-nav-item group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-all ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,0.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
     >
       <Icon name={icon} className={`h-[18px] w-[18px] ${location.pathname === path ? "" : "text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white"}`} />
       <span>{label}</span>

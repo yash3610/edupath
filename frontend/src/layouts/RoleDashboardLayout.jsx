@@ -121,7 +121,7 @@ export default function RoleDashboardLayout({ role }) {
         )}
 
         <div className="min-w-0 max-w-full overflow-x-hidden xl:pl-[276px]">
-          <header className="role-dashboard-header sticky top-0 z-30 max-w-full px-3 py-3.5 backdrop-blur-xl sm:px-6">
+          <header className="dashboard-topbar role-dashboard-header sticky top-0 z-30 max-w-full px-3 py-3.5 backdrop-blur-xl sm:px-6">
             <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <button className="shrink-0 rounded-xl border border-slate-200 p-2.5 dark:border-white/10 xl:hidden" onClick={() => setMobileOpen(true)}><Icon name="Menu" /></button>
@@ -212,7 +212,7 @@ function RoleSidebar({ config, pathFor, onNavigate }) {
                   type="button"
                   aria-expanded={isOpen}
                   onClick={() => setOpenGroup((current) => current === entry.label ? "" : entry.label)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-extrabold transition ${isActive ? "text-[#ff723a]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
+                  className={`dashboard-nav-item flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-extrabold transition ${isActive ? "text-[#ff723a]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
                 >
                   <Icon name={entry.icon} className="h-[18px] w-[18px]" />
                   <span className="min-w-0 flex-1">{entry.label}</span>
@@ -238,7 +238,7 @@ function RoleSidebar({ config, pathFor, onNavigate }) {
 
 function RoleNavItem({ label, path, icon, homePath, onNavigate, nested = false }) {
   return (
-    <NavLink to={path} end={path === homePath || nested} onClick={onNavigate} className={({ isActive }) => `group flex shrink-0 items-center gap-3 rounded-xl px-3 ${nested ? "py-2 text-[12px]" : "py-2.5 text-[13px]"} font-bold transition ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}>
+    <NavLink to={path} end={path === homePath || nested} onClick={onNavigate} className={({ isActive }) => `dashboard-nav-item group flex shrink-0 items-center gap-3 rounded-xl px-3 ${nested ? "py-2 text-[12px]" : "py-2.5 text-[13px]"} font-bold transition ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}>
       <Icon name={icon} className={nested ? "h-4 w-4" : "h-[18px] w-[18px]"} />
       <span>{label}</span>
     </NavLink>

@@ -27,6 +27,18 @@ body.dashboard-active select {
 body.dashboard-active button,
 body.dashboard-active a {
   -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+body.dashboard-active button:active,
+body.dashboard-active a:active {
+  transform: scale(0.97);
 }
 
 .dashboard-search-input,
@@ -102,6 +114,182 @@ body.dashboard-active a {
   width: 100%;
   max-width: 100%;
   overscroll-behavior-x: contain;
+}
+
+.dashboard-content > * {
+  animation: dashboard-page-enter 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dashboard-motion-card {
+  position: relative;
+  isolation: isolate;
+  transition:
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+}
+
+.dashboard-motion-card::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 114, 58, 0.08), transparent 38%);
+  content: "";
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+
+.dashboard-motion-card:hover {
+  border-color: rgba(255, 114, 58, 0.3);
+  box-shadow: 0 18px 45px rgba(31, 28, 53, 0.1);
+}
+
+.dashboard-motion-card:hover::after {
+  opacity: 1;
+}
+
+.dashboard-section-heading {
+  animation: dashboard-heading-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dashboard-section-heading > div:first-child p {
+  position: relative;
+  width: fit-content;
+}
+
+.dashboard-section-heading > div:first-child p::after {
+  position: absolute;
+  right: -1.1rem;
+  bottom: 0.2rem;
+  width: 0.75rem;
+  height: 2px;
+  border-radius: 999px;
+  background: #fec961;
+  content: "";
+  transform-origin: left;
+  animation: dashboard-line-grow 0.45s 0.15s ease-out both;
+}
+
+.dashboard-nav-item:hover svg {
+  transform: translateX(2px) scale(1.06);
+}
+
+.dashboard-nav-item svg {
+  transition: transform 0.2s ease;
+}
+
+.dashboard-topbar {
+  animation: dashboard-topbar-enter 0.38s ease-out both;
+}
+
+.dashboard-content img {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dashboard-content a:hover img,
+.dashboard-content button:hover img,
+.dashboard-motion-card:hover > img {
+  transform: scale(1.025);
+}
+
+.dashboard-content > div > section:first-child > .absolute {
+  animation: dashboard-orb-float 7s ease-in-out infinite alternate;
+}
+
+.dashboard-content > div > section:first-child > .absolute:nth-child(2) {
+  animation-delay: -2.5s;
+  animation-duration: 9s;
+}
+
+.role-dashboard-dropdown {
+  animation: dashboard-dropdown-enter 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top right;
+}
+
+.dashboard-content input:focus,
+.dashboard-content select:focus,
+.dashboard-content textarea:focus {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+@keyframes dashboard-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboard-heading-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes dashboard-line-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes dashboard-topbar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboard-orb-float {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-10px, 8px, 0) scale(1.06); }
+}
+
+@keyframes dashboard-dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-content > *,
+  .dashboard-section-heading,
+  .dashboard-section-heading > div:first-child p::after,
+  .dashboard-topbar,
+  .dashboard-content > div > section:first-child > .absolute,
+  .role-dashboard-dropdown {
+    animation: none !important;
+  }
+
+  .dashboard-motion-card,
+  .dashboard-nav-item svg,
+  body.dashboard-active button,
+  body.dashboard-active a {
+    transition-duration: 0.01ms !important;
+  }
+
+  .dashboard-motion-card:hover,
+  body.dashboard-active button:active,
+  body.dashboard-active a:active {
+    transform: none !important;
+  }
 }
 
 @media (max-width: 639px) {
