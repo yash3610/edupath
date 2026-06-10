@@ -427,36 +427,11 @@ export const instructorRecentActivity = asyncHandler(async (req, res) => {
   ok(res, await Enrollment.find({ course: { $in: courseIds } }).populate("student", "name email").populate("course", "title").sort({ createdAt: -1 }).limit(10));
 });
 export const instructorUpcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(10)));
-export const instructorCreateCourse = asyncHandler(async (req, res) => created(res, await Course.create({ ...normalizeCoursePayload(req.body), instructor: userId(req), status: "draft" })));
 export const instructorCourseDetails = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) }).populate("instructor", "name email");
   if (!course) throw new ApiError(404, "Course not found");
   ok(res, course);
 });
-export const instructorUpdateCourse = asyncHandler(async (req, res) => {
-  const course = await Course.findOneAndUpdate({ _id: req.params.courseId, instructor: userId(req) }, normalizeCoursePayload(req.body), { new: true, runValidators: true });
-  if (!course) throw new ApiError(404, "Course not found");
-  ok(res, course, "Course saved");
-});
-export const instructorSubmitCourse = asyncHandler(async (req, res) => {
-  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
-  if (!course) throw new ApiError(404, "Course not found");
-  const moduleCount = await Module.countDocuments({ course: course._id });
-  const lectureCount = await Lecture.countDocuments({ course: course._id });
-  if (!course.title || !course.slug || !course.description || !moduleCount || !lectureCount) throw new ApiError(400, "Complete course details and add at least one module and lecture");
-  course.status = "pending";
-  course.rejectionReason = undefined;
-  await course.save();
-  ok(res, course, "Course submitted for review");
-});
-export const instructorUploadCourseAsset = asyncHandler(async (req, res) => {
-  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
-  if (!course) throw new ApiError(404, "Course not found");
-  if (!req.file) throw new ApiError(400, "Select a file to upload");
-  const asset = await uploadBuffer(req.file, `courses/${course._id}`);
-  created(res, { url: asset?.url, publicId: asset?.publicId, format: asset?.format, bytes: asset?.bytes, resourceType: asset?.resourceType }, "Course asset uploaded");
-});
-export const instructorDeleteCourse = asyncHandler(async (req, res) => ok(res, await Course.deleteOne({ _id: req.params.courseId, instructor: userId(req) })));
 export const instructorCreateModule = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
   if (!course) throw new ApiError(404, "Course not found");
@@ -533,7 +508,11 @@ export const instructorCourseAnalytics = asyncHandler(async (req, res) => {
     rating: course.rating || 0,
   });
 });
-export const instructorCreateQuiz = asyncHandler(async (req, res) => created(res, await Quiz.create({ ...req.body, course: req.params.courseId })));
+export const instructorCreateQuiz = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Assigned course not found");
+  created(res, await Quiz.create({ ...req.body, course: course._id }));
+});
 export const instructorCreateAssignment = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
   if (!course) throw new ApiError(404, "Course not found");
@@ -604,6 +583,13 @@ export const adminInstructors = asyncHandler(async (_req, res) => ok(res, await 
 export const adminUserStatus = asyncHandler(async (req, res) => ok(res, await User.findByIdAndUpdate(req.params.userId, { status: req.body.status }, { new: true }).select("-passwordHash")));
 export const adminDeleteUser = asyncHandler(async (req, res) => ok(res, await User.findByIdAndDelete(req.params.userId)));
 export const adminCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({}).populate("instructor", "name email").sort({ updatedAt: -1 })));
+export const adminCreateCourse = asyncHandler(async (req, res) => {
+  const payload = normalizeCoursePayload(req.body);
+  if (!payload.instructor || !(await User.exists({ _id: payload.instructor, role: "instructor" }))) {
+    throw new ApiError(400, "Select a valid instructor");
+  }
+  created(res, await Course.create({ ...payload, status: payload.status || "approved" }), "Course created and assigned");
+});
 export const adminCourseDetails = asyncHandler(async (req, res) => {
   const course = await Course.findById(req.params.courseId).populate("instructor", "name email");
   if (!course) throw new ApiError(404, "Course not found");
@@ -612,7 +598,11 @@ export const adminCourseDetails = asyncHandler(async (req, res) => {
   ok(res, { course, modules: modules.map((module) => ({ ...module, lectures: lectures.filter((lecture) => String(lecture.module) === String(module._id)) })) });
 });
 export const adminUpdateCourse = asyncHandler(async (req, res) => {
-  const course = await Course.findByIdAndUpdate(req.params.courseId, normalizeCoursePayload(req.body), { new: true, runValidators: true });
+  const payload = normalizeCoursePayload(req.body);
+  if (payload.instructor && !(await User.exists({ _id: payload.instructor, role: "instructor" }))) {
+    throw new ApiError(400, "Select a valid instructor");
+  }
+  const course = await Course.findByIdAndUpdate(req.params.courseId, payload, { new: true, runValidators: true });
   if (!course) throw new ApiError(404, "Course not found");
   ok(res, course, "Course updated");
 });

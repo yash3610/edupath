@@ -2,7 +2,7 @@ import express from "express";
 import { adminApproveQuiz, adminDeleteQuiz, adminQuizzes, adminRejectQuiz } from "../controllers/quizController.js";
 import {
   adminApproveCourse, adminAssignments, adminCategories, adminCertificates, adminCommunity, adminCoupons,
-  adminCourseControl, adminCourseDetails,
+  adminCourseControl, adminCourseDetails, adminCreateCourse,
   adminCourseAnalytics, adminCourses, adminCreateCategory, adminCreateCoupon, adminDashboard,
   adminDeleteAssignment, adminDeleteCategory, adminDeleteCertificate, adminDeleteCoupon, adminDeleteCourse,
   adminDeleteDiscussion, adminDeleteReview, adminDeleteUser, adminInstructors, adminOrders, adminPayments,
@@ -32,6 +32,7 @@ router.get("/instructors", adminInstructors);
 router.patch("/users/:userId/status", adminUserStatus);
 router.delete("/users/:userId", adminDeleteUser);
 router.get("/courses", adminCourses);
+router.post("/courses", adminCreateCourse);
 router.get("/courses/:courseId", adminCourseDetails);
 router.patch("/courses/:courseId", adminUpdateCourse);
 router.patch("/courses/:courseId/control", adminCourseControl);

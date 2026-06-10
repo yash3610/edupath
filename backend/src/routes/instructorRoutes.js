@@ -14,20 +14,17 @@ import {
   updateQuestion,
 } from "../controllers/quizController.js";
 import {
-  instructorAssignments, instructorCoursePerformance, instructorCreateAssignment, instructorCreateCourse,
+  instructorAssignments, instructorCoursePerformance, instructorCreateAssignment,
   instructorCreateLecture, instructorCreateLiveClass, instructorCreateModule, instructorCreateQuiz,
-  instructorCourseAnalytics, instructorCourseDetails, instructorDashboard, instructorDeleteAssignment, instructorDeleteCourse, instructorDeleteLecture,
+  instructorCourseAnalytics, instructorCourseDetails, instructorDashboard, instructorDeleteAssignment, instructorDeleteLecture,
   instructorDeleteLiveClass, instructorDeleteModule, instructorDoubts, instructorEarnings,
   instructorEarningsAnalytics, instructorGradeAssignment, instructorLectures, instructorLiveClasses,
   instructorModules, instructorMyCourses, instructorPayouts, instructorPendingTasks, instructorRecentActivity,
   instructorDuplicateLecture, instructorReorderLectures, instructorReorderModules, instructorReviews, instructorStats, instructorStudentEngagement, instructorStudentsProgress,
-  instructorSubmitCourse,
-  instructorUploadCourseAsset,
-  instructorSubmissions, instructorUpcomingClasses, instructorUpdateCourse, instructorUpdateLecture,
+  instructorSubmissions, instructorUpcomingClasses, instructorUpdateLecture,
   instructorUpdateLiveClass, instructorUpdateModule,
 } from "../controllers/lmsController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
-import { courseUpload } from "../middleware/uploadMiddleware.js";
 import validate from "../middleware/validate.js";
 import { createQuizValidators, quizIdParam } from "../validators/quizValidators.js";
 
@@ -43,12 +40,7 @@ router.get("/student-engagement", instructorStudentEngagement);
 router.get("/pending-tasks", instructorPendingTasks);
 router.get("/recent-activity", instructorRecentActivity);
 router.get("/upcoming-classes", instructorUpcomingClasses);
-router.post("/courses", instructorCreateCourse);
 router.get("/courses/:courseId", instructorCourseDetails);
-router.patch("/courses/:courseId", instructorUpdateCourse);
-router.delete("/courses/:courseId", instructorDeleteCourse);
-router.patch("/courses/:courseId/submit", instructorSubmitCourse);
-router.post("/courses/:courseId/assets", courseUpload.single("file"), instructorUploadCourseAsset);
 router.get("/courses/:courseId/analytics", instructorCourseAnalytics);
 router.post("/courses/:courseId/modules", instructorCreateModule);
 router.get("/courses/:courseId/modules", instructorModules);

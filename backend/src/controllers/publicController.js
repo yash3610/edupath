@@ -1,4 +1,5 @@
-import { Course } from "../models/index.js";
+import mongoose from "mongoose";
+import { Course, User } from "../models/index.js";
 import { fallbackBlogs, fallbackCourses, fallbackEvents, fallbackProducts, fallbackTeam } from "../data/fallbackContent.js";
 import { sendEmail } from "../services/emailService.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -7,6 +8,22 @@ const ok = (res, data, message = "OK") => res.json({ success: true, message, dat
 const created = (res, data, message = "Created") => res.status(201).json({ success: true, message, data });
 const recentContactKeys = new Map();
 const CONTACT_DEDUPE_MS = 30 * 1000;
+
+const withInstructorNames = async (courses) => {
+  const instructorIds = courses
+    .map((course) => course.instructor)
+    .filter((instructor) => mongoose.isObjectIdOrHexString(instructor));
+
+  if (!instructorIds.length) return courses;
+
+  const instructors = await User.find({ _id: { $in: instructorIds } }).select("name").lean();
+  const namesById = new Map(instructors.map((instructor) => [String(instructor._id), instructor.name]));
+
+  return courses.map((course) => ({
+    ...course,
+    instructor: namesById.get(String(course.instructor)) || course.instructor,
+  }));
+};
 
 const normalizeCourse = (course) => ({
   ...course,
@@ -24,15 +41,17 @@ const normalizeCourse = (course) => ({
 });
 
 export const publicCourses = asyncHandler(async (_req, res) => {
-  const courses = await Course.find({ status: "approved", disabled: { $ne: true } }).populate("instructor", "name").sort({ featured: -1, createdAt: -1 }).lean();
-  ok(res, courses.length ? courses.map(normalizeCourse) : fallbackCourses);
+  const courses = await Course.find({ status: "approved", disabled: { $ne: true } }).sort({ featured: -1, createdAt: -1 }).lean();
+  const coursesWithInstructors = await withInstructorNames(courses);
+  ok(res, coursesWithInstructors.length ? coursesWithInstructors.map(normalizeCourse) : fallbackCourses);
 });
 
 export const publicCourseDetails = asyncHandler(async (req, res) => {
-  const course = await Course.findOne({ slug: req.params.slug, status: "approved", disabled: { $ne: true } }).populate("instructor", "name").lean();
+  const course = await Course.findOne({ slug: req.params.slug, status: "approved", disabled: { $ne: true } }).lean();
+  const [courseWithInstructor] = course ? await withInstructorNames([course]) : [];
   const fallback = fallbackCourses.find((item) => item.slug === req.params.slug || item._id === req.params.slug || item.legacyId === req.params.slug);
   if (!course && !fallback) return res.status(404).json({ success: false, message: "Course not found" });
-  ok(res, course ? normalizeCourse(course) : fallback);
+  ok(res, courseWithInstructor ? normalizeCourse(courseWithInstructor) : fallback);
 });
 
 export const publicBlogs = asyncHandler(async (_req, res) => ok(res, fallbackBlogs));

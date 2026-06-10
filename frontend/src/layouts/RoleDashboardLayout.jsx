@@ -11,12 +11,13 @@ const configs = {
     title: "Platform Administration",
     homePath: "/admin/dashboard",
     loginPath: "/staff/login",
-    groups: [
-      { label: "Overview", items: [["Dashboard", "", "LayoutDashboard"], ["Reports", "reports", "ChartNoAxesCombined"]] },
-      { label: "People", items: [["Students", "students", "Users"], ["Instructors", "instructors", "GraduationCap"]] },
-      { label: "Learning", items: [["Courses", "courses", "BookOpen"], ["Course Approvals", "approvals", "PackageCheck"], ["Categories", "categories", "FolderKanban"], ["Quizzes", "quizzes", "BadgeHelp"], ["Assignments", "assignments", "FileCheck2"], ["Certificates", "certificates", "Award"]] },
-      { label: "Commerce", items: [["Orders", "orders", "ReceiptText"], ["Payments", "payments", "CreditCard"], ["Refunds", "refunds", "RefreshCcw"], ["Coupons", "coupons", "Megaphone"]] },
-      { label: "Platform", items: [["Reviews", "reviews", "Star"], ["Community", "moderation", "ShieldCheck"], ["Settings", "settings", "Settings"]] },
+    navigation: [
+      { label: "Dashboard", segment: "", icon: "LayoutDashboard" },
+      { label: "Users", icon: "Users", items: [["Students", "students", "UserRound"], ["Instructors", "instructors", "GraduationCap"]] },
+      { label: "Courses", icon: "BookOpen", items: [["Manage Courses", "courses", "ListChecks"], ["Add Course", "courses/new", "Plus"], ["Course Approvals", "approvals", "PackageCheck"], ["Categories", "categories", "FolderKanban"], ["Assignments", "assignments", "FileCheck2"], ["Certificates", "certificates", "Award"]] },
+      { label: "Quizzes", icon: "BadgeHelp", items: [["Manage Quizzes", "quizzes", "ListChecks"]] },
+      { label: "Payments & Orders", icon: "CreditCard", items: [["Orders", "orders", "ReceiptText"], ["Payments", "payments", "CreditCard"], ["Refunds", "refunds", "RefreshCcw"], ["Coupons", "coupons", "Megaphone"]] },
+      { label: "Platform", icon: "Settings", items: [["Reviews", "reviews", "Star"], ["Community", "moderation", "ShieldCheck"], ["Reports", "reports", "ChartNoAxesCombined"], ["Settings", "settings", "Settings"]] },
     ],
   },
   instructor: {
@@ -24,12 +25,12 @@ const configs = {
     title: "Teaching Studio",
     homePath: "/instructor/dashboard",
     loginPath: "/staff/login",
-    groups: [
-      { label: "Overview", items: [["Dashboard", "", "LayoutDashboard"], ["Analytics", "analytics", "LineChart"]] },
-      { label: "Courses", items: [["My Courses", "my-courses", "BookOpen"], ["Create Course", "create-course", "Plus"], ["Course Builder", "course-builder", "PanelTop"], ["Students", "students", "Users"], ["Live Classes", "live-classes", "Video"]] },
-      { label: "Teaching", items: [["Quizzes", "quizzes", "BadgeHelp"], ["Create Quiz", "quizzes/new", "Plus"], ["Assignments", "assignments", "FileCheck2"], ["Doubts / Q&A", "doubts", "MessagesSquare"], ["Reviews", "reviews", "Star"]] },
-      { label: "Business", items: [["Earnings", "earnings", "WalletCards"], ["Payouts", "payouts", "CreditCard"]] },
-      { label: "Account", items: [["Messages", "messages", "MessageCircle"], ["Profile", "profile", "UserRound"], ["Settings", "settings", "Settings"]] },
+    navigation: [
+      { label: "Dashboard", segment: "", icon: "LayoutDashboard" },
+      { label: "Courses", icon: "BookOpen", items: [["Assigned Courses", "my-courses", "BookOpen"], ["Course Builder", "course-builder", "PanelTop"], ["Students", "students", "Users"], ["Live Classes", "live-classes", "Video"], ["Analytics", "analytics", "LineChart"]] },
+      { label: "Teaching", icon: "GraduationCap", items: [["Manage Quizzes", "quizzes", "BadgeHelp"], ["Create Quiz", "quizzes/new", "Plus"], ["Assignments", "assignments", "FileCheck2"], ["Doubts / Q&A", "doubts", "MessagesSquare"], ["Reviews", "reviews", "Star"]] },
+      { label: "Payments", icon: "WalletCards", items: [["Earnings", "earnings", "WalletCards"], ["Payouts", "payouts", "CreditCard"]] },
+      { label: "Account", icon: "UserRound", items: [["Messages", "messages", "MessageCircle"], ["Profile", "profile", "UserRound"], ["Settings", "settings", "Settings"]] },
     ],
   },
 };
@@ -49,7 +50,6 @@ export default function RoleDashboardLayout({ role }) {
   const navigate = useNavigate();
   const location = useLocation();
   const firstName = useMemo(() => user?.name?.split(" ")[0] || (role === "admin" ? "Admin" : "Instructor"), [role, user]);
-  const navItems = useMemo(() => config.groups.flatMap((group) => group.items), [config]);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -176,9 +176,6 @@ export default function RoleDashboardLayout({ role }) {
               </div>
             </div>
 
-            <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 lg:hidden">
-              {navItems.map(([label, segment, icon]) => <RoleNavItem key={`${label}-${segment}`} label={label} path={pathFor(segment)} icon={icon} homePath={config.homePath} />)}
-            </nav>
           </header>
 
           <main className="role-dashboard-main mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
@@ -191,28 +188,68 @@ export default function RoleDashboardLayout({ role }) {
 }
 
 function RoleSidebar({ config, pathFor, onNavigate }) {
+  const location = useLocation();
+  const activeGroup = config.navigation.find((entry) =>
+    entry.items?.some(([, segment]) => groupRouteMatches(location.pathname, pathFor(segment)))
+  )?.label || "";
+  const [openGroup, setOpenGroup] = useState(activeGroup);
+
+  useEffect(() => {
+    if (activeGroup) setOpenGroup(activeGroup);
+  }, [activeGroup]);
+
   return (
     <>
       <NavLink to={config.homePath} className="mb-5 flex shrink-0 items-center px-2 py-1" onClick={onNavigate}><img src="/assets/images/logo.svg" alt="EduPath" className="h-10 w-auto" /></NavLink>
       <nav className="dashboard-sidebar-scroll min-h-0 flex-1 overflow-y-auto pr-1 pb-4">
-        {config.groups.map((group, index) => (
-          <div key={group.label} className={index ? "mt-4" : ""}>
-            <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">{group.label}</p>
-            <div className="space-y-1">
-              {group.items.map(([label, segment, icon]) => <RoleNavItem key={`${label}-${segment}`} label={label} path={pathFor(segment)} icon={icon} homePath={config.homePath} onNavigate={onNavigate} />)}
-            </div>
-          </div>
-        ))}
+        <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
+        <div className="space-y-1.5">
+          {config.navigation.map((entry) => {
+            if (!entry.items) {
+              return <RoleNavItem key={entry.label} label={entry.label} path={pathFor(entry.segment)} icon={entry.icon} homePath={config.homePath} onNavigate={onNavigate} />;
+            }
+
+            const isOpen = openGroup === entry.label;
+            const isActive = entry.label === activeGroup;
+            return (
+              <div key={entry.label} className={`rounded-xl ${isActive ? "bg-[#fff8f2] dark:bg-white/5" : ""}`}>
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenGroup((current) => current === entry.label ? "" : entry.label)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-extrabold transition ${isActive ? "text-[#ff723a]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
+                >
+                  <Icon name={entry.icon} className="h-[18px] w-[18px]" />
+                  <span className="min-w-0 flex-1">{entry.label}</span>
+                  <Icon name="ChevronDown" className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                </button>
+                <div className={`grid transition-[grid-template-rows,opacity] duration-200 ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                  <div className="overflow-hidden">
+                    <div className="mb-2 ml-5 space-y-1 border-l border-slate-200 pl-3 dark:border-white/10">
+                      {entry.items.map(([label, segment, icon]) => (
+                        <RoleNavItem key={`${label}-${segment}`} label={label} path={pathFor(segment)} icon={icon} homePath={config.homePath} onNavigate={onNavigate} nested />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </nav>
     </>
   );
 }
 
-function RoleNavItem({ label, path, icon, homePath, onNavigate }) {
+function RoleNavItem({ label, path, icon, homePath, onNavigate, nested = false }) {
   return (
-    <NavLink to={path} end={path === homePath} onClick={onNavigate} className={({ isActive }) => `group flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}>
-      <Icon name={icon} className="h-[18px] w-[18px]" />
+    <NavLink to={path} end={path === homePath || nested} onClick={onNavigate} className={({ isActive }) => `group flex shrink-0 items-center gap-3 rounded-xl px-3 ${nested ? "py-2 text-[12px]" : "py-2.5 text-[13px]"} font-bold transition ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}>
+      <Icon name={icon} className={nested ? "h-4 w-4" : "h-[18px] w-[18px]"} />
       <span>{label}</span>
     </NavLink>
   );
+}
+
+function groupRouteMatches(pathname, target) {
+  return pathname === target || pathname.startsWith(`${target}/`);
 }

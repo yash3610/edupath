@@ -22,8 +22,8 @@ export default function RoleDashboardHome() {
   }, [role]);
 
   const actions = isAdmin
-    ? [["Add Category", "categories", "FolderKanban"], ["Create Coupon", "coupons", "Megaphone"], ["View Reports", "reports", "ChartNoAxesCombined"]]
-    : [["Create Course", "create-course", "Plus"], ["Add Lecture", "course-builder", "Video"], ["Create Quiz", "quizzes/new", "BadgeHelp"], ["Create Assignment", "assignments", "FileCheck2"], ["Schedule Class", "live-classes", "CalendarDays"]];
+    ? [["Create Course", "courses/new", "Plus"], ["Add Category", "categories", "FolderKanban"], ["Create Coupon", "coupons", "Megaphone"], ["View Reports", "reports", "ChartNoAxesCombined"]]
+    : [["Assigned Courses", "my-courses", "BookOpen"], ["Add Lecture", "course-builder", "Video"], ["Create Quiz", "quizzes/new", "BadgeHelp"], ["Create Assignment", "assignments", "FileCheck2"], ["Schedule Class", "live-classes", "CalendarDays"]];
 
   return (
     <div className="space-y-6">
