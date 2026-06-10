@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { api, setAccessToken } from "../services/api.js";
 
 const AuthContext = createContext(null);
@@ -60,10 +59,8 @@ export function AuthProvider({ children }) {
     sessionVersion.current += 1;
     setAccessToken(normalizedSession.token || "");
     localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedSession));
-    flushSync(() => {
-      setSession(normalizedSession);
-      setLoading(false);
-    });
+    setSession(normalizedSession);
+    setLoading(false);
     return normalizedSession;
   }
 

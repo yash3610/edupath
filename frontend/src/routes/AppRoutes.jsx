@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout.jsx";
 import AboutPage from "../pages/AboutPage.jsx";
 import BlogDetailsPage from "../pages/BlogDetailsPage.jsx";
@@ -46,6 +46,11 @@ const InstructorCoursesPage = React.lazy(() => import("../pages/dashboard/Instru
 const CourseAnalyticsPage = React.lazy(() => import("../pages/dashboard/CourseAnalyticsPage.jsx"));
 const AdminCoursesPage = React.lazy(() => import("../pages/dashboard/AdminCoursesPage.jsx"));
 const AdminCourseEditorPage = React.lazy(() => import("../pages/dashboard/AdminCourseEditorPage.jsx"));
+const AdminLiveClassesPage = React.lazy(() => import("../pages/dashboard/AdminLiveClassesPage.jsx"));
+const InstructorLiveClassesPage = React.lazy(() => import("../pages/dashboard/InstructorLiveClassesPage.jsx"));
+const LiveClassFormPage = React.lazy(() => import("../pages/dashboard/LiveClassFormPage.jsx"));
+const LiveClassDetailPage = React.lazy(() => import("../pages/dashboard/LiveClassDetailPage.jsx"));
+const StudentLiveClassesPage = React.lazy(() => import("../pages/dashboard/StudentLiveClassesPage.jsx"));
 const InstructorAssignmentsPage = React.lazy(() => import("../pages/dashboard/InstructorAssignmentsPage.jsx"));
 const InstructorMessagesPage = React.lazy(() => import("../pages/dashboard/InstructorMessagesPage.jsx"));
 const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
@@ -62,6 +67,12 @@ const RoleManagementPage = React.lazy(() => import("../pages/dashboard/RoleManag
 
 function DashboardSuspense({ children }) {
   return <React.Suspense fallback={<div className="section-gap text-center">Loading dashboard...</div>}>{children}</React.Suspense>;
+}
+
+function ParamRedirect({ to }) {
+  const params = useParams();
+  const target = Object.entries(params).reduce((path, [key, value]) => path.replace(`:${key}`, value), to);
+  return <Navigate to={target} replace />;
 }
 
 export default function AppRoutes() {
@@ -123,6 +134,9 @@ export default function AppRoutes() {
         <Route path="notes" element={<FeaturePage type="notes" />} />
         <Route path="downloads" element={<DownloadsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="live-classes" element={<StudentLiveClassesPage />} />
+        <Route path="live-classes/recordings" element={<StudentLiveClassesPage recordingsOnly />} />
+        <Route path="live-classes/:id" element={<LiveClassDetailPage role="student" />} />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="orders" element={<FeaturePage type="orders" />} />
         <Route path="ai" element={<Navigate to="/dashboard/ai-tutor" replace />} />
@@ -154,6 +168,8 @@ export default function AppRoutes() {
         <Route path="refunds" element={<RoleManagementPage type="refunds" />} />
         <Route path="coupons" element={<RoleManagementPage type="coupons" />} />
         <Route path="quizzes" element={<AdminQuizManagementPage />} />
+        <Route path="live-classes" element={<AdminLiveClassesPage />} />
+        <Route path="live-classes/:id" element={<LiveClassDetailPage role="admin" />} />
         <Route path="assignments" element={<RoleManagementPage type="assignments" />} />
         <Route path="certificates" element={<RoleManagementPage type="certificates" />} />
         <Route path="reviews" element={<RoleManagementPage type="reviews" />} />
@@ -171,7 +187,11 @@ export default function AppRoutes() {
         <Route path="courses/:courseId/analytics" element={<CourseAnalyticsPage />} />
         <Route path="course-builder" element={<InstructorCourseBuilderPage />} />
         <Route path="students" element={<RoleManagementPage type="studentsProgress" />} />
-        <Route path="live-classes" element={<RoleManagementPage type="liveClasses" />} />
+        <Route path="live-classes" element={<InstructorLiveClassesPage />} />
+        <Route path="live-classes/create" element={<LiveClassFormPage />} />
+        <Route path="live-classes/:id/edit" element={<LiveClassFormPage />} />
+        <Route path="live-classes/:id/attendance" element={<LiveClassDetailPage role="instructor" />} />
+        <Route path="live-classes/:id" element={<LiveClassDetailPage role="instructor" />} />
         <Route path="quizzes" element={<InstructorQuizManagementPage />} />
         <Route path="quizzes/new" element={<InstructorQuizBuilderPage />} />
         <Route path="quizzes/:quizId/edit" element={<InstructorQuizBuilderPage />} />
@@ -188,6 +208,15 @@ export default function AppRoutes() {
       </Route>
 
       <Route path="/index" element={<Navigate to="/" replace />} />
+      <Route path="/admin/live-classes" element={<Navigate to="/admin/dashboard/live-classes" replace />} />
+      <Route path="/admin/live-classes/:id" element={<ParamRedirect to="/admin/dashboard/live-classes/:id" />} />
+      <Route path="/instructor/live-classes" element={<Navigate to="/instructor/dashboard/live-classes" replace />} />
+      <Route path="/instructor/live-classes/create" element={<Navigate to="/instructor/dashboard/live-classes/create" replace />} />
+      <Route path="/instructor/live-classes/:id" element={<ParamRedirect to="/instructor/dashboard/live-classes/:id" />} />
+      <Route path="/instructor/live-classes/:id/edit" element={<ParamRedirect to="/instructor/dashboard/live-classes/:id/edit" />} />
+      <Route path="/student/live-classes" element={<Navigate to="/dashboard/live-classes" replace />} />
+      <Route path="/student/live-classes/recordings" element={<Navigate to="/dashboard/live-classes/recordings" replace />} />
+      <Route path="/student/live-classes/:id" element={<ParamRedirect to="/dashboard/live-classes/:id" />} />
       <Route path="/index-2" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>

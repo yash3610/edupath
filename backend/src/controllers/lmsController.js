@@ -16,7 +16,6 @@ import {
   InstructorProfile,
   Lecture,
   LectureProgress,
-  LiveClass,
   MLAnalytics,
   Message,
   Module,
@@ -546,10 +545,6 @@ export const instructorReviews = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
   ok(res, await Review.find({ course: { $in: courseIds } }).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 }));
 });
-export const instructorLiveClasses = asyncHandler(async (req, res) => ok(res, await LiveClass.find({ instructor: userId(req) }).populate("course", "title").sort({ startAt: 1 })));
-export const instructorCreateLiveClass = asyncHandler(async (req, res) => created(res, await LiveClass.create({ ...req.body, instructor: userId(req) })));
-export const instructorUpdateLiveClass = asyncHandler(async (req, res) => ok(res, await LiveClass.findOneAndUpdate({ _id: req.params.liveClassId, instructor: userId(req) }, req.body, { new: true })));
-export const instructorDeleteLiveClass = asyncHandler(async (req, res) => ok(res, await LiveClass.deleteOne({ _id: req.params.liveClassId, instructor: userId(req) }), "Live class deleted"));
 export const instructorPayouts = asyncHandler(async (req, res) => ok(res, await Payout.find({ instructor: userId(req) }).sort({ createdAt: -1 })));
 export const instructorEarnings = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");

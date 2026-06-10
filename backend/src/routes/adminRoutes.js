@@ -1,6 +1,17 @@
 import express from "express";
 import { adminApproveQuiz, adminDeleteQuiz, adminQuizzes, adminRejectQuiz } from "../controllers/quizController.js";
 import {
+  adminAnnouncement,
+  adminApproveLiveClass,
+  adminAttendance,
+  adminCancelLiveClass,
+  adminDeleteLiveClass,
+  adminLiveClassDetails,
+  adminLiveClasses,
+  adminRejectLiveClass,
+  adminRescheduleLiveClass,
+} from "../controllers/liveClassController.js";
+import {
   adminApproveCourse, adminAssignments, adminCategories, adminCertificates, adminCommunity, adminCoupons,
   adminCourseControl, adminCourseDetails, adminCreateCourse,
   adminCourseAnalytics, adminCourses, adminCreateCategory, adminCreateCoupon, adminDashboard,
@@ -12,6 +23,7 @@ import {
 } from "../controllers/lmsController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
 import validate from "../middleware/validate.js";
+import { liveClassIdParam } from "../validators/liveClassValidators.js";
 import { quizIdParam } from "../validators/quizValidators.js";
 
 const router = express.Router();
@@ -39,6 +51,15 @@ router.patch("/courses/:courseId/control", adminCourseControl);
 router.delete("/courses/:courseId", adminDeleteCourse);
 router.patch("/courses/:courseId/approve", adminApproveCourse);
 router.patch("/courses/:courseId/reject", adminRejectCourse);
+router.get("/live-classes", adminLiveClasses);
+router.get("/live-classes/:id", liveClassIdParam, validate, adminLiveClassDetails);
+router.patch("/live-classes/:id/approve", liveClassIdParam, validate, adminApproveLiveClass);
+router.patch("/live-classes/:id/reject", liveClassIdParam, validate, adminRejectLiveClass);
+router.patch("/live-classes/:id/cancel", liveClassIdParam, validate, adminCancelLiveClass);
+router.patch("/live-classes/:id/reschedule", liveClassIdParam, validate, adminRescheduleLiveClass);
+router.get("/live-classes/:id/attendance", liveClassIdParam, validate, adminAttendance);
+router.post("/live-classes/:id/announcement", liveClassIdParam, validate, adminAnnouncement);
+router.delete("/live-classes/:id", liveClassIdParam, validate, adminDeleteLiveClass);
 router.get("/quizzes", adminQuizzes);
 router.patch("/quizzes/:quizId/approve", quizIdParam, validate, adminApproveQuiz);
 router.patch("/quizzes/:quizId/reject", quizIdParam, validate, adminRejectQuiz);

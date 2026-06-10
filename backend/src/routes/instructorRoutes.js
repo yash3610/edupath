@@ -15,17 +15,35 @@ import {
 } from "../controllers/quizController.js";
 import {
   instructorAssignments, instructorCoursePerformance, instructorCreateAssignment,
-  instructorCreateLecture, instructorCreateLiveClass, instructorCreateModule, instructorCreateQuiz,
+  instructorCreateLecture, instructorCreateModule, instructorCreateQuiz,
   instructorCourseAnalytics, instructorCourseDetails, instructorDashboard, instructorDeleteAssignment, instructorDeleteLecture,
-  instructorDeleteLiveClass, instructorDeleteModule, instructorDoubts, instructorEarnings,
-  instructorEarningsAnalytics, instructorGradeAssignment, instructorLectures, instructorLiveClasses,
+  instructorDeleteModule, instructorDoubts, instructorEarnings,
+  instructorEarningsAnalytics, instructorGradeAssignment, instructorLectures,
   instructorModules, instructorMyCourses, instructorPayouts, instructorPendingTasks, instructorRecentActivity,
   instructorDuplicateLecture, instructorReorderLectures, instructorReorderModules, instructorReviews, instructorStats, instructorStudentEngagement, instructorStudentsProgress,
   instructorSubmissions, instructorUpcomingClasses, instructorUpdateLecture,
-  instructorUpdateLiveClass, instructorUpdateModule,
+  instructorUpdateModule,
 } from "../controllers/lmsController.js";
+import {
+  instructorAttendance,
+  instructorCancelLiveClass,
+  instructorCompleteLiveClass,
+  instructorCreateLiveClass,
+  instructorDeleteLiveClass,
+  instructorExportAttendance,
+  instructorLiveClassDetails,
+  instructorLiveClasses,
+  instructorStartLiveClass,
+  instructorAnswerQuestion,
+  instructorUpdateAttendance,
+  instructorUpdateLiveClass,
+  instructorUploadRecording,
+  instructorUploadResources,
+} from "../controllers/liveClassController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
+import { courseUpload } from "../middleware/uploadMiddleware.js";
 import validate from "../middleware/validate.js";
+import { createLiveClassValidators, liveClassIdParam, updateLiveClassValidators } from "../validators/liveClassValidators.js";
 import { createQuizValidators, quizIdParam } from "../validators/quizValidators.js";
 
 const router = express.Router();
@@ -75,9 +93,19 @@ router.patch("/assignments/:submissionId/grade", instructorGradeAssignment);
 router.get("/doubts", instructorDoubts);
 router.get("/reviews", instructorReviews);
 router.get("/live-classes", instructorLiveClasses);
-router.post("/live-classes", instructorCreateLiveClass);
-router.patch("/live-classes/:liveClassId", instructorUpdateLiveClass);
-router.delete("/live-classes/:liveClassId", instructorDeleteLiveClass);
+router.post("/live-classes", createLiveClassValidators, validate, instructorCreateLiveClass);
+router.get("/live-classes/:id", liveClassIdParam, validate, instructorLiveClassDetails);
+router.patch("/live-classes/:id", updateLiveClassValidators, validate, instructorUpdateLiveClass);
+router.delete("/live-classes/:id", liveClassIdParam, validate, instructorDeleteLiveClass);
+router.patch("/live-classes/:id/start", liveClassIdParam, validate, instructorStartLiveClass);
+router.patch("/live-classes/:id/complete", liveClassIdParam, validate, instructorCompleteLiveClass);
+router.patch("/live-classes/:id/cancel", liveClassIdParam, validate, instructorCancelLiveClass);
+router.post("/live-classes/:id/recording", liveClassIdParam, validate, courseUpload.single("file"), instructorUploadRecording);
+router.post("/live-classes/:id/resources", liveClassIdParam, validate, courseUpload.single("file"), instructorUploadResources);
+router.get("/live-classes/:id/attendance", liveClassIdParam, validate, instructorAttendance);
+router.patch("/live-classes/:id/attendance/:attendanceId", liveClassIdParam, validate, instructorUpdateAttendance);
+router.get("/live-classes/:id/export-attendance", liveClassIdParam, validate, instructorExportAttendance);
+router.patch("/live-classes/:id/questions/:questionId/answer", liveClassIdParam, validate, instructorAnswerQuestion);
 router.get("/earnings", instructorEarnings);
 router.get("/payouts", instructorPayouts);
 

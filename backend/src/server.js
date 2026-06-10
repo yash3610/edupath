@@ -14,6 +14,8 @@ const port = process.env.PORT || 5000;
 const connected = await connectDB();
 if (connected && process.env.SEED_DATABASE !== "false") {
   await seedDatabase();
+}
+if (connected) {
   startReminderJob();
 }
 

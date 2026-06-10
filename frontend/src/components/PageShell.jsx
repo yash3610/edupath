@@ -270,6 +270,7 @@ export default function PageShell({ title, children }) {
     };
 
     const onSubmit = async (event) => {
+      if (event.defaultPrevented) return;
       const form = event.target;
       if (!(form instanceof HTMLFormElement)) return;
 

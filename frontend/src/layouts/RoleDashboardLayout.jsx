@@ -15,6 +15,7 @@ const configs = {
       { label: "Dashboard", segment: "", icon: "LayoutDashboard" },
       { label: "Users", icon: "Users", items: [["Students", "students", "UserRound"], ["Instructors", "instructors", "GraduationCap"]] },
       { label: "Courses", icon: "BookOpen", items: [["Manage Courses", "courses", "ListChecks"], ["Add Course", "courses/new", "Plus"], ["Course Approvals", "approvals", "PackageCheck"], ["Categories", "categories", "FolderKanban"], ["Assignments", "assignments", "FileCheck2"], ["Certificates", "certificates", "Award"]] },
+      { label: "Live Classes", icon: "Video", items: [["Manage Live Classes", "live-classes", "Radio"]] },
       { label: "Quizzes", icon: "BadgeHelp", items: [["Manage Quizzes", "quizzes", "ListChecks"]] },
       { label: "Payments & Orders", icon: "CreditCard", items: [["Orders", "orders", "ReceiptText"], ["Payments", "payments", "CreditCard"], ["Refunds", "refunds", "RefreshCcw"], ["Coupons", "coupons", "Megaphone"]] },
       { label: "Platform", icon: "Settings", items: [["Reviews", "reviews", "Star"], ["Community", "moderation", "ShieldCheck"], ["Reports", "reports", "ChartNoAxesCombined"], ["Settings", "settings", "Settings"]] },
@@ -27,7 +28,8 @@ const configs = {
     loginPath: "/staff/login",
     navigation: [
       { label: "Dashboard", segment: "", icon: "LayoutDashboard" },
-      { label: "Courses", icon: "BookOpen", items: [["Assigned Courses", "my-courses", "BookOpen"], ["Course Builder", "course-builder", "PanelTop"], ["Students", "students", "Users"], ["Live Classes", "live-classes", "Video"], ["Analytics", "analytics", "LineChart"]] },
+      { label: "Courses", icon: "BookOpen", items: [["Assigned Courses", "my-courses", "BookOpen"], ["Course Builder", "course-builder", "PanelTop"], ["Students", "students", "Users"], ["Analytics", "analytics", "LineChart"]] },
+      { label: "Live Classes", icon: "Video", items: [["Manage Classes", "live-classes", "ListChecks"], ["Schedule Class", "live-classes/create", "Plus"]] },
       { label: "Teaching", icon: "GraduationCap", items: [["Manage Quizzes", "quizzes", "BadgeHelp"], ["Create Quiz", "quizzes/new", "Plus"], ["Assignments", "assignments", "FileCheck2"], ["Doubts / Q&A", "doubts", "MessagesSquare"], ["Reviews", "reviews", "Star"]] },
       { label: "Payments", icon: "WalletCards", items: [["Earnings", "earnings", "WalletCards"], ["Payouts", "payouts", "CreditCard"]] },
       { label: "Account", icon: "UserRound", items: [["Messages", "messages", "MessageCircle"], ["Profile", "profile", "UserRound"], ["Settings", "settings", "Settings"]] },

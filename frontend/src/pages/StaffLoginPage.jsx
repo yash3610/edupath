@@ -44,7 +44,6 @@ export default function StaffLoginPage() {
       const result = await login(form);
       const loggedInUser = result.data?.user;
       toast.success(`Welcome, ${loggedInUser?.name || content.label}.`, "Login successful");
-      navigate(dashboardPathForRole(loggedInUser?.role), { replace: true });
     } catch (error) {
       setStatus({ loading: false, error: error.message });
       toast.error(error.message, "Login failed");

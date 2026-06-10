@@ -23,6 +23,8 @@ const navGroups = [
       ["Quizzes", "/dashboard/quizzes", "BadgeHelp"],
       ["Notes", "/dashboard/notes", "NotebookPen"],
       ["Calendar", "/dashboard/calendar", "CalendarDays"],
+      ["Live Classes", "/dashboard/live-classes", "Video"],
+      ["Recordings", "/dashboard/live-classes/recordings", "PlayCircle"],
       ["Downloads", "/dashboard/downloads", "Download"],
     ],
   },

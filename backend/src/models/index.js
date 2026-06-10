@@ -299,9 +299,100 @@ export const Review = makeModel("Review", new Schema({ user: { type: objectId, r
 export const DiscussionQuestion = makeModel("DiscussionQuestion", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, body: String, tags: [String] }, baseOptions));
 export const DiscussionAnswer = makeModel("DiscussionAnswer", new Schema({ question: { type: objectId, ref: "DiscussionQuestion" }, user: { type: objectId, ref: "User" }, body: String, upvotes: [{ type: objectId, ref: "User" }], accepted: { type: Boolean, default: false } }, baseOptions));
 export const CalendarEvent = makeModel("CalendarEvent", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, type: String, startAt: Date, endAt: Date }, baseOptions));
-export const LiveClass = makeModel("LiveClass", new Schema({ instructor: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course" }, title: { type: String, required: true }, description: String, meetingUrl: String, startAt: Date, endAt: Date, status: { type: String, enum: ["scheduled", "live", "completed", "cancelled"], default: "scheduled" }, registrations: { type: Number, default: 0 } }, baseOptions));
+const liveClassSchema = new Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    slug: { type: String, required: true, trim: true, unique: true, index: true },
+    description: String,
+    course: { type: objectId, ref: "Course", required: true, index: true },
+    module: { type: objectId, ref: "Module" },
+    instructor: { type: objectId, ref: "User", required: true, index: true },
+    scheduledDate: Date,
+    startTime: String,
+    startAt: { type: Date, required: true, index: true },
+    endTime: String,
+    endAt: { type: Date, required: true },
+    duration: { type: Number, required: true, min: 1 },
+    meetingPlatform: { type: String, enum: ["zoom", "google-meet", "built-in", "other"], default: "google-meet" },
+    meetingLink: String,
+    meetingUrl: String,
+    maxStudents: { type: Number, default: 0, min: 0 },
+    accessType: { type: String, enum: ["enrolled", "free-preview", "paid-only"], default: "enrolled" },
+    status: {
+      type: String,
+      enum: ["draft", "pending-approval", "scheduled", "starting-soon", "live", "completed", "recording-available", "cancelled", "rejected"],
+      default: "pending-approval",
+      index: true,
+    },
+    approvalStatus: { type: String, enum: ["draft", "pending", "approved", "rejected"], default: "pending" },
+    rejectionReason: String,
+    cancellationReason: String,
+    enableRecording: { type: Boolean, default: true },
+    enableChat: { type: Boolean, default: true },
+    enableQA: { type: Boolean, default: true },
+    enableAttendanceTracking: { type: Boolean, default: true },
+    reminderSettings: {
+      before24Hours: { type: Boolean, default: true },
+      before1Hour: { type: Boolean, default: true },
+      before10Minutes: { type: Boolean, default: true },
+    },
+    remindersSent: { before24Hours: Boolean, before1Hour: Boolean, before10Minutes: Boolean, started: Boolean },
+    recordingUrl: String,
+    recordingPublicId: String,
+    resources: [{ title: String, url: String, publicId: String, type: String }],
+    notes: String,
+    totalJoined: { type: Number, default: 0 },
+    averageAttendance: { type: Number, default: 0 },
+    registrations: { type: Number, default: 0 },
+    createdBy: { type: objectId, ref: "User" },
+    approvedBy: { type: objectId, ref: "User" },
+    approvedAt: Date,
+    startedAt: Date,
+    completedAt: Date,
+    cancelledAt: Date,
+  },
+  baseOptions
+);
+liveClassSchema.index({ instructor: 1, startAt: 1 });
+liveClassSchema.index({ course: 1, status: 1, startAt: 1 });
+export const LiveClass = makeModel("LiveClass", liveClassSchema);
+
+const liveClassAttendanceSchema = new Schema(
+  {
+    liveClass: { type: objectId, ref: "LiveClass", required: true, index: true },
+    student: { type: objectId, ref: "User", required: true, index: true },
+    course: { type: objectId, ref: "Course", required: true },
+    instructor: { type: objectId, ref: "User", required: true },
+    joinTime: Date,
+    leaveTime: Date,
+    attendedMinutes: { type: Number, default: 0 },
+    attendancePercentage: { type: Number, default: 0 },
+    status: { type: String, enum: ["joined", "present", "partial", "absent"], default: "joined" },
+    manualOverride: { type: Boolean, default: false },
+    markedBy: { type: objectId, ref: "User" },
+  },
+  baseOptions
+);
+liveClassAttendanceSchema.index({ liveClass: 1, student: 1 }, { unique: true });
+export const LiveClassAttendance = makeModel("LiveClassAttendance", liveClassAttendanceSchema);
+
+export const LiveClassQuestion = makeModel(
+  "LiveClassQuestion",
+  new Schema(
+    {
+      liveClass: { type: objectId, ref: "LiveClass", required: true, index: true },
+      student: { type: objectId, ref: "User", required: true },
+      question: { type: String, required: true, trim: true },
+      answer: String,
+      answeredBy: { type: objectId, ref: "User" },
+      isAnswered: { type: Boolean, default: false },
+      upvotes: [{ type: objectId, ref: "User" }],
+    },
+    baseOptions
+  )
+);
 export const Payout = makeModel("Payout", new Schema({ instructor: { type: objectId, ref: "User", required: true }, amount: { type: Number, default: 0 }, period: String, status: { type: String, enum: ["pending", "processing", "paid", "failed"], default: "pending" }, paidAt: Date, reference: String }, baseOptions));
-export const Reminder = makeModel("Reminder", new Schema({ user: { type: objectId, ref: "User" }, event: { type: objectId, ref: "CalendarEvent" }, remindAt: Date, enabled: { type: Boolean, default: true } }, baseOptions));
+export const Reminder = makeModel("Reminder", new Schema({ user: { type: objectId, ref: "User" }, event: { type: objectId, ref: "CalendarEvent" }, liveClass: { type: objectId, ref: "LiveClass" }, title: String, description: String, remindAt: Date, enabled: { type: Boolean, default: true }, sent: { type: Boolean, default: false } }, baseOptions));
 export const Coupon = makeModel("Coupon", new Schema({ code: { type: String, unique: true }, discountType: { type: String, enum: ["flat", "percent"], default: "percent" }, value: Number, active: { type: Boolean, default: true }, expiresAt: Date }, baseOptions));
 export const AIChat = makeModel("AIChat", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, question: String, answer: String }, baseOptions));
 export const AISummary = makeModel("AISummary", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, lecture: { type: objectId, ref: "Lecture" }, summary: String, keyPoints: [String], actionItems: [String] }, baseOptions));
