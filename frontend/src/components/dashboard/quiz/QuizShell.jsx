@@ -24,12 +24,14 @@ export function QuizMetric({ icon: Icon = Trophy, label, value }) {
 
 export function QuizHero({ title, subtitle, action }) {
   return (
-    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#1f1c35] via-[#2b2746] to-[#ff723a] p-6 text-white shadow-[0_20px_45px_rgba(31,28,53,.18)] sm:p-8">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-[28px] border border-[#f1e7db] bg-[#fff8ef] p-6 text-[#1f1c35] shadow-[0_20px_45px_rgba(31,28,53,.12)] dark:border-white/10 dark:bg-[#1f1c35] dark:text-white sm:p-8">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fec961]/45 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-1/3 h-28 w-28 rounded-full bg-[#ff723a]/10 blur-2xl" />
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">Premium Quiz System</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#ff723a] dark:text-[#fec961]">Quiz workspace</p>
           <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight sm:text-4xl">{title}</h2>
-          <p className="mt-3 max-w-2xl text-sm font-bold text-white/75 sm:text-base">{subtitle}</p>
+          <p className="mt-3 max-w-2xl text-sm font-bold text-[#4f536c] dark:text-slate-300 sm:text-base">{subtitle}</p>
         </div>
         {action}
       </div>

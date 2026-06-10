@@ -269,7 +269,7 @@ function NavItem({ label, path, icon, onNavigate }) {
   return (
     <NavLink
       to={path}
-      end={path === "/dashboard"}
+      end
       onClick={onNavigate}
       className={({ isActive }) => `dashboard-nav-item group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-all ${isActive ? "bg-[#ff723a] text-white shadow-[0_8px_18px_rgba(255,114,58,0.22)]" : "text-slate-600 hover:bg-[#fff5ef] hover:text-[#1f1c35] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"}`}
     >
