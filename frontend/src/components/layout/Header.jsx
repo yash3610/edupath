@@ -12,15 +12,15 @@ export default function Header() {
       <div id="active-sticky" className="ep-header__middle ep-header__middle--style2">
         <div className="container ep-container">
           <div className="ep-header__inner ep-header__inner--style2">
-            <div className="row align-items-center">
-              <div className="col-lg-2 col-6">
+            <div className="site-header-row">
+              <div className="site-header-logo-column">
                 <div className="ep-logo">
                   <Link to="/">
                     <img src="/assets/images/logo.svg" alt="Edupath" />
                   </Link>
                 </div>
               </div>
-              <div className="col-lg-10 col-6">
+              <div className="site-header-content-column">
                 <div className="ep-header__inner-right">
                   <nav className="ep-header__navigation">
                     <Navigation />
@@ -39,11 +39,17 @@ export default function Header() {
                     )}
                   </div>
                 </div>
-                <button type="button" className="mobile-menu-offcanvas-toggler" aria-label="Open menu">
-                  <span className="line" />
-                  <span className="line" />
-                  <span className="line" />
-                </button>
+                <div className="site-header-mobile-actions">
+                  <Link to="/cart" className="site-header-mobile-cart" aria-label={`Cart with ${items.length} courses`}>
+                    <i className="fi fi-rr-shopping-cart" />
+                    <span>{items.length}</span>
+                  </Link>
+                  <button type="button" className="mobile-menu-offcanvas-toggler" aria-label="Open menu">
+                    <span className="line" />
+                    <span className="line" />
+                    <span className="line" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

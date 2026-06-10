@@ -39,7 +39,7 @@ export default function StaffLoginPage() {
     event.preventDefault();
     setStatus({ loading: true, error: "" });
     try {
-      const result = await login(form);
+      const result = await login({ ...form, role });
       const loggedInUser = result.data?.user;
       toast.success(`Welcome, ${loggedInUser?.name || content.label}.`, "Login successful");
       window.location.replace(dashboardPathForRole(loggedInUser?.role));

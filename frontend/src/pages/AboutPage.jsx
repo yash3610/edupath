@@ -283,9 +283,10 @@ export default function AboutPage() {
                                       <div id="collapseOne" className="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                                         <div className="ep-faq__accordion-body">
                                           <p className="ep-faq__accordion-text">
-                                            The generated is therefore always free from
-                                            repetition is the injected humour or words
-                                            etc.
+                                            Education builds practical skills, improves
+                                            confidence, and creates better career
+                                            opportunities. EduPath combines guided
+                                            lessons, practice, and progress tracking.
                                           </p>
                                         </div>
                                       </div>
@@ -300,9 +301,10 @@ export default function AboutPage() {
                                       <div id="collapseTwo" className="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
                                         <div className="ep-faq__accordion-body">
                                           <p className="ep-faq__accordion-text">
-                                            The generated is therefore always free from
-                                            repetition is the injected humour or words
-                                            etc.
+                                            Compare the course level, curriculum,
+                                            duration, instructor, and expected outcomes.
+                                            Start with beginner content when learning a
+                                            new subject and progress step by step.
                                           </p>
                                         </div>
                                       </div>
@@ -317,9 +319,10 @@ export default function AboutPage() {
                                       <div id="collapseThree" className="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
                                         <div className="ep-faq__accordion-body">
                                           <p className="ep-faq__accordion-text">
-                                            The generated is therefore always free from
-                                            repetition is the injected humour or words
-                                            etc.
+                                            Course discounts and available payment
+                                            options are displayed at checkout. You can
+                                            review the complete price before confirming
+                                            your enrollment.
                                           </p>
                                         </div>
                                       </div>

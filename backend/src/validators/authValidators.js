@@ -9,5 +9,5 @@ export const registerRules = [
 export const loginRules = [
   body("email").isEmail().withMessage("Valid email is required"),
   body("password").notEmpty().withMessage("Password is required"),
-  body("role").optional().isIn(["student", "instructor", "admin"]).withMessage("Invalid login portal"),
+  body("role").isIn(["student", "instructor", "admin"]).withMessage("Invalid login portal"),
 ];

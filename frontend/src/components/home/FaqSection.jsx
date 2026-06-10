@@ -1,9 +1,18 @@
 import React from "react";
 
 const faqs = [
-  "What are the benefits of education?",
-  "How can I find the program for me?",
-  "Can I get financial for my education?",
+  {
+    question: "What are the benefits of learning on EduPath?",
+    answer: "EduPath gives you structured courses, recorded lessons, quizzes, assignments, live classes, and progress tracking in one place. You can learn at your own pace and continue from where you stopped.",
+  },
+  {
+    question: "How can I find the right course for me?",
+    answer: "Browse courses by category and level, then review the curriculum, instructor, duration, and learning outcomes. Choose a beginner course if you are starting fresh or an advanced course to build deeper practical skills.",
+  },
+  {
+    question: "Are flexible payment options available?",
+    answer: "Available offers and payment options are shown during checkout. Course pricing, discounts, and included resources are displayed clearly before you complete your enrollment.",
+  },
 ];
 
 export default function FaqSection() {
@@ -14,7 +23,7 @@ export default function FaqSection() {
         <div className="row">
           <div className="col-12">
             <div className="ep-section-head ep-section-head--style2">
-              <h3 className="ep-section-head__color-title ep7-color ep7-border-color">8.some Faq</h3>
+              <h3 className="ep-section-head__color-title ep7-color ep7-border-color">Common Questions</h3>
             </div>
           </div>
         </div>
@@ -28,16 +37,16 @@ export default function FaqSection() {
                 <h3 className="ep-section-head__big-title fs-28 ep-split-text left">Frequently Asked Questions and Answers <br />Find Solutions</h3>
               </div>
               <div className="ep-faq__accordion faq-inner accordion" id="accordionExample">
-                {faqs.map((question, index) => (
-                  <div className="ep-faq__accordion-item ep-faq__accordion-item--style2" key={question}>
+                {faqs.map((faq, index) => (
+                  <div className="ep-faq__accordion-item ep-faq__accordion-item--style2" key={faq.question}>
                     <h2 className="accordion-header">
                       <button className={`accordion-button ${index ? "collapsed" : ""}`} type="button">
-                        <span>{String(index + 1).padStart(2, "0")}</span>{question}
+                        <span>{String(index + 1).padStart(2, "0")}</span>{faq.question}
                       </button>
                     </h2>
                     <div className={`accordion-collapse collapse ${index ? "" : "show"}`}>
                       <div className="ep-faq__accordion-body">
-                        <p className="ep-faq__accordion-text">The generated is therefore always free from repetition and injected humour or words.</p>
+                        <p className="ep-faq__accordion-text">{faq.answer}</p>
                       </div>
                     </div>
                   </div>

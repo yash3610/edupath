@@ -195,7 +195,7 @@ function RoleSidebar({ config, pathFor, onNavigate }) {
 
   return (
     <>
-      <NavLink to={config.homePath} className="mb-5 flex shrink-0 items-center px-2 py-1" onClick={onNavigate}><img src="/assets/images/logo.svg" alt="EduPath" className="h-10 w-auto" /></NavLink>
+      <NavLink to="/" className="mb-5 flex shrink-0 items-center px-2 py-1" onClick={onNavigate}><img src="/assets/images/logo.svg" alt="EduPath" className="h-10 w-auto" /></NavLink>
       <nav className="dashboard-sidebar-scroll min-h-0 flex-1 overflow-y-auto pr-1 pb-4">
         <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
         <div className="space-y-1.5">

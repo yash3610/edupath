@@ -9,6 +9,40 @@ function routeFromHref(href) {
   return null;
 }
 
+function animateCounter(element) {
+  const original = element.dataset.counterValue || element.textContent.trim();
+  element.dataset.counterValue = original;
+
+  const match = original.replaceAll(",", "").match(/^(-?\d+(?:\.\d+)?)(.*)$/);
+  if (!match) return;
+
+  const target = Number(match[1]);
+  const suffix = match[2] || "";
+  const decimals = match[1].includes(".") ? match[1].split(".")[1].length : 0;
+  const useGrouping = original.includes(",");
+  const duration = Math.min(1800, Math.max(900, Math.abs(target) * 12));
+  const startedAt = performance.now();
+
+  const format = (value) => {
+    const rounded = decimals ? Number(value.toFixed(decimals)) : Math.round(value);
+    return `${rounded.toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+      useGrouping,
+    })}${suffix}`;
+  };
+
+  const tick = (now) => {
+    const progress = Math.min((now - startedAt) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    element.textContent = format(target * eased);
+    if (progress < 1) requestAnimationFrame(tick);
+    else element.textContent = original;
+  };
+
+  requestAnimationFrame(tick);
+}
+
 function getFormKind(form) {
   if (form.closest(".ep-contact__form")) return "contact";
   if (form.classList.contains("ep-footer__newsletter")) return "newsletter";
@@ -205,6 +239,37 @@ export default function PageShell({ title, children }) {
   }, [title]);
 
   useEffect(() => {
+    let observer;
+    const frame = requestAnimationFrame(() => {
+      const counters = [...document.querySelectorAll(".counter")];
+      if (!counters.length) return;
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        counters.forEach((counter) => {
+          counter.textContent = counter.dataset.counterValue || counter.textContent;
+        });
+        return;
+      }
+
+      observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting || entry.target.dataset.counterAnimated === "true") return;
+          entry.target.dataset.counterAnimated = "true";
+          animateCounter(entry.target);
+          observer.unobserve(entry.target);
+        });
+      }, { threshold: 0.35 });
+
+      counters.forEach((counter) => observer.observe(counter));
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [location.pathname]);
+
+  useEffect(() => {
     const onScroll = () => {
       document
         .querySelectorAll(".ep-header__middle")
@@ -241,6 +306,29 @@ export default function PageShell({ title, children }) {
       if (submenuToggle) {
         event.preventDefault();
         submenuToggle.parentElement?.classList.toggle("active");
+        return;
+      }
+
+      const faqToggle = event.target.closest(".ep-faq__accordion .accordion-button");
+      if (faqToggle) {
+        event.preventDefault();
+        const item = faqToggle.closest(".ep-faq__accordion-item");
+        const panel = item?.querySelector(".accordion-collapse");
+        const accordion = item?.closest(".ep-faq__accordion");
+        if (!item || !panel || !accordion) return;
+
+        const willOpen = !panel.classList.contains("show");
+        accordion.querySelectorAll(".ep-faq__accordion-item").forEach((otherItem) => {
+          otherItem.querySelector(".accordion-button")?.classList.add("collapsed");
+          otherItem.querySelector(".accordion-button")?.setAttribute("aria-expanded", "false");
+          otherItem.querySelector(".accordion-collapse")?.classList.remove("show");
+        });
+
+        if (willOpen) {
+          faqToggle.classList.remove("collapsed");
+          faqToggle.setAttribute("aria-expanded", "true");
+          panel.classList.add("show");
+        }
         return;
       }
 

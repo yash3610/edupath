@@ -9,6 +9,15 @@ export default function Navigation({ mobile = false }) {
     <ul className={mobile ? "list-none offcanvas-men-list" : "ep-header__menu ep-header__menu--style2"}>
       {navigationGroups.map((group) => {
         const activeGroup = group.links.some((link) => link.path === pathname);
+        const directLink = group.links.length === 1 ? group.links[0] : null;
+
+        if (directLink) {
+          return (
+            <li key={group.label} className={activeGroup ? "active" : ""}>
+              <NavLink to={directLink.path}>{group.label}</NavLink>
+            </li>
+          );
+        }
 
         return (
           <li key={group.label} className={activeGroup ? "active" : ""}>

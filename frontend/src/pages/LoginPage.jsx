@@ -22,7 +22,7 @@ export default function LoginPage() {
     event.preventDefault();
     setStatus({ loading: true, error: "" });
     try {
-      const result = await login(form);
+      const result = await login({ ...form, role: "student" });
       const loggedInUser = result.data?.user;
       toast.success("Welcome back! Redirecting you now.", "Login successful");
       const requestedPath = location.state?.from?.pathname;

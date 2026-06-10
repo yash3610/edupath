@@ -282,7 +282,7 @@ function NavItem({ label, path, icon, onNavigate }) {
 function SidebarContent({ onNavigate }) {
   return (
     <>
-      <NavLink to="/dashboard" className="mb-5 flex shrink-0 items-center gap-3 rounded-2xl px-2 py-1" onClick={onNavigate}>
+      <NavLink to="/" className="mb-5 flex shrink-0 items-center gap-3 rounded-2xl px-2 py-1" onClick={onNavigate}>
         <img src="/assets/images/logo.svg" alt="EduPath" className="h-10 w-auto" />
       </NavLink>
       <nav className="dashboard-sidebar-scroll min-h-0 flex-1 overflow-y-auto pr-1 pb-4">

@@ -21,6 +21,7 @@ export const navigationGroups = [
       { label: "Team", path: "/team" },
       { label: "Team Details", path: "/team-details" },
       { label: "Login", path: "/login" },
+      { label: "Staff Login", path: "/staff/login" },
       { label: "Register", path: "/register" },
       { label: "404 Error", path: "/404" },
     ],

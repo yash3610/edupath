@@ -33,10 +33,14 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
   const user = await User.findOne({ email: String(email || "").toLowerCase() });
   if (!user || !(await user.matchPassword(password || ""))) throw new ApiError(401, "Invalid email or password");
   if (user.status === "blocked") throw new ApiError(403, "This account has been blocked. Contact support.");
+  if (user.role !== role) {
+    const portal = role === "student" ? "student login" : `${role} login`;
+    throw new ApiError(403, `This account cannot use the ${portal} portal.`);
+  }
 
   res.json({ success: true, data: session(user) });
 });
