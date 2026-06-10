@@ -131,13 +131,6 @@ export default function RoleDashboardLayout({ role }) {
                 </div>
               </div>
 
-              <div className="hidden min-w-0 flex-1 px-5 xl:block">
-                <div className="role-dashboard-search mx-auto flex max-w-lg items-center gap-2.5 rounded-2xl px-4 py-2.5">
-                  <Icon name="Search" className="h-4 w-4 text-slate-400" />
-                  <input className="dashboard-search-input min-w-0 flex-1 text-sm font-semibold" placeholder={`Search ${role} workspace...`} />
-                </div>
-              </div>
-
               <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                 <div ref={notificationRef} className="relative">
                   <button onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) loadNotifications(); }} className="role-dashboard-icon-button relative rounded-xl p-2.5">

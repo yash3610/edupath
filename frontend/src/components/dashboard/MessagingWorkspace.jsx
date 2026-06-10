@@ -135,7 +135,7 @@ export default function MessagingWorkspace({ title, emptyContactText }) {
         <MotionCard className="p-4">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10">
             <Icon name="Search" className="h-4 w-4 text-slate-400" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent text-sm font-bold outline-none" placeholder="Search conversations" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} className="dashboard-search-input w-full bg-transparent text-sm font-bold outline-none" placeholder="Search conversations" />
           </div>
           <select defaultValue="" onChange={(event) => { startChat(event.target.value); event.target.value = ""; }} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold dark:border-white/10 dark:bg-slate-900">
             <option value="">{availableContacts.length ? "Start a new conversation" : emptyContactText}</option>

@@ -41,7 +41,7 @@ export function SearchBox({ value, onChange, placeholder = "Search quiz..." }) {
   return (
     <label className="flex min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-slate-900">
       <Search className="h-4 w-4 text-slate-400" />
-      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="w-full bg-transparent text-sm font-bold outline-none" />
+      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="dashboard-search-input w-full bg-transparent text-sm font-bold outline-none" />
     </label>
   );
 }

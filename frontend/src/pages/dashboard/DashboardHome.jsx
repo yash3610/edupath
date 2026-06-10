@@ -75,7 +75,7 @@ export default function DashboardHome() {
         ))}
       </section>
 
-      <section className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,.75fr)]">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,.75fr)]">
         <div className="space-y-6">
           <MotionCard className="p-5 sm:p-6">
             <SectionHeading eyebrow="Continue Learning" title="Pick up where you left off" action={<Link to="/dashboard/courses" className="text-sm font-extrabold text-[#ff723a]">View all courses</Link>} />

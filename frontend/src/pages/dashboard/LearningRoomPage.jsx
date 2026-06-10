@@ -93,12 +93,12 @@ export default function LearningRoomPage() {
   }
 
   if (loading) {
-    return <div className="grid gap-5 2xl:grid-cols-[260px_minmax(0,1fr)_260px]"><div className="h-64 animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10 2xl:h-[600px]" /><div className="h-[420px] animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10 2xl:h-[600px]" /><div className="h-64 animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10 2xl:h-[360px]" /></div>;
+    return <div className="grid gap-5 xl:grid-cols-[280px_1fr_280px]"><div className="h-[600px] animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10" /><div className="h-[600px] animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10" /><div className="h-[360px] animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10" /></div>;
   }
 
   return (
-    <div className="grid min-w-0 gap-5 2xl:grid-cols-[280px_minmax(0,1fr)_280px]">
-      <MotionCard className="p-5 2xl:sticky 2xl:top-24 2xl:max-h-[calc(100vh-7rem)] 2xl:overflow-y-auto">
+    <div className="grid gap-5 xl:grid-cols-[300px_1fr_300px]">
+      <MotionCard className="p-5 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
         <SectionHeading eyebrow="Content" title="Modules" />
         <div className="space-y-4">
           {modules.map((module) => (
@@ -165,7 +165,7 @@ export default function LearningRoomPage() {
         </MotionCard>
       </div>
 
-      <MotionCard className="p-5 2xl:sticky 2xl:top-24 2xl:h-fit">
+      <MotionCard className="p-5 xl:sticky xl:top-24 xl:h-fit">
         <SectionHeading eyebrow="Progress" title="Course Status" />
         <ProgressBar value={progress} />
         <p className="mt-3 text-sm font-black">{progress}% complete</p>

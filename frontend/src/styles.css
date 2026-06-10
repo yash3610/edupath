@@ -45,6 +45,15 @@ body.dashboard-active a {
   appearance: none;
 }
 
+.dashboard-search-clean,
+.dashboard-search-clean:hover,
+.dashboard-search-clean:focus,
+.dashboard-search-clean:active {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
 .dashboard-sidebar-scroll {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;

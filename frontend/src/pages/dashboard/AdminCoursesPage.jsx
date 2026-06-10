@@ -72,7 +72,7 @@ export default function AdminCoursesPage() {
 
       <MotionCard className="p-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <input value={filters.search} onChange={(event) => setFilter("search", event.target.value)} placeholder="Search course or instructor..." className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-bold outline-none dark:bg-white/5" />
+          <input value={filters.search} onChange={(event) => setFilter("search", event.target.value)} placeholder="Search course or instructor..." className="dashboard-search-clean rounded-xl bg-slate-50 px-4 py-3 text-sm font-bold outline-none dark:bg-white/5" />
           <Filter value={filters.status} onChange={(value) => setFilter("status", value)}><option value="all">All statuses</option>{statuses.map((item) => <option key={item} value={item}>{statusLabel(item)}</option>)}</Filter>
           <Filter value={filters.instructor} onChange={(value) => setFilter("instructor", value)}><option value="all">All instructors</option>{instructors.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</Filter>
           <Filter value={filters.category} onChange={(value) => setFilter("category", value)}><option value="all">All categories</option>{categories.map((item) => <option key={item}>{item}</option>)}</Filter>

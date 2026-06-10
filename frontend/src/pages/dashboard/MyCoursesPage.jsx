@@ -49,7 +49,7 @@ export default function MyCoursesPage() {
           <label className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-slate-800 lg:max-w-xs">
             <Search className="h-4 w-4 text-slate-400" />
             <input
-              className="w-full bg-transparent text-sm font-bold outline-none"
+              className="dashboard-search-input w-full bg-transparent text-sm font-bold outline-none"
               placeholder="Search courses..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}

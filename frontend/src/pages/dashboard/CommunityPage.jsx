@@ -138,7 +138,7 @@ export default function CommunityPage() {
       <div className="grid min-w-0 gap-5 xl:grid-cols-[250px_minmax(0,1fr)]">
         <aside className="space-y-4">
           <MotionCard className="p-4 xl:sticky xl:top-24">
-            <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 dark:border-white/10"><Icon name="Search" className="h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none" placeholder="Search discussions" /></label>
+            <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 dark:border-white/10"><Icon name="Search" className="h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="dashboard-search-input min-w-0 flex-1 bg-transparent text-sm font-bold outline-none" placeholder="Search discussions" /></label>
             <p className="mt-5 px-1 text-[10px] font-extrabold uppercase tracking-[.16em] text-slate-400">Topics</p>
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1 xl:block xl:space-y-1">
               {topics.map((topic) => <button key={topic} onClick={() => setActiveTopic(topic)} className={`flex shrink-0 items-center justify-between rounded-xl px-3 py-2.5 text-sm font-extrabold xl:w-full ${activeTopic === topic ? "bg-[#ff723a] text-white" : "bg-slate-50 text-slate-600 hover:bg-orange-50 dark:bg-white/5 dark:text-slate-300"}`}><span>{topic}</span><span className="ml-3 text-xs opacity-70">{topic === "All" ? questions.length : questions.filter((item) => item.tags?.includes(topic)).length}</span></button>)}

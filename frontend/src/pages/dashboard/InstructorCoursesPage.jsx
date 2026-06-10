@@ -32,7 +32,7 @@ export default function InstructorCoursesPage() {
       </section>
 
       <MotionCard className="p-4">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assigned courses..." className="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm font-bold outline-none dark:bg-white/5" />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assigned courses..." className="dashboard-search-clean w-full rounded-xl bg-slate-50 px-4 py-3 text-sm font-bold outline-none dark:bg-white/5" />
       </MotionCard>
 
       {loading ? <div className="grid gap-5 lg:grid-cols-2">{[1, 2].map((item) => <div key={item} className="h-72 animate-pulse rounded-[28px] bg-slate-200 dark:bg-white/10" />)}</div> : (

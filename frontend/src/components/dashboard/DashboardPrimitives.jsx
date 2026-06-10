@@ -157,7 +157,7 @@ export function SectionHeading({ eyebrow, title, action }) {
         <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#ff723a]">{eyebrow}</p>
         <h2 className="mt-1.5 text-xl font-extrabold leading-tight tracking-[-0.02em] text-slate-950 dark:text-white sm:text-2xl">{title}</h2>
       </div>
-      {action && <div className="w-full shrink-0 sm:w-auto [&>*]:w-full sm:[&>*]:w-auto">{action}</div>}
+      {action}
     </div>
   );
 }
