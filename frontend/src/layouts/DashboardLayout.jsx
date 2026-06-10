@@ -54,7 +54,6 @@ const navGroups = [
     ],
   },
 ];
-const navItems = navGroups.flatMap((group) => group.items);
 const notificationIcons = { course: "BookOpen", quiz: "BadgeHelp", assignment: "UploadCloud", certificate: "Award", payment: "ReceiptText" };
 
 export default function DashboardLayout() {
@@ -128,14 +127,14 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className={dark ? "dark" : ""}>
-      <div className="min-h-screen bg-[#f7f8fc] text-slate-900 dark:bg-slate-950 dark:text-white">
-        <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col border-r border-slate-200/80 bg-white px-4 py-5 dark:border-white/10 dark:bg-slate-900 lg:flex">
+    <div className={`w-full overflow-x-hidden ${dark ? "dark" : ""}`}>
+      <div className="min-h-screen w-full overflow-x-hidden bg-[#f7f8fc] text-slate-900 dark:bg-slate-950 dark:text-white">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col border-r border-slate-200/80 bg-white px-4 py-5 dark:border-white/10 dark:bg-slate-900 xl:flex">
           <SidebarContent onNavigate={() => {}} />
         </aside>
 
         {mobileOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 z-50 xl:hidden">
             <button className="absolute inset-0 bg-slate-950/45" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
             <aside className="relative flex h-full w-[82vw] max-w-80 flex-col bg-white px-4 py-5 shadow-2xl dark:bg-slate-900">
               <div className="mb-3 flex items-center justify-between">
@@ -149,16 +148,16 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        <div className="min-w-0 lg:pl-[276px]">
-          <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 px-4 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
+        <div className="min-w-0 max-w-full overflow-x-hidden xl:pl-[276px]">
+          <header className="sticky top-0 z-30 max-w-full border-b border-slate-200/80 bg-white/90 px-3 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
             <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <button className="rounded-xl border border-slate-200 p-2.5 dark:border-white/10 lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+                <button className="shrink-0 rounded-xl border border-slate-200 p-2.5 dark:border-white/10 xl:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
                   <Icon name="Menu" className="h-5 w-5" />
                 </button>
-                <div className="min-w-0">
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#ff723a]">Student workspace</p>
-                <h1 className="truncate text-lg font-extrabold tracking-[-0.02em] sm:text-xl">Welcome back, {displayStudent.name.split(" ")[0]}</h1>
+                <div className="hidden min-w-0 min-[390px]:block">
+                <p className="hidden text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#ff723a] sm:block">Student workspace</p>
+                <h1 className="truncate text-base font-extrabold tracking-[-0.02em] sm:text-xl">Welcome back, {displayStudent.name.split(" ")[0]}</h1>
                 </div>
               </div>
               <div className="hidden min-w-0 flex-1 px-4 xl:block">
@@ -167,7 +166,7 @@ export default function DashboardLayout() {
                   <input className="dashboard-search-input min-w-0 flex-1 text-sm font-semibold text-[#1f1c35] placeholder:text-slate-400 dark:text-white" placeholder="Search courses, notes, messages..." />
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                 <div ref={notificationRef} className="relative">
                   <button
                     onClick={() => {
@@ -225,11 +224,11 @@ export default function DashboardLayout() {
                     </div>
                   )}
                 </div>
-                <button className="rounded-xl border border-slate-200 bg-white p-2.5 dark:border-white/10 dark:bg-white/10" onClick={() => setDark((value) => !value)} aria-label="Toggle theme">
+                <button className="hidden rounded-xl border border-slate-200 bg-white p-2.5 dark:border-white/10 dark:bg-white/10 min-[390px]:block" onClick={() => setDark((value) => !value)} aria-label="Toggle theme">
                   <Icon name={dark ? "Sun" : "Moon"} className="h-5 w-5" />
                 </button>
                 <div className="relative">
-                  <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pr-3 dark:border-white/10 dark:bg-white/10" onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }}>
+                  <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 min-[390px]:pr-3 dark:border-white/10 dark:bg-white/10" onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }}>
                     <img src={displayStudent.avatar} alt={displayStudent.name} className="h-9 w-9 rounded-lg object-cover" />
                     <span className="hidden text-sm font-black sm:block">{displayStudent.name.split(" ")[0]}</span>
                   </button>
@@ -246,21 +245,9 @@ export default function DashboardLayout() {
               </div>
             </div>
 
-            <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 lg:hidden">
-              {navItems.map(([label, path, icon]) => (
-                <NavLink
-                  key={path}
-                  to={path}
-                  end={path === "/dashboard"}
-                  className={({ isActive }) => `flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-extrabold ${isActive ? "bg-[#ff723a] text-white" : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200"}`}
-                >
-                  <Icon name={icon} className="h-4 w-4" /> {label}
-                </NavLink>
-              ))}
-            </nav>
           </header>
 
-          <main className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+          <main className="dashboard-content mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-8">
             <Outlet context={{ student: displayStudent }} />
           </main>
         </div>

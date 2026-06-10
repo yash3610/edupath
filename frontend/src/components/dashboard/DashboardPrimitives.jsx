@@ -143,7 +143,7 @@ export function MotionCard({ children, className = "", delay = 0 }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, delay, ease: "easeOut" }}
-      className={`rounded-[22px] border border-slate-200/80 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-slate-900 ${className}`}
+      className={`min-w-0 rounded-[18px] border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-slate-900 sm:rounded-[22px] sm:p-6 ${className}`}
     >
       {children}
     </motion.div>
@@ -152,12 +152,12 @@ export function MotionCard({ children, className = "", delay = 0 }) {
 
 export function SectionHeading({ eyebrow, title, action }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
+    <div className="mb-4 flex min-w-0 flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
         <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#ff723a]">{eyebrow}</p>
         <h2 className="mt-1.5 text-xl font-extrabold leading-tight tracking-[-0.02em] text-slate-950 dark:text-white sm:text-2xl">{title}</h2>
       </div>
-      {action}
+      {action && <div className="w-full shrink-0 sm:w-auto [&>*]:w-full sm:[&>*]:w-auto">{action}</div>}
     </div>
   );
 }

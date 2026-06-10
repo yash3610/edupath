@@ -101,14 +101,14 @@ export default function RoleDashboardLayout({ role }) {
   }
 
   return (
-    <div className={`role-dashboard role-dashboard--${role} ${dark ? "dark" : ""}`}>
-      <div className="role-dashboard-shell min-h-screen text-slate-900 dark:text-white">
-        <aside className="role-dashboard-sidebar fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col px-4 py-5 lg:flex">
+    <div className={`role-dashboard role-dashboard--${role} w-full overflow-x-hidden ${dark ? "dark" : ""}`}>
+      <div className="role-dashboard-shell min-h-screen w-full overflow-x-hidden text-slate-900 dark:text-white">
+        <aside className="role-dashboard-sidebar fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col px-4 py-5 xl:flex">
           <RoleSidebar config={config} pathFor={pathFor} onNavigate={() => {}} />
         </aside>
 
         {mobileOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 z-50 xl:hidden">
             <button className="absolute inset-0 bg-slate-950/45" aria-label="Close menu" onClick={() => setMobileOpen(false)} />
             <aside className="role-dashboard-sidebar relative flex h-full w-[84vw] max-w-80 flex-col px-4 py-5 shadow-2xl">
               <div className="mb-3 flex items-center justify-between">
@@ -120,14 +120,14 @@ export default function RoleDashboardLayout({ role }) {
           </div>
         )}
 
-        <div className="min-w-0 lg:pl-[276px]">
-          <header className="role-dashboard-header sticky top-0 z-30 px-4 py-3.5 backdrop-blur-xl sm:px-6">
+        <div className="min-w-0 max-w-full overflow-x-hidden xl:pl-[276px]">
+          <header className="role-dashboard-header sticky top-0 z-30 max-w-full px-3 py-3.5 backdrop-blur-xl sm:px-6">
             <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <button className="rounded-xl border border-slate-200 p-2.5 dark:border-white/10 lg:hidden" onClick={() => setMobileOpen(true)}><Icon name="Menu" /></button>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#ff723a]">{config.label}</p>
-                  <h1 className="truncate text-lg font-extrabold tracking-[-0.02em] sm:text-xl">Welcome back, {firstName}</h1>
+                <button className="shrink-0 rounded-xl border border-slate-200 p-2.5 dark:border-white/10 xl:hidden" onClick={() => setMobileOpen(true)}><Icon name="Menu" /></button>
+                <div className="hidden min-w-0 min-[390px]:block">
+                  <p className="hidden text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#ff723a] sm:block">{config.label}</p>
+                  <h1 className="truncate text-base font-extrabold tracking-[-0.02em] sm:text-xl">Welcome back, {firstName}</h1>
                 </div>
               </div>
 
@@ -138,7 +138,7 @@ export default function RoleDashboardLayout({ role }) {
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                 <div ref={notificationRef} className="relative">
                   <button onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) loadNotifications(); }} className="role-dashboard-icon-button relative rounded-xl p-2.5">
                     <Icon name="Bell" />
@@ -160,9 +160,9 @@ export default function RoleDashboardLayout({ role }) {
                     </div>
                   )}
                 </div>
-                <button className="role-dashboard-icon-button rounded-xl p-2.5" onClick={() => setDark((value) => !value)}><Icon name={dark ? "Sun" : "Moon"} /></button>
+                <button className="role-dashboard-icon-button hidden rounded-xl p-2.5 min-[390px]:block" onClick={() => setDark((value) => !value)}><Icon name={dark ? "Sun" : "Moon"} /></button>
                 <div className="relative">
-                  <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="role-dashboard-profile flex items-center gap-2 rounded-xl p-1.5 pr-3">
+                  <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="role-dashboard-profile flex items-center gap-2 rounded-xl p-1.5 min-[390px]:pr-3">
                     <span className="role-dashboard-avatar flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold text-white">{firstName[0]}</span>
                     <span className="hidden text-sm font-extrabold sm:block">{firstName}</span>
                   </button>
@@ -180,7 +180,7 @@ export default function RoleDashboardLayout({ role }) {
 
           </header>
 
-          <main className="role-dashboard-main mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+          <main className="dashboard-content role-dashboard-main mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-8">
             <Outlet context={{ role, user, config }} />
           </main>
         </div>

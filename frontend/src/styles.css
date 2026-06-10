@@ -13,6 +13,7 @@ body.dashboard-active::-webkit-scrollbar-track {
 .dashboard-active {
   scrollbar-color: #cbd5e1 #f8fafc;
   background: #f7f8fc;
+  overflow-x: hidden;
 }
 
 body.dashboard-active,
@@ -60,6 +61,46 @@ body.dashboard-active a {
 .dashboard-sidebar-scroll::-webkit-scrollbar-thumb {
   background: #cbd5e1 !important;
   border-radius: 999px !important;
+}
+
+.dashboard-content,
+.dashboard-content > *,
+.dashboard-content section,
+.dashboard-content article {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-content img,
+.dashboard-content video,
+.dashboard-content svg {
+  max-width: 100%;
+}
+
+.dashboard-content input,
+.dashboard-content select,
+.dashboard-content textarea {
+  max-width: 100%;
+}
+
+.dashboard-content .recharts-responsive-container,
+.dashboard-content .recharts-wrapper {
+  min-width: 0 !important;
+  max-width: 100%;
+}
+
+.dashboard-content .overflow-x-auto {
+  width: 100%;
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 639px) {
+  .dashboard-content table th,
+  .dashboard-content table td {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
 }
 
 .app-form-status {

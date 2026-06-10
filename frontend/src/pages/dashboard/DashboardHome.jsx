@@ -16,21 +16,21 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[28px] border border-[#f1e7db] bg-[#fff8ef] p-6 text-[#1f1c35] shadow-[0_24px_60px_rgba(31,28,53,0.08)] dark:border-white/10 dark:bg-[#1f1c35] dark:text-white sm:p-8 lg:p-10">
+      <section className="relative overflow-hidden rounded-[22px] border border-[#f1e7db] bg-[#fff8ef] p-5 text-[#1f1c35] shadow-[0_24px_60px_rgba(31,28,53,0.08)] dark:border-white/10 dark:bg-[#1f1c35] dark:text-white sm:rounded-[28px] sm:p-8 lg:p-10">
         <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[#fec961]/45 blur-3xl" />
         <div className="absolute bottom-0 right-1/4 h-40 w-40 rounded-full bg-[#ff723a]/15 blur-3xl" />
-        <div className="relative grid items-center gap-8 lg:grid-cols-[1fr_360px]">
+        <div className="relative grid min-w-0 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] lg:gap-8">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#ff723a]/15 bg-white/70 px-3 py-1.5 text-xs font-bold text-[#ff723a] dark:border-white/10 dark:bg-white/10">
               <Icon name="Sparkles" className="h-3.5 w-3.5" /> Your learning overview
             </div>
-            <h2 className="mt-5 max-w-2xl text-3xl font-extrabold leading-[1.12] tracking-[-0.04em] sm:text-4xl lg:text-[42px]">
+            <h2 className="mt-5 max-w-2xl text-2xl font-extrabold leading-[1.12] tracking-[-0.04em] sm:text-4xl lg:text-[42px]">
               Make today count, {student.name.split(" ")[0]}.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-[#4f536c] dark:text-slate-300 sm:text-base">
               Continue your course, protect your {student.streak}-day streak, and move one step closer to your weekly goal.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link to="/dashboard/learn" className="inline-flex items-center gap-2 rounded-xl bg-[#ff723a] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#ed5f29]">
                 <Icon name="Play" className="h-4 w-4 fill-current" /> Continue learning
               </Link>
@@ -75,7 +75,7 @@ export default function DashboardHome() {
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,.75fr)]">
+      <section className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,.75fr)]">
         <div className="space-y-6">
           <MotionCard className="p-5 sm:p-6">
             <SectionHeading eyebrow="Continue Learning" title="Pick up where you left off" action={<Link to="/dashboard/courses" className="text-sm font-extrabold text-[#ff723a]">View all courses</Link>} />

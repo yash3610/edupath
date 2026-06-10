@@ -114,11 +114,13 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-black text-slate-500">
-            {weekDays.map((day) => <div key={day}>{day}</div>)}
-          </div>
-          {loading ? <div className="mt-3 h-[520px] animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" /> : (
-            <div className="mt-3 grid grid-cols-7 gap-2">
+          <div className="overflow-x-auto pb-2">
+            <div className="min-w-[620px]">
+              <div className="grid grid-cols-7 gap-2 text-center text-xs font-black text-slate-500">
+                {weekDays.map((day) => <div key={day}>{day}</div>)}
+              </div>
+              {loading ? <div className="mt-3 h-[520px] animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" /> : (
+                <div className="mt-3 grid grid-cols-7 gap-2">
               {cells.map(({ date, currentMonth }) => {
                 const dayEvents = eventsByDay[localDateKey(date)] || [];
                 const today = localDateKey(date) === localDateKey(new Date());
@@ -132,8 +134,10 @@ export default function CalendarPage() {
                   </button>
                 );
               })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </MotionCard>
 
         <aside>
