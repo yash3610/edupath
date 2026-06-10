@@ -22,7 +22,7 @@ import {
   instructorModules, instructorMyCourses, instructorPayouts, instructorPendingTasks, instructorRecentActivity,
   instructorDuplicateLecture, instructorReorderLectures, instructorReorderModules, instructorReviews, instructorStats, instructorStudentEngagement, instructorStudentsProgress,
   instructorSubmissions, instructorUpcomingClasses, instructorUpdateLecture,
-  instructorUpdateModule,
+  instructorUpdateModule, instructorSubmitCourseForReview,
 } from "../controllers/lmsController.js";
 import {
   instructorAttendance,
@@ -60,6 +60,7 @@ router.get("/recent-activity", instructorRecentActivity);
 router.get("/upcoming-classes", instructorUpcomingClasses);
 router.get("/courses/:courseId", instructorCourseDetails);
 router.get("/courses/:courseId/analytics", instructorCourseAnalytics);
+router.patch("/courses/:courseId/submit-review", instructorSubmitCourseForReview);
 router.post("/courses/:courseId/modules", instructorCreateModule);
 router.get("/courses/:courseId/modules", instructorModules);
 router.patch("/courses/:courseId/modules/reorder", instructorReorderModules);

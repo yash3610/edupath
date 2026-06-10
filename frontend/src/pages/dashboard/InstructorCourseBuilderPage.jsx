@@ -14,6 +14,9 @@ export default function InstructorCourseBuilderPage() {
   const [moduleTitle, setModuleTitle] = useState("");
   const [lectureDrafts, setLectureDrafts] = useState({});
   const [loading, setLoading] = useState(true);
+  const [courseDetails, setCourseDetails] = useState(null);
+  const [completion, setCompletion] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     apiRequest("/api/instructor/my-courses")
@@ -29,6 +32,8 @@ export default function InstructorCourseBuilderPage() {
   useEffect(() => {
     if (!courseId) {
       setModules([]);
+      setCourseDetails(null);
+      setCompletion(null);
       return;
     }
     loadModules();
@@ -36,7 +41,12 @@ export default function InstructorCourseBuilderPage() {
 
   async function loadModules() {
     try {
-      const result = await apiRequest(`/api/instructor/courses/${courseId}/modules`);
+      const [detailsResult, result] = await Promise.all([
+        apiRequest(`/api/instructor/courses/${courseId}`),
+        apiRequest(`/api/instructor/courses/${courseId}/modules`),
+      ]);
+      setCourseDetails(detailsResult.data?.course || null);
+      setCompletion(detailsResult.data?.completion || null);
       const nextModules = result.data || [];
       setModules(nextModules);
       const lectureEntries = await Promise.all(nextModules.map(async (module) => {
@@ -46,6 +56,19 @@ export default function InstructorCourseBuilderPage() {
       setLectures(Object.fromEntries(lectureEntries));
     } catch (error) {
       toast.error(error.message);
+    }
+  }
+
+  async function submitForReview() {
+    try {
+      setSubmitting(true);
+      await apiRequest(`/api/instructor/courses/${courseId}/submit-review`, { method: "PATCH", body: JSON.stringify({}) });
+      toast.success("Course submitted for admin review.");
+      await loadModules();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -179,6 +202,36 @@ export default function InstructorCourseBuilderPage() {
         </label>
       </MotionCard>
 
+      {courseDetails && (
+        <MotionCard className="p-5 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#fff1e8] px-3 py-1 text-[10px] font-extrabold uppercase text-[#ff723a]">{statusLabel(courseDetails.status)}</span>
+                <span className="text-sm font-extrabold">{completion?.percentage || 0}% complete</span>
+              </div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"><div className="h-full rounded-full bg-[#ff723a]" style={{ width: `${completion?.percentage || 0}%` }} /></div>
+              {courseDetails.reviewFeedback && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">Admin feedback: {courseDetails.reviewFeedback}</div>}
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {Object.entries(completion?.checks || {}).map(([key, done]) => (
+                  <div key={key} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-extrabold ${done ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500 dark:bg-white/5"}`}>
+                    <Icon name={done ? "CheckCircle2" : "Circle"} className="h-4 w-4" /> {checkLabel(key)}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={submitForReview}
+              disabled={submitting || !["assigned", "content_in_progress", "changes_requested"].includes(courseDetails.status)}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#ff723a] px-5 py-3 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Icon name="Send" className="h-4 w-4" /> {submitting ? "Submitting..." : "Submit for review"}
+            </button>
+          </div>
+        </MotionCard>
+      )}
+
       {courseId && <MotionCard>
         <SectionHeading eyebrow="Curriculum" title={`${modules.length} modules`} />
         <form onSubmit={addModule} className="flex flex-col gap-3 sm:flex-row">
@@ -214,4 +267,12 @@ export default function InstructorCourseBuilderPage() {
       ))}
     </div>
   );
+}
+
+function statusLabel(value) {
+  return String(value || "assigned").split("_").map((part) => part[0].toUpperCase() + part.slice(1)).join(" ");
+}
+
+function checkLabel(value) {
+  return ({ basicInfo: "Basic Info", thumbnail: "Thumbnail", promoVideo: "Promo Video", modules: "Modules", lectures: "Lectures", resources: "Resources", quiz: "Quiz", assignment: "Assignment", certificateRules: "Certificate Rules" })[value] || value;
 }

@@ -118,10 +118,20 @@ export const Course = makeModel(
         faqs: [{ question: String, answer: String }],
         instructorBio: String,
       },
-      status: { type: String, enum: ["draft", "pending", "approved", "rejected"], default: "pending" },
+      status: {
+        type: String,
+        enum: ["draft", "assigned", "content_in_progress", "review_pending", "changes_requested", "ready_to_publish", "published", "unpublished", "archived", "pending", "approved", "rejected"],
+        default: "draft",
+      },
       featured: { type: Boolean, default: false },
       disabled: { type: Boolean, default: false },
       rejectionReason: String,
+      reviewFeedback: String,
+      submittedForReviewAt: Date,
+      reviewedAt: Date,
+      reviewedBy: { type: objectId, ref: "User" },
+      publishedAt: Date,
+      archivedAt: Date,
       rating: { type: Number, default: 0 },
       tags: [String],
     },
@@ -286,7 +296,7 @@ export const QuizAttempt = makeModel(
 );
 export const Assignment = makeModel("Assignment", new Schema({ course: { type: objectId, ref: "Course" }, title: String, description: String, dueDate: Date, allowedFileTypes: [String], maxMarks: Number }, baseOptions));
 export const AssignmentSubmission = makeModel("AssignmentSubmission", new Schema({ assignment: { type: objectId, ref: "Assignment" }, student: { type: objectId, ref: "User" }, fileUrl: String, status: { type: String, enum: ["pending", "submitted", "graded", "overdue"], default: "submitted" }, grade: String, feedback: String }, baseOptions));
-export const Certificate = makeModel("Certificate", new Schema({ student: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, certificateCode: { type: String, unique: true }, issuedAt: Date, pdfUrl: String }, baseOptions));
+export const Certificate = makeModel("Certificate", new Schema({ student: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, instructor: { type: objectId, ref: "User" }, certificateCode: { type: String, unique: true }, issuedAt: Date, completionDate: Date, verificationUrl: String, qrCodeUrl: String, pdfUrl: String }, baseOptions));
 export const Wishlist = makeModel("Wishlist", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true } }, baseOptions));
 export const Notification = makeModel("Notification", new Schema({ user: { type: objectId, ref: "User" }, type: String, title: String, message: String, read: { type: Boolean, default: false } }, baseOptions));
 export const Conversation = makeModel("Conversation", new Schema({ participants: [{ type: objectId, ref: "User" }], lastMessage: String }, baseOptions));

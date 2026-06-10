@@ -20,6 +20,7 @@ import {
   adminPendingApprovals, adminRecentActivity, adminRecentOrders, adminRefunds, adminRefundStatus,
   adminRejectCourse, adminReports, adminRevenueAnalytics, adminReviews, adminStats, adminStudents,
   adminTopCourses, adminUpdateCategory, adminUpdateCoupon, adminUpdateCourse, adminUserGrowth, adminUsers, adminUserStatus,
+  adminArchiveCourse, adminPublishCourse, adminUnpublishCourse,
 } from "../controllers/lmsController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/uploadMiddleware.js";
@@ -52,6 +53,9 @@ router.patch("/courses/:courseId/control", adminCourseControl);
 router.delete("/courses/:courseId", adminDeleteCourse);
 router.patch("/courses/:courseId/approve", adminApproveCourse);
 router.patch("/courses/:courseId/reject", adminRejectCourse);
+router.patch("/courses/:courseId/publish", adminPublishCourse);
+router.patch("/courses/:courseId/unpublish", adminUnpublishCourse);
+router.patch("/courses/:courseId/archive", adminArchiveCourse);
 router.get("/live-classes", adminLiveClasses);
 router.get("/live-classes/:id", liveClassIdParam, validate, adminLiveClassDetails);
 router.patch("/live-classes/:id/approve", liveClassIdParam, validate, adminApproveLiveClass);

@@ -10,6 +10,7 @@ import {
 } from "../services/quizService.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { PUBLIC_COURSE_STATUSES } from "../services/courseLifecycleService.js";
 
 const ok = (res, data, message = "OK") => res.json({ success: true, message, data });
 const created = (res, data, message = "Created") => res.status(201).json({ success: true, message, data });
@@ -245,4 +246,4 @@ export const adminApproveQuiz = asyncHandler(async (req, res) => ok(res, await Q
 export const adminRejectQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findByIdAndUpdate(req.params.quizId, { isApproved: false, status: "draft" }, { new: true }), "Quiz rejected"));
 export const adminDeleteQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findByIdAndDelete(req.params.quizId), "Quiz deleted"));
 
-export const quizCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: "approved" }).select("title thumbnail")));
+export const quizCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES } }).select("title thumbnail")));

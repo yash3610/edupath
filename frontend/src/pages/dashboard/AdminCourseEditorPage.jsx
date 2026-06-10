@@ -15,18 +15,20 @@ const initialForm = {
   language: "English",
   level: "beginner",
   thumbnail: "",
+  promoVideoUrl: "",
   shortDescription: "",
   description: "",
   learningOutcomes: "",
   requirements: "",
   targetAudience: "",
+  tags: "",
   pricingType: "paid",
   price: 0,
   discountPrice: 0,
   currency: "INR",
-  status: "approved",
   featured: false,
   disabled: false,
+  certificateEnabled: true,
 };
 
 export default function AdminCourseEditorPage() {
@@ -66,15 +68,14 @@ export default function AdminCourseEditorPage() {
           learningOutcomes: join(course.learningOutcomes),
           requirements: join(course.requirements),
           targetAudience: join(course.targetAudience),
+          tags: join(course.tags),
         });
-      } else if (instructorList[0]) {
-        setForm((current) => ({ ...current, instructor: instructorList[0]._id }));
       }
     }).catch((error) => toast.error(error.message)).finally(() => setLoading(false));
   }, [courseId, toast]);
 
   const ready = useMemo(
-    () => Boolean(form.title && form.slug && form.instructor && form.category && form.description),
+    () => Boolean(form.title && form.slug && form.category && form.description),
     [form]
   );
 
@@ -92,12 +93,13 @@ export default function AdminCourseEditorPage() {
 
   async function submit(event) {
     event.preventDefault();
-    if (!ready) return toast.error("Title, slug, instructor, category and description are required.");
+    if (!ready) return toast.error("Title, slug, category and description are required.");
     try {
       setSaving(true);
       const body = new FormData();
+      const { status: _status, ...editableForm } = form;
       Object.entries({
-        ...form,
+        ...editableForm,
         price: Number(form.price || 0),
         discountPrice: Number(form.discountPrice || 0),
       }).forEach(([key, value]) => body.append(key, value ?? ""));
@@ -130,8 +132,8 @@ export default function AdminCourseEditorPage() {
           <Field label="Course title" value={form.title} onChange={updateTitle} />
           <Field label="Subtitle" value={form.subtitle} onChange={(value) => update("subtitle", value)} />
           <Field label="Course slug" value={form.slug} onChange={(value) => update("slug", value)} />
-          <Select label="Assigned instructor" value={form.instructor} onChange={(value) => update("instructor", value)}>
-            {!instructors.length && <option value="">No instructors available</option>}
+          <Select label="Assigned instructor (optional)" value={form.instructor} onChange={(value) => update("instructor", value)}>
+            <option value="">Keep as unassigned draft</option>
             {instructors.map((instructor) => <option key={instructor._id} value={instructor._id}>{instructor.name} ({instructor.email})</option>)}
           </Select>
           <Field label="Category" value={form.category} onChange={(value) => update("category", value)} />
@@ -144,12 +146,13 @@ export default function AdminCourseEditorPage() {
             onFile={setThumbnailFile}
             onUrlChange={(value) => update("thumbnail", value)}
           />
-          <Select label="Catalog status" value={form.status} onChange={(value) => update("status", value)}>{["approved", "draft"].map((value) => <option key={value} value={value}>{value === "approved" ? "Published" : value}</option>)}</Select>
+          <Field label="Promo video URL" type="url" value={form.promoVideoUrl} onChange={(value) => update("promoVideoUrl", value)} />
           <Area label="Card description" value={form.shortDescription} onChange={(value) => update("shortDescription", value)} />
           <Area label="Full course description" value={form.description} onChange={(value) => update("description", value)} />
           <Area label="Learning outcomes (one per line)" value={form.learningOutcomes} onChange={(value) => update("learningOutcomes", value)} />
           <Area label="Requirements (one per line)" value={form.requirements} onChange={(value) => update("requirements", value)} />
           <Area label="Target audience (one per line)" value={form.targetAudience} onChange={(value) => update("targetAudience", value)} />
+          <Area label="Tags (one per line)" value={form.tags} onChange={(value) => update("tags", value)} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Select label="Pricing" value={form.pricingType} onChange={(value) => update("pricingType", value)}>{["paid", "free"].map(option)}</Select>
             <Select label="Currency" value={form.currency} onChange={(value) => update("currency", value)}>{["INR", "USD", "EUR", "GBP"].map(option)}</Select>
@@ -159,6 +162,10 @@ export default function AdminCourseEditorPage() {
           <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-extrabold dark:border-white/10">
             <input type="checkbox" checked={form.featured} onChange={(event) => update("featured", event.target.checked)} />
             Feature this course
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-extrabold dark:border-white/10">
+            <input type="checkbox" checked={form.certificateEnabled} onChange={(event) => update("certificateEnabled", event.target.checked)} />
+            Enable course certificate
           </label>
           <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-extrabold dark:border-white/10">
             <input type="checkbox" checked={form.disabled} onChange={(event) => update("disabled", event.target.checked)} />

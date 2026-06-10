@@ -3,6 +3,7 @@ import { Course, User } from "../models/index.js";
 import { fallbackBlogs, fallbackCourses, fallbackEvents, fallbackProducts, fallbackTeam } from "../data/fallbackContent.js";
 import { sendEmail } from "../services/emailService.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { PUBLIC_COURSE_STATUSES } from "../services/courseLifecycleService.js";
 
 const ok = (res, data, message = "OK") => res.json({ success: true, message, data });
 const created = (res, data, message = "Created") => res.status(201).json({ success: true, message, data });
@@ -41,13 +42,13 @@ const normalizeCourse = (course) => ({
 });
 
 export const publicCourses = asyncHandler(async (_req, res) => {
-  const courses = await Course.find({ status: "approved", disabled: { $ne: true } }).sort({ featured: -1, createdAt: -1 }).lean();
+  const courses = await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).sort({ featured: -1, createdAt: -1 }).lean();
   const coursesWithInstructors = await withInstructorNames(courses);
   ok(res, coursesWithInstructors.length ? coursesWithInstructors.map(normalizeCourse) : fallbackCourses);
 });
 
 export const publicCourseDetails = asyncHandler(async (req, res) => {
-  const course = await Course.findOne({ slug: req.params.slug, status: "approved", disabled: { $ne: true } }).lean();
+  const course = await Course.findOne({ slug: req.params.slug, status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).lean();
   const [courseWithInstructor] = course ? await withInstructorNames([course]) : [];
   const fallback = fallbackCourses.find((item) => item.slug === req.params.slug || item._id === req.params.slug || item.legacyId === req.params.slug);
   if (!course && !fallback) return res.status(404).json({ success: false, message: "Course not found" });

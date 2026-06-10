@@ -7,7 +7,7 @@ export const seedCourses = [
     thumbnail: "/assets/images/course/course-1/1.png",
     description: "Build premium React dashboards, routes and reusable UI systems.",
     price: 2999,
-    status: "approved",
+    status: "published",
     tags: ["react", "frontend", "dashboard"],
   },
   {
@@ -18,7 +18,7 @@ export const seedCourses = [
     thumbnail: "/assets/images/course/course-1/2.png",
     description: "Learn AI product design, prompt workflows and learner experiences.",
     price: 3999,
-    status: "approved",
+    status: "published",
     tags: ["ai", "product"],
   },
 ];

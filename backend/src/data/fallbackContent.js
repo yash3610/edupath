@@ -11,7 +11,7 @@ export const fallbackCourses = [
     thumbnail: "/assets/images/course/course-1/1.png",
     description: "Build polished React applications with routing, dashboards, state, and production-ready UI.",
     rating: 5,
-    status: "approved",
+    status: "published",
   },
   {
     _id: "665f10000000000000000002",
@@ -25,7 +25,7 @@ export const fallbackCourses = [
     thumbnail: "/assets/images/course/course-1/2.png",
     description: "Learn AI workflows, prompt systems, evaluation, and user-centered product strategy.",
     rating: 5,
-    status: "approved",
+    status: "published",
   },
   {
     _id: "665f10000000000000000003",
@@ -39,7 +39,7 @@ export const fallbackCourses = [
     thumbnail: "/assets/images/course/course-1/4.png",
     description: "Create clean visual systems, reusable components, responsive layouts, and delightful interfaces.",
     rating: 4.8,
-    status: "approved",
+    status: "published",
   },
 ];
 
