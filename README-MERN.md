@@ -49,7 +49,7 @@ Update `backend/.env` if your MongoDB URI is different.
 - `POST /api/orders`
 
 ## Notes
+ 
+ The original template CSS/assets are preserved to keep the UI visually identical and responsive, while jQuery scripts are no longer loaded. React handles routing, mobile menu, sticky header, back-to-top, password toggle, and form submissions.
 
-The HTML pages are converted into real JSX React pages under `frontend/src/pages`. The original template CSS/assets are preserved to keep the UI visually identical and responsive, while jQuery scripts are no longer loaded. React handles routing, mobile menu, sticky header, back-to-top, password toggle, and form submissions.
 
-`faq.html`, `service.html`, `portfolio.html`, and `testimonial.html` in the original source were Vercel 404 dump pages, not real Edupath template pages. They are present as React pages, but they cannot contain Edupath UI content unless real source HTML is provided.

@@ -308,7 +308,16 @@ export const RefundRequest = makeModel("RefundRequest", new Schema({ user: { typ
 export const Review = makeModel("Review", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, rating: Number, comment: String }, baseOptions));
 export const DiscussionQuestion = makeModel("DiscussionQuestion", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, body: String, tags: [String] }, baseOptions));
 export const DiscussionAnswer = makeModel("DiscussionAnswer", new Schema({ question: { type: objectId, ref: "DiscussionQuestion" }, user: { type: objectId, ref: "User" }, body: String, upvotes: [{ type: objectId, ref: "User" }], accepted: { type: Boolean, default: false } }, baseOptions));
-export const CalendarEvent = makeModel("CalendarEvent", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, type: String, startAt: Date, endAt: Date }, baseOptions));
+export const CalendarEvent = makeModel("CalendarEvent", new Schema({
+  user: { type: objectId, ref: "User", required: true },
+  course: { type: objectId, ref: "Course" },
+  title: { type: String, required: true, trim: true },
+  description: String,
+  location: String,
+  type: { type: String, enum: ["study", "live-class", "quiz", "assignment", "workshop", "deadline", "personal"], default: "study" },
+  startAt: { type: Date, required: true },
+  endAt: Date,
+}, baseOptions));
 const liveClassSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },

@@ -263,6 +263,25 @@ export const calendarEvents = asyncHandler(async (req, res) => {
   }
   ok(res, await CalendarEvent.find(query).sort({ startAt: 1 }));
 });
+export const createCalendarEvent = asyncHandler(async (req, res) => {
+  if (!req.body.title?.trim() || !req.body.startAt) throw new ApiError(400, "Title and start date are required");
+  const event = await CalendarEvent.create({ ...req.body, title: req.body.title.trim(), user: userId(req) });
+  created(res, event, "Calendar event created");
+});
+export const updateCalendarEvent = asyncHandler(async (req, res) => {
+  const event = await CalendarEvent.findOneAndUpdate(
+    { _id: req.params.eventId, user: userId(req) },
+    req.body,
+    { new: true, runValidators: true }
+  );
+  if (!event) throw new ApiError(404, "Calendar event not found");
+  ok(res, event, "Calendar event updated");
+});
+export const deleteCalendarEvent = asyncHandler(async (req, res) => {
+  const event = await CalendarEvent.findOneAndDelete({ _id: req.params.eventId, user: userId(req) });
+  if (!event) throw new ApiError(404, "Calendar event not found");
+  ok(res, event, "Calendar event deleted");
+});
 export const createReminder = asyncHandler(async (req, res) => created(res, await Reminder.create({ ...req.body, user: userId(req) })));
 export const updateReminder = asyncHandler(async (req, res) => ok(res, await Reminder.findOneAndUpdate({ _id: req.params.reminderId, user: userId(req) }, req.body, { new: true })));
 
