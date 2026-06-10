@@ -278,10 +278,83 @@ export const readNotification = asyncHandler(async (req, res) => ok(res, await N
 export const readAllNotifications = asyncHandler(async (req, res) => ok(res, await Notification.updateMany({ user: userId(req) }, { read: true })));
 export const deleteNotification = asyncHandler(async (req, res) => ok(res, await Notification.deleteOne({ _id: req.params.notificationId, user: userId(req) })));
 
-export const conversations = asyncHandler(async (req, res) => ok(res, await Conversation.find({ participants: userId(req) }).sort({ updatedAt: -1 })));
-export const conversationMessages = asyncHandler(async (req, res) => ok(res, await Message.find({ conversation: req.params.conversationId }).sort({ createdAt: 1 })));
-export const sendMessage = asyncHandler(async (req, res) => created(res, await Message.create({ ...req.body, sender: userId(req) })));
+export const conversations = asyncHandler(async (req, res) => {
+  const items = await Conversation.find({ participants: userId(req) })
+    .populate("participants", "name email role avatar")
+    .sort({ lastMessageAt: -1, updatedAt: -1 })
+    .lean();
+  const data = await Promise.all(items.map(async (conversation) => ({
+    ...conversation,
+    unreadCount: await Message.countDocuments({
+      conversation: conversation._id,
+      sender: { $ne: userId(req) },
+      readBy: { $ne: userId(req) },
+    }),
+  })));
+  ok(res, data);
+});
+export const messageContacts = asyncHandler(async (req, res) => {
+  let contactIds = [];
+  if (req.user.role === "student") {
+    const courseIds = await Enrollment.find({ student: userId(req), status: { $in: ["active", "completed"] } }).distinct("course");
+    contactIds = await Course.find({ _id: { $in: courseIds }, instructor: { $ne: null } }).distinct("instructor");
+  } else if (req.user.role === "instructor") {
+    const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+    contactIds = await Enrollment.find({ course: { $in: courseIds }, status: { $in: ["active", "completed"] } }).distinct("student");
+  } else {
+    contactIds = await User.find({ _id: { $ne: userId(req) }, status: "active" }).distinct("_id");
+  }
+  ok(res, await User.find({ _id: { $in: contactIds }, status: "active" }).select("name email role avatar").sort({ name: 1 }));
+});
+export const startConversation = asyncHandler(async (req, res) => {
+  const participantId = req.body.participantId;
+  if (!participantId || String(participantId) === String(userId(req))) throw new ApiError(400, "Select a valid contact");
+  const allowedContacts = req.user.role === "admin"
+    ? await User.exists({ _id: participantId, status: "active" })
+    : await allowedMessageContact(req.user, participantId);
+  if (!allowedContacts) throw new ApiError(403, "You cannot message this user");
+
+  let conversation = await Conversation.findOne({ participants: { $all: [userId(req), participantId] }, $expr: { $eq: [{ $size: "$participants" }, 2] } });
+  if (!conversation) conversation = await Conversation.create({ participants: [userId(req), participantId] });
+  ok(res, await conversation.populate("participants", "name email role avatar"), "Conversation ready");
+});
+export const conversationMessages = asyncHandler(async (req, res) => {
+  const conversation = await Conversation.findOne({ _id: req.params.conversationId, participants: userId(req) });
+  if (!conversation) throw new ApiError(404, "Conversation not found");
+  await Message.updateMany({ conversation: conversation._id, sender: { $ne: userId(req) } }, { $addToSet: { readBy: userId(req) } });
+  ok(res, await Message.find({ conversation: conversation._id }).populate("sender", "name role avatar").sort({ createdAt: 1 }));
+});
+export const sendMessage = asyncHandler(async (req, res) => {
+  const conversation = await Conversation.findOne({ _id: req.body.conversation, participants: userId(req) });
+  if (!conversation) throw new ApiError(404, "Conversation not found");
+  if (!req.body.body?.trim() && !req.body.attachmentUrl) throw new ApiError(400, "Message or attachment is required");
+  const message = await Message.create({
+    conversation: conversation._id,
+    sender: userId(req),
+    body: req.body.body?.trim() || "",
+    attachmentUrl: req.body.attachmentUrl,
+    attachmentName: req.body.attachmentName,
+    attachmentType: req.body.attachmentType,
+    readBy: [userId(req)],
+  });
+  conversation.lastMessage = message.body || `Attachment: ${message.attachmentName || "file"}`;
+  conversation.lastMessageAt = new Date();
+  await conversation.save();
+  created(res, await message.populate("sender", "name role avatar"));
+});
 export const uploadAttachment = asyncHandler(async (req, res) => created(res, await uploadBuffer(req.file, "messages")));
+
+async function allowedMessageContact(user, contactId) {
+  if (user.role === "student") {
+    const courseIds = await Enrollment.find({ student: user._id, status: { $in: ["active", "completed"] } }).distinct("course");
+    return Course.exists({ _id: { $in: courseIds }, instructor: contactId });
+  }
+  if (user.role === "instructor") {
+    const courseIds = await Course.find({ instructor: user._id }).distinct("_id");
+    return Enrollment.exists({ course: { $in: courseIds }, student: contactId, status: { $in: ["active", "completed"] } });
+  }
+  return false;
+}
 
 export const myOrders = asyncHandler(async (req, res) => ok(res, await Order.find({ user: userId(req) }).sort({ createdAt: -1 })));
 export const orderDetails = asyncHandler(async (req, res) => ok(res, await Order.findOne({ _id: req.params.orderId, user: userId(req) })));
