@@ -200,7 +200,15 @@ export const watchTime = asyncHandler(async (req, res) => {
   if (!lecture) throw new ApiError(404, "Lecture not found");
   ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $inc: { watchTimeSeconds: Number(req.body.seconds || 0) }, $set: { course: lecture.course } }, { new: true, upsert: true }), "Watch time saved");
 });
-export const courseResources = asyncHandler(async (req, res) => ok(res, await Lecture.find({ course: req.params.courseId }).select("resources title")));
+export const courseResources = asyncHandler(async (req, res) => {
+  const enrolled = await Enrollment.exists({
+    student: userId(req),
+    course: req.params.courseId,
+    status: { $in: ["active", "completed"] },
+  });
+  if (!enrolled) throw new ApiError(403, "Enroll in this course to access its resources");
+  ok(res, await Lecture.find({ course: req.params.courseId }).select("resources title updatedAt").sort({ order: 1 }));
+});
 
 export const getNotes = asyncHandler(async (req, res) => ok(res, await Note.find({ student: userId(req) }).sort({ pinned: -1, updatedAt: -1 })));
 export const getCourseNotes = asyncHandler(async (req, res) => ok(res, await Note.find({ student: userId(req), course: req.params.courseId })));
@@ -419,9 +427,37 @@ export const ml = (field) => asyncHandler(async (req, res) => {
   ok(res, field ? data[field] : data);
 });
 
-export const communityQuestions = asyncHandler(async (_req, res) => ok(res, await DiscussionQuestion.find({}).sort({ createdAt: -1 })));
-export const createQuestion = asyncHandler(async (req, res) => created(res, await DiscussionQuestion.create({ ...req.body, user: userId(req) })));
-export const questionDetails = asyncHandler(async (req, res) => ok(res, { question: await DiscussionQuestion.findById(req.params.questionId), answers: await DiscussionAnswer.find({ question: req.params.questionId }) }));
+export const communityQuestions = asyncHandler(async (_req, res) => {
+  const questions = await DiscussionQuestion.find({})
+    .populate("user", "name avatar role")
+    .populate("course", "title")
+    .sort({ createdAt: -1 })
+    .lean();
+  const counts = await DiscussionAnswer.aggregate([
+    { $match: { question: { $in: questions.map((question) => question._id) } } },
+    { $group: { _id: "$question", count: { $sum: 1 } } },
+  ]);
+  const answerCounts = new Map(counts.map((item) => [String(item._id), item.count]));
+  ok(res, questions.map((question) => ({ ...question, answerCount: answerCounts.get(String(question._id)) || 0 })));
+});
+export const createQuestion = asyncHandler(async (req, res) => {
+  if (!req.body.title?.trim() || !req.body.body?.trim()) throw new ApiError(400, "Title and description are required");
+  const question = await DiscussionQuestion.create({
+    user: userId(req),
+    course: req.body.course || undefined,
+    title: req.body.title.trim(),
+    body: req.body.body.trim(),
+    tags: (req.body.tags || []).map((tag) => String(tag).trim()).filter(Boolean).slice(0, 5),
+  });
+  created(res, await question.populate([
+    { path: "user", select: "name avatar role" },
+    { path: "course", select: "title" },
+  ]));
+});
+export const questionDetails = asyncHandler(async (req, res) => ok(res, {
+  question: await DiscussionQuestion.findById(req.params.questionId).populate("user", "name avatar role").populate("course", "title"),
+  answers: await DiscussionAnswer.find({ question: req.params.questionId }).populate("user", "name avatar role").sort({ accepted: -1, createdAt: 1 }),
+}));
 export const createAnswer = asyncHandler(async (req, res) => created(res, await DiscussionAnswer.create({ question: req.params.questionId, user: userId(req), body: req.body.body })));
 export const upvoteAnswer = asyncHandler(async (req, res) => ok(res, await DiscussionAnswer.findByIdAndUpdate(req.params.answerId, { $addToSet: { upvotes: userId(req) } }, { new: true })));
 export const acceptAnswer = asyncHandler(async (req, res) => ok(res, await DiscussionAnswer.findByIdAndUpdate(req.params.answerId, { accepted: true }, { new: true })));
