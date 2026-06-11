@@ -11,7 +11,7 @@ export const protect = asyncHandler(async (req, _res, next) => {
 
   const payload = jwt.verify(token, process.env.JWT_SECRET);
   const user = await User.findById(payload.sub).select("-passwordHash");
-  if (!user || user.status === "blocked") throw new ApiError(401, "Invalid or blocked account");
+  if (!user || user.status !== "active") throw new ApiError(401, "Invalid or inactive account");
 
   req.user = user;
   next();

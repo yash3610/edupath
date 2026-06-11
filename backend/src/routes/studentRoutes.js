@@ -17,7 +17,7 @@ import validate from "../middleware/validate.js";
 import { liveClassIdParam } from "../validators/liveClassValidators.js";
 
 const router = express.Router();
-router.use(protect, authorize("student", "admin"));
+router.use(protect, authorize("student"));
 
 router.get("/dashboard-stats", dashboardStats);
 router.get("/continue-learning", continueLearning);

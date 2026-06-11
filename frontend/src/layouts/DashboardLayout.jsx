@@ -57,7 +57,6 @@ const navGroups = [
 const notificationIcons = { course: "BookOpen", quiz: "BadgeHelp", assignment: "UploadCloud", certificate: "Award", payment: "ReceiptText" };
 
 export default function DashboardLayout() {
-  const [dark, setDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -127,7 +126,7 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className={`w-full overflow-x-hidden ${dark ? "dark" : ""}`}>
+    <div className="w-full overflow-x-hidden">
       <div className="min-h-screen w-full overflow-x-hidden bg-[#f7f8fc] text-slate-900 dark:bg-slate-950 dark:text-white">
         <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col border-r border-slate-200/80 bg-white px-4 py-5 dark:border-white/10 dark:bg-slate-900 xl:flex">
           <SidebarContent onNavigate={() => {}} />
@@ -218,9 +217,6 @@ export default function DashboardLayout() {
                     </div>
                   )}
                 </div>
-                <button className="hidden rounded-xl border border-slate-200 bg-white p-2.5 dark:border-white/10 dark:bg-white/10 min-[390px]:block" onClick={() => setDark((value) => !value)} aria-label="Toggle theme">
-                  <Icon name={dark ? "Sun" : "Moon"} className="h-5 w-5" />
-                </button>
                 <div className="relative">
                   <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 min-[390px]:pr-3 dark:border-white/10 dark:bg-white/10" onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }}>
                     <img src={displayStudent.avatar} alt={displayStudent.name} className="h-9 w-9 rounded-lg object-cover" />

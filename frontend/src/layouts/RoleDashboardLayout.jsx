@@ -41,7 +41,6 @@ const notificationIcons = { course: "BookOpen", quiz: "BadgeHelp", assignment: "
 
 export default function RoleDashboardLayout({ role }) {
   const config = configs[role];
-  const [dark, setDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -101,7 +100,7 @@ export default function RoleDashboardLayout({ role }) {
   }
 
   return (
-    <div className={`role-dashboard role-dashboard--${role} w-full overflow-x-hidden ${dark ? "dark" : ""}`}>
+    <div className={`role-dashboard role-dashboard--${role} w-full overflow-x-hidden`}>
       <div className="role-dashboard-shell min-h-screen w-full overflow-x-hidden text-slate-900 dark:text-white">
         <aside className="role-dashboard-sidebar fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col px-4 py-5 xl:flex">
           <RoleSidebar config={config} pathFor={pathFor} onNavigate={() => {}} />
@@ -153,7 +152,6 @@ export default function RoleDashboardLayout({ role }) {
                     </div>
                   )}
                 </div>
-                <button className="role-dashboard-icon-button hidden rounded-xl p-2.5 min-[390px]:block" onClick={() => setDark((value) => !value)}><Icon name={dark ? "Sun" : "Moon"} /></button>
                 <div className="relative">
                   <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="role-dashboard-profile flex items-center gap-2 rounded-xl p-1.5 min-[390px]:pr-3">
                     <span className="role-dashboard-avatar flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold text-white">{firstName[0]}</span>

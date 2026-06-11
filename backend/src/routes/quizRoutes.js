@@ -14,12 +14,12 @@ import {
   startQuizAttempt,
   submitAttempt,
 } from "../controllers/quizController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { authorize, protect } from "../middleware/authMiddleware.js";
 import validate from "../middleware/validate.js";
 import { attemptIdParam, quizIdParam, saveAnswerValidators } from "../validators/quizValidators.js";
 
 const router = express.Router();
-router.use(protect);
+router.use(protect, authorize("student"));
 
 router.get("/student", getStudentQuizzes);
 router.get("/student/courses", quizCourses);

@@ -94,8 +94,8 @@ export default function AppRoutes() {
         <Route path="/shop-single" element={<ShopSinglePage />} />
         <Route path="/shop/:slug" element={<ShopSinglePage />} />
         <Route path="/cart" element={<CartPage />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
-        <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+        <Route path="/wishlist" element={<ProtectedRoute allowedRoles={["student"]}><WishlistPage /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={["student"]}><CheckoutPage /></ProtectedRoute>} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/team-details" element={<TeamDetailsPage />} />
         <Route path="/team/:slug" element={<TeamDetailsPage />} />

@@ -1,9 +1,9 @@
 import express from "express";
 import { aiHistory, askDoubt, getAIRecommendedCourses, recommendAICourses, saveAnswerToNotes, summaries, summarizeLecture, summarizeResource } from "../controllers/lmsController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { authorize, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
-router.use(protect);
+router.use(protect, authorize("student"));
 
 router.post("/ask-doubt", askDoubt);
 router.get("/chat-history", aiHistory);

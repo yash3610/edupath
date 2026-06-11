@@ -54,6 +54,17 @@ const ok = (res, data, message = "OK") => res.json({ success: true, message, dat
 const created = (res, data, message = "Created") => res.status(201).json({ success: true, message, data });
 const userId = (req) => req.user?._id;
 const toList = (value) => Array.isArray(value) ? value : String(value || "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+
+async function requireStudentEnrollment(req, courseId) {
+  const enrollment = await Enrollment.findOne({
+    student: userId(req),
+    course: courseId,
+    status: { $in: ["active", "completed"] },
+  });
+  if (!enrollment) throw new ApiError(403, "Enrollment required");
+  return enrollment;
+}
+
 const normalizeCoursePayload = (body) => {
   const payload = { ...body };
   if (payload.status) payload.status = normalizeCourseStatus(payload.status);
@@ -173,6 +184,7 @@ export const lectureDetails = asyncHandler(async (req, res) => {
 export const patchLectureProgress = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
   if (!lecture) throw new ApiError(404, "Lecture not found");
+  await requireStudentEnrollment(req, lecture.course);
   const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { ...req.body, course: lecture.course } }, { new: true, upsert: true });
   const totalLectures = await Lecture.countDocuments({ course: lecture.course, published: { $ne: false } });
   const completedLectures = await LectureProgress.countDocuments({ student: userId(req), course: lecture.course, completed: true });
@@ -182,6 +194,7 @@ export const patchLectureProgress = asyncHandler(async (req, res) => {
 export const completeLecture = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
   if (!lecture) throw new ApiError(404, "Lecture not found");
+  await requireStudentEnrollment(req, lecture.course);
   const progress = await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { completed: true, course: lecture.course } }, { new: true, upsert: true });
   const totalLectures = await Lecture.countDocuments({ course: lecture.course, published: { $ne: false } });
   const completedLectures = await LectureProgress.countDocuments({ student: userId(req), course: lecture.course, completed: true });
@@ -193,11 +206,13 @@ export const completeLecture = asyncHandler(async (req, res) => {
 export const bookmarkLecture = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
   if (!lecture) throw new ApiError(404, "Lecture not found");
+  await requireStudentEnrollment(req, lecture.course);
   ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { bookmarked: true, course: lecture.course } }, { new: true, upsert: true }), "Bookmarked");
 });
 export const watchTime = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
   if (!lecture) throw new ApiError(404, "Lecture not found");
+  await requireStudentEnrollment(req, lecture.course);
   ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $inc: { watchTimeSeconds: Number(req.body.seconds || 0) }, $set: { course: lecture.course } }, { new: true, upsert: true }), "Watch time saved");
 });
 export const courseResources = asyncHandler(async (req, res) => {
@@ -236,19 +251,46 @@ export const submitQuiz = asyncHandler(async (req, res) => {
 export const quizResult = asyncHandler(async (req, res) => ok(res, await QuizAttempt.findOne({ quiz: req.params.quizId, student: userId(req) }).sort({ createdAt: -1 })));
 export const retakeQuiz = asyncHandler(async (_req, res) => ok(res, { retakeAllowed: true }, "Retake started"));
 
-export const studentAssignments = asyncHandler(async (_req, res) => ok(res, await Assignment.find({}).sort({ dueDate: 1 })));
-export const assignmentDetails = asyncHandler(async (req, res) => ok(res, await Assignment.findById(req.params.assignmentId)));
+export const studentAssignments = asyncHandler(async (req, res) => {
+  const courseIds = await Enrollment.find({
+    student: userId(req),
+    status: { $in: ["active", "completed"] },
+  }).distinct("course");
+  ok(res, await Assignment.find({ course: { $in: courseIds } }).sort({ dueDate: 1 }));
+});
+export const assignmentDetails = asyncHandler(async (req, res) => {
+  const assignment = await Assignment.findById(req.params.assignmentId);
+  if (!assignment) throw new ApiError(404, "Assignment not found");
+  await requireStudentEnrollment(req, assignment.course);
+  ok(res, assignment);
+});
 export const submitAssignment = asyncHandler(async (req, res) => {
+  const assignment = await Assignment.findById(req.params.assignmentId);
+  if (!assignment) throw new ApiError(404, "Assignment not found");
+  await requireStudentEnrollment(req, assignment.course);
   const upload = await uploadBuffer(req.file, "assignments");
-  const submission = await AssignmentSubmission.create({ assignment: req.params.assignmentId, student: userId(req), fileUrl: upload?.url, status: "submitted" });
+  const submission = await AssignmentSubmission.findOneAndUpdate(
+    { assignment: assignment._id, student: userId(req) },
+    { fileUrl: upload?.url, status: "submitted" },
+    { new: true, upsert: true }
+  );
   created(res, submission, "Assignment submitted");
 });
-export const assignmentSubmission = asyncHandler(async (req, res) => ok(res, await AssignmentSubmission.findOne({ assignment: req.params.assignmentId, student: userId(req) })));
+export const assignmentSubmission = asyncHandler(async (req, res) => {
+  const assignment = await Assignment.findById(req.params.assignmentId);
+  if (!assignment) throw new ApiError(404, "Assignment not found");
+  await requireStudentEnrollment(req, assignment.course);
+  ok(res, await AssignmentSubmission.findOne({ assignment: assignment._id, student: userId(req) }));
+});
 
 export const myCertificates = asyncHandler(async (req, res) => ok(res, await Certificate.find({ student: userId(req) }).populate("course")));
-export const certificateDetails = asyncHandler(async (req, res) => ok(res, await Certificate.findById(req.params.certificateId).populate("course student")));
+export const certificateDetails = asyncHandler(async (req, res) => {
+  const certificate = await Certificate.findOne({ _id: req.params.certificateId, student: userId(req) }).populate("course student");
+  if (!certificate) throw new ApiError(404, "Certificate not found");
+  ok(res, certificate);
+});
 export const downloadCertificate = asyncHandler(async (req, res) => {
-  const cert = await Certificate.findById(req.params.certificateId).populate("course student");
+  const cert = await Certificate.findOne({ _id: req.params.certificateId, student: userId(req) }).populate("course student");
   if (!cert) throw new ApiError(404, "Certificate not found");
   const pdf = await generateCertificatePdf({ studentName: cert.student?.name, courseTitle: cert.course?.title, certificateCode: cert.certificateCode });
   res.setHeader("Content-Type", "application/pdf");
@@ -385,8 +427,16 @@ async function allowedMessageContact(user, contactId) {
 
 export const myOrders = asyncHandler(async (req, res) => ok(res, await Order.find({ user: userId(req) }).sort({ createdAt: -1 })));
 export const orderDetails = asyncHandler(async (req, res) => ok(res, await Order.findOne({ _id: req.params.orderId, user: userId(req) })));
-export const orderInvoice = asyncHandler(async (req, res) => ok(res, { invoiceUrl: `/api/orders/${req.params.orderId}/invoice.pdf` }));
-export const orderRefundRequest = asyncHandler(async (req, res) => created(res, await RefundRequest.create({ user: userId(req), order: req.params.orderId, reason: req.body.reason })));
+export const orderInvoice = asyncHandler(async (req, res) => {
+  const order = await Order.findOne({ _id: req.params.orderId, user: userId(req) });
+  if (!order) throw new ApiError(404, "Order not found");
+  ok(res, { invoiceUrl: `/api/orders/${order._id}/invoice.pdf` });
+});
+export const orderRefundRequest = asyncHandler(async (req, res) => {
+  const order = await Order.findOne({ _id: req.params.orderId, user: userId(req) });
+  if (!order) throw new ApiError(404, "Order not found");
+  created(res, await RefundRequest.create({ user: userId(req), order: order._id, reason: req.body.reason }));
+});
 
 const profileModelFor = (role) => role === "instructor" ? InstructorProfile : StudentProfile;
 export const profileMe = asyncHandler(async (req, res) => ok(res, { user: req.user, profile: await profileModelFor(req.user?.role).findOne({ user: userId(req) }) }));
@@ -460,7 +510,16 @@ export const questionDetails = asyncHandler(async (req, res) => ok(res, {
 }));
 export const createAnswer = asyncHandler(async (req, res) => created(res, await DiscussionAnswer.create({ question: req.params.questionId, user: userId(req), body: req.body.body })));
 export const upvoteAnswer = asyncHandler(async (req, res) => ok(res, await DiscussionAnswer.findByIdAndUpdate(req.params.answerId, { $addToSet: { upvotes: userId(req) } }, { new: true })));
-export const acceptAnswer = asyncHandler(async (req, res) => ok(res, await DiscussionAnswer.findByIdAndUpdate(req.params.answerId, { accepted: true }, { new: true })));
+export const acceptAnswer = asyncHandler(async (req, res) => {
+  const answer = await DiscussionAnswer.findById(req.params.answerId);
+  if (!answer) throw new ApiError(404, "Answer not found");
+  const question = await DiscussionQuestion.findOne({ _id: answer.question, user: userId(req) });
+  if (!question && req.user.role !== "admin") throw new ApiError(403, "Only the question author can accept an answer");
+  await DiscussionAnswer.updateMany({ question: answer.question }, { accepted: false });
+  answer.accepted = true;
+  await answer.save();
+  ok(res, answer);
+});
 
 export const createPaymentOrder = asyncHandler(async (req, res) => {
   const requestedIds = (req.body.items || []).map((item) => item.courseId).filter(Boolean);
@@ -555,7 +614,11 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   ok(res, { order, payment, enrolledCourses: courseIds }, "Payment verified and enrollment completed");
 });
 export const paymentHistory = asyncHandler(async (req, res) => ok(res, await Payment.find({ user: userId(req) }).sort({ createdAt: -1 })));
-export const paymentRefundRequest = asyncHandler(async (req, res) => created(res, await RefundRequest.create({ user: userId(req), payment: req.body.paymentId, reason: req.body.reason })));
+export const paymentRefundRequest = asyncHandler(async (req, res) => {
+  const payment = await Payment.findOne({ _id: req.body.paymentId, user: userId(req) });
+  if (!payment) throw new ApiError(404, "Payment not found");
+  created(res, await RefundRequest.create({ user: userId(req), payment: payment._id, reason: req.body.reason }));
+});
 
 export const freeEnrollment = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, status: { $in: PUBLIC_COURSE_STATUSES }, pricingType: "free" });

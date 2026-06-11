@@ -47,7 +47,7 @@ import { createLiveClassValidators, liveClassIdParam, updateLiveClassValidators 
 import { createQuizValidators, quizIdParam } from "../validators/quizValidators.js";
 
 const router = express.Router();
-router.use(protect, authorize("instructor", "admin"));
+router.use(protect, authorize("instructor"));
 
 router.get("/dashboard", instructorDashboard);
 router.get("/stats", instructorStats);

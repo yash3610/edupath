@@ -3,7 +3,7 @@ import { createPaymentOrder, paymentHistory, paymentRefundRequest, verifyPayment
 import { authorize, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
-router.use(protect, authorize("student", "admin"));
+router.use(protect, authorize("student"));
 
 router.post("/create-order", createPaymentOrder);
 router.post("/verify", verifyPayment);

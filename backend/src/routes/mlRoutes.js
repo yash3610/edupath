@@ -1,9 +1,9 @@
 import express from "express";
 import { ml } from "../controllers/lmsController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { authorize, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
-router.use(protect);
+router.use(protect, authorize("student"));
 
 router.get("/learning-pattern", ml("learningPattern"));
 router.get("/engagement-score", ml("engagementScore"));
