@@ -438,23 +438,53 @@ export const orderRefundRequest = asyncHandler(async (req, res) => {
   created(res, await RefundRequest.create({ user: userId(req), order: order._id, reason: req.body.reason }));
 });
 
-const profileModelFor = (role) => role === "instructor" ? InstructorProfile : StudentProfile;
-export const profileMe = asyncHandler(async (req, res) => ok(res, { user: req.user, profile: await profileModelFor(req.user?.role).findOne({ user: userId(req) }) }));
-export const updateProfile = asyncHandler(async (req, res) => ok(res, await profileModelFor(req.user?.role).findOneAndUpdate({ user: userId(req) }, req.body, { new: true, upsert: true })));
+const profileModelFor = (role) => role === "instructor" ? InstructorProfile : role === "student" ? StudentProfile : null;
+export const profileMe = asyncHandler(async (req, res) => {
+  const ProfileModel = profileModelFor(req.user.role);
+  const profile = ProfileModel ? await ProfileModel.findOne({ user: userId(req) }) : null;
+  ok(res, { user: req.user, profile });
+});
+export const updateProfile = asyncHandler(async (req, res) => {
+  const commonFields = ["name", "phone", "bio"];
+  const userUpdate = Object.fromEntries(commonFields.filter((field) => req.body[field] !== undefined).map((field) => [field, req.body[field]]));
+  const user = await User.findByIdAndUpdate(userId(req), userUpdate, { new: true, runValidators: true }).select("-passwordHash");
+
+  const ProfileModel = profileModelFor(req.user.role);
+  let profile = null;
+  if (ProfileModel) {
+    const roleFields = req.user.role === "instructor"
+      ? ["headline", "expertise"]
+      : ["skills", "learningGoalMinutes"];
+    const profileUpdate = Object.fromEntries(roleFields.filter((field) => req.body[field] !== undefined).map((field) => [field, req.body[field]]));
+    profile = await ProfileModel.findOneAndUpdate({ user: userId(req) }, profileUpdate, { new: true, upsert: true, runValidators: true });
+  }
+  ok(res, { user, profile }, "Account updated");
+});
 export const updateAvatar = asyncHandler(async (req, res) => {
+  if (!req.file) throw new ApiError(400, "Select an image to upload");
   const avatar = await uploadBuffer(req.file, "avatars");
-  ok(res, await StudentProfile.findOneAndUpdate({ user: userId(req) }, { avatar: avatar?.url }, { new: true, upsert: true }));
+  const user = await User.findByIdAndUpdate(userId(req), { avatar: avatar?.url }, { new: true }).select("-passwordHash");
+  ok(res, { user, avatar: avatar?.url }, "Profile photo updated");
 });
 export const changePassword = asyncHandler(async (req, res) => {
   const user = await User.findById(userId(req));
   if (!(await user.matchPassword(req.body.currentPassword || ""))) throw new ApiError(400, "Current password is incorrect");
+  if (String(req.body.newPassword || "").length < 8) throw new ApiError(400, "New password must be at least 8 characters");
   await user.setPassword(req.body.newPassword);
   await user.save();
   ok(res, null, "Password changed");
 });
 
-export const getSettings = asyncHandler(async (req, res) => ok(res, (await StudentProfile.findOne({ user: userId(req) }))?.preferences || {}));
-export const patchSettings = asyncHandler(async (req, res) => ok(res, await StudentProfile.findOneAndUpdate({ user: userId(req) }, { $set: { preferences: req.body } }, { new: true, upsert: true })));
+export const getSettings = asyncHandler(async (req, res) => {
+  const user = await User.findById(userId(req)).select("preferences");
+  ok(res, user?.preferences || {});
+});
+export const patchSettings = asyncHandler(async (req, res) => {
+  const user = await User.findById(userId(req));
+  user.preferences = { ...(user.preferences || {}), ...req.body };
+  await user.save();
+  ok(res, user.preferences, "Preferences updated");
+});
 export const deleteAccount = asyncHandler(async (req, res) => ok(res, await User.findByIdAndUpdate(userId(req), { status: "blocked" }), "Account scheduled for deletion"));
 
 export const askDoubt = asyncHandler(async (req, res) => {

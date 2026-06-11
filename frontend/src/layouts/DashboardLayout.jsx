@@ -49,8 +49,7 @@ const navGroups = [
     items: [
       ["Achievements", "/dashboard/achievements", "Trophy"],
       ["Certificates", "/dashboard/certificates", "Award"],
-      ["Profile", "/dashboard/profile", "UserRound"],
-      ["Settings", "/dashboard/settings", "Settings"],
+      ["Account", "/dashboard/account", "UserRound"],
     ],
   },
 ];
@@ -66,7 +65,14 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const toast = useToast();
   const location = useLocation();
-  const displayStudent = useMemo(() => ({ ...student, name: user?.name || student.name, email: user?.email || student.email }), [user]);
+  const displayStudent = useMemo(() => ({
+    ...student,
+    name: user?.name || student.name,
+    email: user?.email || student.email,
+    avatar: user?.avatar || student.avatar,
+    phone: user?.phone || student.phone,
+    bio: user?.bio || student.bio,
+  }), [user]);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -226,6 +232,9 @@ export default function DashboardLayout() {
                     <div className="absolute right-0 top-14 w-56 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-slate-900">
                       <p className="font-black">{displayStudent.name}</p>
                       <p className="break-all text-xs text-slate-500">{displayStudent.email}</p>
+                      <NavLink to="/dashboard/account" className="mt-3 block w-full rounded-xl bg-orange-50 px-4 py-2.5 text-center text-sm font-black text-[#ff723a]">
+                        Manage account
+                      </NavLink>
                       <button className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white dark:bg-white dark:text-slate-950" onClick={() => { logout(); toast.info("You have been logged out."); }}>
                         Logout
                       </button>

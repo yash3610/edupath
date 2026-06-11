@@ -19,7 +19,6 @@ const config = {
   orders: { eyebrow: "Orders", title: "Invoices and transactions", orders },
   ai: { eyebrow: "AI Assistant", title: "Smart learning tools", ai: aiFeatures },
   analytics: { eyebrow: "Analytics", title: "Performance insights", analytics: true },
-  settings: { eyebrow: "Settings", title: "Preferences and security", settings: true },
 };
 
 export default function FeaturePage({ type }) {
@@ -180,18 +179,6 @@ export default function FeaturePage({ type }) {
         </div>
       )}
 
-      {page.settings && (
-        <MotionCard>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {["Email notifications", "Dark mode preference", "Two-step verification", "Download invoices", "Community mentions", "AI recommendations"].map((setting) => (
-              <label key={setting} className="flex items-center justify-between gap-4 rounded-xl bg-slate-100 p-4 text-sm font-bold dark:bg-white/10">
-                <span>{setting}</span>
-                <input type="checkbox" defaultChecked className="h-5 w-5 accent-[#ff6b35]" />
-              </label>
-            ))}
-          </div>
-        </MotionCard>
-      )}
     </div>
   );
 }

@@ -20,7 +20,6 @@ const liveConfig = {
   reviews: { endpoint: ({ role }) => role === "admin" ? "/api/admin/reviews" : "/api/instructor/reviews", columns: ["Student", "Course", "Rating", "Comment"], fields: ["user.name", "course.title", "rating", "comment"], remove: (item, role) => role === "admin" ? `/api/admin/reviews/${item._id}` : null },
   moderation: { endpoint: "/api/admin/community", columns: ["Discussion", "Author", "Course", "Created"], fields: ["title", "user.name", "course.title", "createdAt"], remove: (item) => `/api/admin/community/${item._id}` },
   reports: { endpoint: "/api/admin/reports", objectRows: true },
-  settings: { endpoint: "/api/settings", settings: true, create: "/api/settings", method: "PATCH", form: [["emailNotifications", "Email notifications"], ["communityMentions", "Community mentions"], ["theme", "Theme", "select", ["system", "light", "dark"]]] },
   builder: { endpoint: "/api/instructor/my-courses", columns: ["Course", "ID", "Status", "Updated"], fields: ["title", "_id", "status", "updatedAt"], moduleBuilder: true },
   studentsProgress: { endpoint: "/api/instructor/students-progress", columns: ["Student", "Course", "Progress", "Status"], fields: ["student.name", "course.title", "progress", "status"] },
   liveClasses: { endpoint: "/api/instructor/live-classes", columns: ["Class", "Course", "Starts", "Status"], fields: ["title", "course.title", "startAt", "status"], create: "/api/instructor/live-classes", edit: (item) => `/api/instructor/live-classes/${item._id}`, form: [["title", "Class title"], ["course", "Course ID"], ["meetingUrl", "Meeting URL"], ["startAt", "Start time", "datetime-local"], ["endAt", "End time", "datetime-local"], ["status", "Status", "select", ["scheduled", "live", "completed", "cancelled"]]], remove: (item) => `/api/instructor/live-classes/${item._id}` },
@@ -29,7 +28,6 @@ const liveConfig = {
   payouts: { endpoint: "/api/instructor/payouts", columns: ["Reference", "Period", "Amount", "Status"], fields: ["reference", "period", "amount", "status"] },
   analytics: { endpoint: "/api/instructor/student-engagement", columns: ["Course ID", "Watch time", "Completed lectures"], fields: ["_id", "watchTimeSeconds", "completedLectures"] },
   messages: { endpoint: "/api/messages/conversations", columns: ["Conversation", "Last message", "Updated"], custom: (item) => [item._id, item.lastMessage, formatValue(item.updatedAt)] },
-  profile: { endpoint: "/api/profile/me", profile: true, create: "/api/profile/me", form: [["headline", "Headline"], ["bio", "Bio"], ["expertise", "Expertise (comma separated)"]] },
 };
 
 export default function RoleManagementPage({ type }) {

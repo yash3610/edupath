@@ -57,7 +57,7 @@ const InstructorMessagesPage = React.lazy(() => import("../pages/dashboard/Instr
 const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
 const MessagesPage = React.lazy(() => import("../pages/dashboard/MessagesPage.jsx"));
 const MyCoursesPage = React.lazy(() => import("../pages/dashboard/MyCoursesPage.jsx"));
-const ProfilePage = React.lazy(() => import("../pages/dashboard/ProfilePage.jsx"));
+const AccountPage = React.lazy(() => import("../pages/dashboard/AccountPage.jsx"));
 const QuizAttemptPage = React.lazy(() => import("../pages/dashboard/QuizAttemptPage.jsx"));
 const QuizHistoryPage = React.lazy(() => import("../pages/dashboard/QuizHistoryPage.jsx"));
 const QuizInstructionsPage = React.lazy(() => import("../pages/dashboard/QuizInstructionsPage.jsx"));
@@ -125,7 +125,8 @@ export default function AppRoutes() {
         <Route path="quizzes/attempt/:attemptId" element={<QuizAttemptPage />} />
         <Route path="quizzes/result/:attemptId" element={<QuizResultPage />} />
         <Route path="quizzes/history/:quizId" element={<QuizHistoryPage />} />
-        <Route path="profile" element={<ProfilePage />} />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="profile" element={<Navigate to="/dashboard/account" replace />} />
         <Route path="paths" element={<FeaturePage type="paths" />} />
         <Route path="certificates" element={<FeaturePage type="certificates" />} />
         <Route path="achievements" element={<FeaturePage type="achievements" />} />
@@ -144,7 +145,7 @@ export default function AppRoutes() {
         <Route path="ai-notes" element={<AINotesPage />} />
         <Route path="ai-recommendations" element={<AIRecommendationsPage />} />
         <Route path="analytics" element={<FeaturePage type="analytics" />} />
-        <Route path="settings" element={<FeaturePage type="settings" />} />
+        <Route path="settings" element={<Navigate to="/dashboard/account" replace />} />
       </Route>
 
       <Route path="/dashboard/admin/quizzes" element={<Navigate to="/admin/dashboard/quizzes" replace />} />
@@ -175,7 +176,8 @@ export default function AppRoutes() {
         <Route path="reviews" element={<RoleManagementPage type="reviews" />} />
         <Route path="moderation" element={<RoleManagementPage type="moderation" />} />
         <Route path="reports" element={<RoleManagementPage type="reports" />} />
-        <Route path="settings" element={<RoleManagementPage type="settings" />} />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="settings" element={<Navigate to="/admin/dashboard/account" replace />} />
       </Route>
 
       <Route
@@ -203,8 +205,9 @@ export default function AppRoutes() {
         <Route path="payouts" element={<RoleManagementPage type="payouts" />} />
         <Route path="analytics" element={<RoleManagementPage type="analytics" />} />
         <Route path="messages" element={<InstructorMessagesPage />} />
-        <Route path="profile" element={<RoleManagementPage type="profile" />} />
-        <Route path="settings" element={<RoleManagementPage type="settings" />} />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="profile" element={<Navigate to="/instructor/dashboard/account" replace />} />
+        <Route path="settings" element={<Navigate to="/instructor/dashboard/account" replace />} />
       </Route>
 
       <Route path="/index" element={<Navigate to="/" replace />} />

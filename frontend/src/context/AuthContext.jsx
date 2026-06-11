@@ -90,6 +90,14 @@ export function AuthProvider({ children }) {
         throw error;
       }
     },
+    updateUser: (user) => {
+      setSession((current) => {
+        if (!current) return current;
+        const nextSession = { ...current, user: { ...current.user, ...user } };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
+        return nextSession;
+      });
+    },
     logout: () => {
       sessionVersion.current += 1;
       setSession(null);

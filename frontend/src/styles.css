@@ -66,6 +66,25 @@ body.dashboard-active a:active {
   box-shadow: none !important;
 }
 
+.account-input {
+  width: 100%;
+  margin-top: 0.5rem;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  background: #fff !important;
+  padding: 0.8rem 0.95rem !important;
+  color: #1f1c35 !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.account-input:focus {
+  border-color: #ff723a !important;
+  box-shadow: 0 0 0 3px rgba(255, 114, 58, 0.1) !important;
+}
+
 .dashboard-sidebar-scroll {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;

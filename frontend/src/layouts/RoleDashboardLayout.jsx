@@ -18,7 +18,8 @@ const configs = {
       { label: "Live Classes", icon: "Video", items: [["Manage Live Classes", "live-classes", "Radio"]] },
       { label: "Quizzes", icon: "BadgeHelp", items: [["Manage Quizzes", "quizzes", "ListChecks"]] },
       { label: "Payments & Orders", icon: "CreditCard", items: [["Orders", "orders", "ReceiptText"], ["Payments", "payments", "CreditCard"], ["Refunds", "refunds", "RefreshCcw"], ["Coupons", "coupons", "Megaphone"]] },
-      { label: "Platform", icon: "Settings", items: [["Reviews", "reviews", "Star"], ["Community", "moderation", "ShieldCheck"], ["Reports", "reports", "ChartNoAxesCombined"], ["Settings", "settings", "Settings"]] },
+      { label: "Platform", icon: "Settings", items: [["Reviews", "reviews", "Star"], ["Community", "moderation", "ShieldCheck"], ["Reports", "reports", "ChartNoAxesCombined"]] },
+      { label: "Account", segment: "account", icon: "UserRound" },
     ],
   },
   instructor: {
@@ -32,7 +33,7 @@ const configs = {
       { label: "Live Classes", icon: "Video", items: [["Manage Classes", "live-classes", "ListChecks"], ["Schedule Class", "live-classes/create", "Plus"]] },
       { label: "Teaching", icon: "GraduationCap", items: [["Manage Quizzes", "quizzes", "BadgeHelp"], ["Create Quiz", "quizzes/new", "Plus"], ["Assignments", "assignments", "FileCheck2"], ["Doubts / Q&A", "doubts", "MessagesSquare"], ["Reviews", "reviews", "Star"]] },
       { label: "Payments", icon: "WalletCards", items: [["Earnings", "earnings", "WalletCards"], ["Payouts", "payouts", "CreditCard"]] },
-      { label: "Account", icon: "UserRound", items: [["Messages", "messages", "MessageCircle"], ["Profile", "profile", "UserRound"], ["Settings", "settings", "Settings"]] },
+      { label: "Account", icon: "UserRound", items: [["Messages", "messages", "MessageCircle"], ["Account Settings", "account", "UserRound"]] },
     ],
   },
 };
@@ -154,7 +155,9 @@ export default function RoleDashboardLayout({ role }) {
                 </div>
                 <div className="relative">
                   <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="role-dashboard-profile flex items-center gap-2 rounded-xl p-1.5 min-[390px]:pr-3">
-                    <span className="role-dashboard-avatar flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold text-white">{firstName[0]}</span>
+                    <span className="role-dashboard-avatar flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg text-sm font-extrabold text-white">
+                      {user?.avatar ? <img src={user.avatar} alt={user.name || firstName} className="h-full w-full object-cover" /> : firstName[0]}
+                    </span>
                     <span className="hidden text-sm font-extrabold sm:block">{firstName}</span>
                   </button>
                   {profileOpen && (
@@ -162,6 +165,7 @@ export default function RoleDashboardLayout({ role }) {
                       <p className="font-extrabold">{user?.name || firstName}</p>
                       <p className="break-all text-xs text-slate-500">{user?.email}</p>
                       <p className="mt-2 text-[10px] font-extrabold uppercase tracking-widest text-[#ff723a]">{role}</p>
+                      <NavLink to={`${config.homePath}/account`} className="mt-3 block w-full rounded-xl bg-[#fff1e8] px-4 py-2.5 text-center text-sm font-extrabold text-[#ff723a]">Manage account</NavLink>
                       <button className="mt-3 w-full rounded-xl bg-[#1f1c35] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#ff723a]" onClick={handleLogout}>Logout</button>
                     </div>
                   )}
