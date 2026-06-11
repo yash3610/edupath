@@ -56,6 +56,7 @@ const StudentLiveClassesPage = React.lazy(() => import("../pages/dashboard/Stude
 const InstructorAssignmentsPage = React.lazy(() => import("../pages/dashboard/InstructorAssignmentsPage.jsx"));
 const InstructorMessagesPage = React.lazy(() => import("../pages/dashboard/InstructorMessagesPage.jsx"));
 const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
+const LearningPathsPage = React.lazy(() => import("../pages/dashboard/LearningPathsPage.jsx"));
 const MessagesPage = React.lazy(() => import("../pages/dashboard/MessagesPage.jsx"));
 const MyCoursesPage = React.lazy(() => import("../pages/dashboard/MyCoursesPage.jsx"));
 const AccountPage = React.lazy(() => import("../pages/dashboard/AccountPage.jsx"));
@@ -128,7 +129,7 @@ export default function AppRoutes() {
         <Route path="quizzes/history/:quizId" element={<QuizHistoryPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="profile" element={<Navigate to="/dashboard/account" replace />} />
-        <Route path="paths" element={<FeaturePage type="paths" />} />
+        <Route path="paths" element={<LearningPathsPage />} />
         <Route path="certificates" element={<FeaturePage type="certificates" />} />
         <Route path="achievements" element={<FeaturePage type="achievements" />} />
         <Route path="wishlist" element={<FeaturePage type="wishlist" />} />
