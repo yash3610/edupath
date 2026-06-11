@@ -10,6 +10,7 @@ export const protect = asyncHandler(async (req, _res, next) => {
   if (!token) throw new ApiError(401, "Authentication required");
 
   const payload = jwt.verify(token, process.env.JWT_SECRET);
+  if (payload.type === "refresh") throw new ApiError(401, "Invalid access token");
   const user = await User.findById(payload.sub).select("-passwordHash");
   if (!user || user.status !== "active") throw new ApiError(401, "Invalid or inactive account");
 

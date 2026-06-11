@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 
 export function signAccessToken(user) {
@@ -7,7 +8,8 @@ export function signAccessToken(user) {
 }
 
 export function signRefreshToken(user) {
-  return jwt.sign({ sub: user._id.toString(), type: "refresh" }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+  return jwt.sign({ sub: user._id.toString(), type: "refresh" }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
+    jwtid: randomUUID(),
   });
 }

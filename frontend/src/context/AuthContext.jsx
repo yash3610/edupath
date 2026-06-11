@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { api, setAccessToken } from "../services/api.js";
 
 const AuthContext = createContext(null);
-const SESSION_KEY = "edupath_session";
 
 export function dashboardPathForRole(role) {
   if (role === "admin") return "/admin/dashboard";
@@ -11,54 +10,46 @@ export function dashboardPathForRole(role) {
 }
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(SESSION_KEY)) || null;
-      setAccessToken(stored?.token || stored?.accessToken || "");
-      return stored;
-    } catch {
-      setAccessToken("");
-      return null;
-    }
-  });
-  const [loading, setLoading] = useState(Boolean(session?.token || session?.accessToken));
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
   const sessionVersion = useRef(0);
 
   useEffect(() => {
+    localStorage.removeItem("edupath_session");
     const version = ++sessionVersion.current;
-    const token = session?.token || session?.accessToken || "";
-    setAccessToken(token);
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    api.me()
+    api.refresh()
       .then((result) => {
         if (sessionVersion.current !== version) return;
-        const nextSession = { ...session, user: result.data.user };
-        setSession(nextSession);
-        localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
+        setSession({ user: result.data.user, accessToken: result.data.accessToken });
       })
       .catch(() => {
         if (sessionVersion.current !== version) return;
         setSession(null);
         setAccessToken("");
-        localStorage.removeItem(SESSION_KEY);
       })
       .finally(() => {
         if (sessionVersion.current === version) setLoading(false);
       });
   }, []);
 
+  useEffect(() => {
+    const expireSession = () => {
+      sessionVersion.current += 1;
+      setSession(null);
+      setLoading(false);
+      setAccessToken("");
+    };
+    window.addEventListener("edupath:session-expired", expireSession);
+    return () => window.removeEventListener("edupath:session-expired", expireSession);
+  }, []);
+
   function saveSession(nextSession) {
     const normalizedSession = {
-      ...nextSession,
-      token: nextSession.token || nextSession.accessToken,
+      user: nextSession.user,
+      accessToken: nextSession.accessToken,
     };
     sessionVersion.current += 1;
-    setAccessToken(normalizedSession.token || "");
-    localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedSession));
+    setAccessToken(normalizedSession.accessToken || "");
     setSession(normalizedSession);
     setLoading(false);
     return normalizedSession;
@@ -66,7 +57,7 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => ({
     user: session?.user || null,
-    token: session?.token || session?.accessToken || "",
+    token: session?.accessToken || "",
     loading,
     login: async (credentials) => {
       setLoading(true);
@@ -94,16 +85,19 @@ export function AuthProvider({ children }) {
       setSession((current) => {
         if (!current) return current;
         const nextSession = { ...current, user: { ...current.user, ...user } };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
         return nextSession;
       });
     },
-    logout: () => {
+    logout: async () => {
       sessionVersion.current += 1;
+      try {
+        await api.logout();
+      } catch {
+        // Local logout must still complete when the server is unavailable.
+      }
       setSession(null);
       setLoading(false);
       setAccessToken("");
-      localStorage.removeItem(SESSION_KEY);
     },
   }), [session, loading]);
 

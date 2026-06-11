@@ -1,16 +1,40 @@
 import crypto from "node:crypto";
+import jwt from "jsonwebtoken";
 import { User, StudentProfile, InstructorProfile } from "../models/index.js";
 import { sendEmail } from "../services/emailService.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { signAccessToken, signRefreshToken } from "../utils/tokens.js";
 
-function session(user) {
+const refreshCookieName = "edupath_refresh";
+
+function refreshCookieOptions() {
+  const secure = process.env.NODE_ENV === "production";
   return {
-    user,
-    accessToken: signAccessToken(user),
-    refreshToken: signRefreshToken(user),
+    httpOnly: true,
+    secure,
+    sameSite: secure ? "none" : "lax",
+    path: "/api/auth",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   };
+}
+
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+async function createSession(user, res) {
+  const accessToken = signAccessToken(user);
+  const refreshToken = signRefreshToken(user);
+  user.refreshTokenHash = hashToken(refreshToken);
+  await user.save();
+  res.cookie(refreshCookieName, refreshToken, refreshCookieOptions());
+  return { user, accessToken };
+}
+
+function clearRefreshCookie(res) {
+  const { maxAge: _maxAge, ...options } = refreshCookieOptions();
+  res.clearCookie(refreshCookieName, options);
 }
 
 export const register = asyncHandler(async (req, res) => {
@@ -29,7 +53,7 @@ export const register = asyncHandler(async (req, res) => {
   if (role === "student") await StudentProfile.create({ user: user._id });
   if (role === "instructor") await InstructorProfile.create({ user: user._id });
 
-  res.status(201).json({ success: true, data: session(user) });
+  res.status(201).json({ success: true, data: await createSession(user, res) });
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -42,22 +66,47 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(403, `This account cannot use the ${portal} portal.`);
   }
 
-  res.json({ success: true, data: session(user) });
+  res.json({ success: true, data: await createSession(user, res) });
 });
 
 export const me = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { user: req.user } });
 });
 
-export const logout = asyncHandler(async (_req, res) => {
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
+export const logout = asyncHandler(async (req, res) => {
+  const token = req.cookies?.[refreshCookieName];
+  if (token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+      await User.findByIdAndUpdate(payload.sub, { $unset: { refreshTokenHash: 1 } });
+    } catch {
+      // An invalid or expired cookie should still be cleared.
+    }
+  }
+  clearRefreshCookie(res);
   res.json({ success: true, message: "Logged out" });
 });
 
 export const refreshToken = asyncHandler(async (req, res) => {
-  if (!req.user) throw new ApiError(401, "Authentication required");
-  res.json({ success: true, data: session(req.user) });
+  const token = req.cookies?.[refreshCookieName];
+  if (!token) throw new ApiError(401, "Session expired");
+
+  let payload;
+  try {
+    payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  } catch {
+    clearRefreshCookie(res);
+    throw new ApiError(401, "Session expired");
+  }
+  if (payload.type !== "refresh") throw new ApiError(401, "Invalid refresh token");
+
+  const user = await User.findById(payload.sub);
+  if (!user || user.status !== "active" || !user.refreshTokenHash || user.refreshTokenHash !== hashToken(token)) {
+    clearRefreshCookie(res);
+    throw new ApiError(401, "Invalid or inactive session");
+  }
+
+  res.json({ success: true, data: await createSession(user, res) });
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {
@@ -77,7 +126,9 @@ export const resetPassword = asyncHandler(async (req, res) => {
   await user.setPassword(req.body.password);
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
+  user.refreshTokenHash = undefined;
   await user.save();
+  clearRefreshCookie(res);
   res.json({ success: true, message: "Password reset successful" });
 });
 

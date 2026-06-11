@@ -380,9 +380,6 @@ export default function PageShell({ title, children }) {
 
       try {
         const result = await submit(payloadForKind(kind, form));
-        if (kind === "login" || kind === "register") {
-          localStorage.setItem("edupath_session", JSON.stringify(result.data));
-        }
         status.className = "app-form-status success";
         status.textContent = result.message || "Submitted successfully.";
         form.reset();

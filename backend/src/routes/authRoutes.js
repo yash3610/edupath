@@ -10,7 +10,7 @@ router.post("/register", registerRules, validate, register);
 router.post("/login", loginRules, validate, login);
 router.get("/me", protect, me);
 router.post("/logout", logout);
-router.post("/refresh-token", protect, refreshToken);
+router.post("/refresh-token", refreshToken);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.patch("/verify-email", protect, verifyEmail);
