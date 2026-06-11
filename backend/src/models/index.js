@@ -19,6 +19,7 @@ const userSchema = new Schema(
     status: { type: String, enum: ["active", "blocked", "pending"], default: "active" },
     emailVerified: { type: Boolean, default: false },
     avatar: String,
+    avatarPublicId: String,
     phone: String,
     bio: String,
     preferences: { type: Schema.Types.Mixed, default: {} },
@@ -38,6 +39,7 @@ userSchema.methods.toJSON = function toJSON() {
   const user = this.toObject();
   delete user.passwordHash;
   delete user.refreshTokenHash;
+  delete user.avatarPublicId;
   return user;
 };
 

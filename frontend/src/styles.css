@@ -213,13 +213,35 @@ body.dashboard-active a:active {
   transform: scale(1.025);
 }
 
-.dashboard-content > div > section:first-child > .absolute {
-  animation: dashboard-orb-float 7s ease-in-out infinite alternate;
+.dashboard-hero {
+  isolation: isolate;
+  animation: dashboard-hero-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.dashboard-content > div > section:first-child > .absolute:nth-child(2) {
-  animation-delay: -2.5s;
-  animation-duration: 9s;
+.dashboard-hero::after {
+  position: absolute;
+  inset: -45% auto -45% -28%;
+  z-index: 1;
+  width: 22%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  content: "";
+  pointer-events: none;
+  transform: rotate(15deg);
+  animation: dashboard-hero-shine 7s 1.2s ease-in-out infinite;
+}
+
+.dashboard-hero-image {
+  animation: dashboard-hero-image 10s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.dashboard-hero-overlay {
+  animation: dashboard-hero-overlay 4.5s ease-in-out infinite alternate;
+}
+
+.dashboard-hero-orb {
+  animation: dashboard-orb-float 7s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 .role-dashboard-dropdown {
@@ -276,6 +298,33 @@ body.dashboard-active a:active {
   to { transform: translate3d(-10px, 8px, 0) scale(1.06); }
 }
 
+@keyframes dashboard-hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dashboard-hero-image {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to { transform: scale(1.075) translate3d(-0.8%, -0.8%, 0); }
+}
+
+@keyframes dashboard-hero-overlay {
+  from { opacity: 0.92; }
+  to { opacity: 1; }
+}
+
+@keyframes dashboard-hero-shine {
+  0%, 58% { left: -28%; opacity: 0; }
+  65% { opacity: 0.7; }
+  82%, 100% { left: 118%; opacity: 0; }
+}
+
 @keyframes dashboard-dropdown-enter {
   from {
     opacity: 0;
@@ -292,7 +341,11 @@ body.dashboard-active a:active {
   .dashboard-section-heading,
   .dashboard-section-heading > div:first-child p::after,
   .dashboard-topbar,
-  .dashboard-content > div > section:first-child > .absolute,
+  .dashboard-hero,
+  .dashboard-hero::after,
+  .dashboard-hero-image,
+  .dashboard-hero-overlay,
+  .dashboard-hero-orb,
   .role-dashboard-dropdown {
     animation: none !important;
   }

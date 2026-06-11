@@ -16,14 +16,14 @@ export default function DashboardHome() {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-[22px] border border-[#f1e7db] bg-gradient-to-br from-[#fffaf3] to-[#fff4e6] p-5 text-[#1f1c35] shadow-[0_20px_50px_rgba(31,28,53,0.08)] dark:border-white/10 dark:from-[#1f1c35] dark:to-[#292541] dark:text-white sm:rounded-[28px] sm:p-7 lg:px-8 lg:py-7">
+      <section className="dashboard-hero relative overflow-hidden rounded-[22px] border border-[#f1e7db] bg-gradient-to-br from-[#fffaf3] to-[#fff4e6] p-5 text-[#1f1c35] shadow-[0_20px_50px_rgba(31,28,53,0.08)] dark:border-white/10 dark:from-[#1f1c35] dark:to-[#292541] dark:text-white sm:rounded-[28px] sm:p-7 lg:px-8 lg:py-7">
         <img
           src="/assets/images/video/video-1/bg.jpg"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover object-center opacity-75 sm:opacity-85 lg:object-[center_42%] lg:opacity-100"
+          className="dashboard-hero-image absolute inset-0 h-full w-full object-cover object-center opacity-75 sm:opacity-85 lg:object-[center_42%] lg:opacity-100"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#fffaf3] via-[#fff8ef]/65 to-transparent dark:from-[#1f1c35] dark:via-[#1f1c35]/65 dark:to-transparent" />
+        <div className="dashboard-hero-overlay absolute inset-0 bg-gradient-to-r from-[#fffaf3] via-[#fff8ef]/65 to-transparent dark:from-[#1f1c35] dark:via-[#1f1c35]/65 dark:to-transparent" />
         <div className="relative grid min-w-0 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-7">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#ff723a]/15 bg-white/70 px-3 py-1.5 text-xs font-bold text-[#ff723a] dark:border-white/10 dark:bg-white/10">

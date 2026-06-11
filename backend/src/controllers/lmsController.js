@@ -38,7 +38,7 @@ import { askAI, recommendCourses, summarizeText } from "../services/aiService.js
 import { buildMLAnalytics } from "../services/mlService.js";
 import { createRazorpayOrder, verifyRazorpaySignature } from "../services/paymentService.js";
 import { generateCertificatePdf } from "../services/pdfService.js";
-import { uploadBuffer } from "../services/uploadService.js";
+import { deleteUploadedAsset, uploadBuffer } from "../services/uploadService.js";
 import {
   PUBLIC_COURSE_STATUSES,
   courseCompletion,
@@ -462,9 +462,30 @@ export const updateProfile = asyncHandler(async (req, res) => {
 });
 export const updateAvatar = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, "Select an image to upload");
+  const currentUser = await User.findById(userId(req)).select("avatar avatarPublicId");
+  if (!currentUser) throw new ApiError(404, "User not found");
+
   const avatar = await uploadBuffer(req.file, "avatars");
-  const user = await User.findByIdAndUpdate(userId(req), { avatar: avatar?.url }, { new: true }).select("-passwordHash");
-  ok(res, { user, avatar: avatar?.url }, "Profile photo updated");
+  let user;
+  try {
+    user = await User.findByIdAndUpdate(
+      userId(req),
+      { avatar: avatar.url, avatarPublicId: avatar.publicId },
+      { new: true, runValidators: true },
+    ).select("-passwordHash");
+  } catch (error) {
+    await deleteUploadedAsset(avatar).catch(() => {});
+    throw error;
+  }
+
+  if (currentUser.avatar && currentUser.avatar !== avatar.url) {
+    await deleteUploadedAsset({
+      url: currentUser.avatar,
+      publicId: currentUser.avatarPublicId,
+    }).catch(() => {});
+  }
+
+  ok(res, { user, avatar: avatar.url }, "Profile photo updated");
 });
 export const changePassword = asyncHandler(async (req, res) => {
   const user = await User.findById(userId(req));

@@ -27,8 +27,8 @@ export default function RoleDashboardHome() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[22px] border border-[#f1e7db] bg-[#fff8ef] p-5 shadow-[0_24px_60px_rgba(31,28,53,.08)] dark:border-white/10 dark:bg-[#1f1c35] sm:rounded-[28px] sm:p-8 lg:p-10">
-        <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#fec961]/50 blur-3xl" />
+      <section className="dashboard-hero relative overflow-hidden rounded-[22px] border border-[#f1e7db] bg-[#fff8ef] p-5 shadow-[0_24px_60px_rgba(31,28,53,.08)] dark:border-white/10 dark:bg-[#1f1c35] sm:rounded-[28px] sm:p-8 lg:p-10">
+        <div className="dashboard-hero-orb absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#fec961]/50 blur-3xl" />
         <div className="relative grid min-w-0 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,auto)] lg:gap-8">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-xs font-extrabold text-[#ff723a] dark:bg-white/10"><Icon name={isAdmin ? "ShieldCheck" : "GraduationCap"} className="h-4 w-4" /> {config.title}</span>
