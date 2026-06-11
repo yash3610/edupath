@@ -124,6 +124,80 @@ export const dashboardStats = asyncHandler(async (req, res) => ok(res, {
   certificates: await Certificate.countDocuments({ student: userId(req) }),
   quizAverage: 88,
 }));
+export const studentAnalytics = asyncHandler(async (req, res) => {
+  const student = userId(req);
+  const [enrollments, progress, attempts, certificateCount] = await Promise.all([
+    Enrollment.find({ student }).populate("course", "title thumbnail tags").sort({ updatedAt: -1 }).lean(),
+    LectureProgress.find({ student }).select("course completed watchTimeSeconds watchedPercentage updatedAt").lean(),
+    QuizAttempt.find({ student, status: { $in: ["submitted", "auto-submitted", "passed", "failed"] } })
+      .populate("quiz", "title")
+      .sort({ submittedAt: 1, createdAt: 1 })
+      .lean(),
+    Certificate.countDocuments({ student }),
+  ]);
+
+  const totalWatchSeconds = progress.reduce((sum, item) => sum + Number(item.watchTimeSeconds || 0), 0);
+  const completedLectures = progress.filter((item) => item.completed).length;
+  const averageProgress = enrollments.length
+    ? Math.round(enrollments.reduce((sum, item) => sum + Number(item.progress || 0), 0) / enrollments.length)
+    : 0;
+  const scoredAttempts = attempts.map((item) => Number(item.percentage ?? item.score ?? 0));
+  const quizAverage = scoredAttempts.length
+    ? Math.round(scoredAttempts.reduce((sum, score) => sum + score, 0) / scoredAttempts.length)
+    : 0;
+
+  const dayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+  const activityByDay = new Map();
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - offset);
+    activityByDay.set(date.toISOString().slice(0, 10), { day: dayFormatter.format(date), minutes: 0, lectures: 0 });
+  }
+  progress.forEach((item) => {
+    const key = new Date(item.updatedAt).toISOString().slice(0, 10);
+    const day = activityByDay.get(key);
+    if (!day) return;
+    day.minutes += Math.round(Number(item.watchTimeSeconds || 0) / 60);
+    if (item.completed) day.lectures += 1;
+  });
+
+  const courseProgress = enrollments.map((item) => ({
+    id: item.course?._id || item.course,
+    title: item.course?.title || "Course",
+    thumbnail: item.course?.thumbnail || "",
+    progress: Math.round(Number(item.progress || 0)),
+    status: item.status,
+  }));
+  const quizTrend = attempts.slice(-8).map((item, index) => ({
+    attempt: index + 1,
+    title: item.quiz?.title || `Quiz ${index + 1}`,
+    score: Math.round(Number(item.percentage ?? item.score ?? 0)),
+  }));
+
+  ok(res, {
+    summary: {
+      enrolledCourses: enrollments.length,
+      completedCourses: enrollments.filter((item) => item.status === "completed" || Number(item.progress) >= 100).length,
+      averageProgress,
+      learningHours: Number((totalWatchSeconds / 3600).toFixed(1)),
+      completedLectures,
+      quizAverage,
+      certificates: certificateCount,
+    },
+    weeklyActivity: [...activityByDay.values()],
+    courseProgress,
+    quizTrend,
+    insights: {
+      engagement: totalWatchSeconds > 5 * 3600 ? "High" : totalWatchSeconds > 3600 ? "Growing" : "Getting started",
+      completionProbability: Math.min(100, Math.round(averageProgress * 0.7 + Math.min(completedLectures, 20) * 1.5)),
+      strongestCourse: [...courseProgress].sort((a, b) => b.progress - a.progress)[0]?.title || "Complete a lesson to unlock insights",
+      recommendation: averageProgress < 50
+        ? "Continue one active course consistently before starting another."
+        : "Your progress is strong. Keep the same weekly learning rhythm.",
+    },
+  });
+});
 export const continueLearning = asyncHandler(async (req, res) => ok(res, await Enrollment.findOne({ student: userId(req) }).populate("course")));
 export const recommendedCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).sort({ featured: -1, rating: -1 }).limit(6)));
 export const upcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(8)));

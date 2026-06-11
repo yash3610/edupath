@@ -45,6 +45,7 @@ const InstructorQuizManagementPage = React.lazy(() => import("../pages/dashboard
 const InstructorCourseBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorCourseBuilderPage.jsx"));
 const InstructorCoursesPage = React.lazy(() => import("../pages/dashboard/InstructorCoursesPage.jsx"));
 const CourseAnalyticsPage = React.lazy(() => import("../pages/dashboard/CourseAnalyticsPage.jsx"));
+const StudentAnalyticsPage = React.lazy(() => import("../pages/dashboard/StudentAnalyticsPage.jsx"));
 const AdminCoursesPage = React.lazy(() => import("../pages/dashboard/AdminCoursesPage.jsx"));
 const AdminCourseEditorPage = React.lazy(() => import("../pages/dashboard/AdminCourseEditorPage.jsx"));
 const AdminLiveClassesPage = React.lazy(() => import("../pages/dashboard/AdminLiveClassesPage.jsx"));
@@ -144,7 +145,7 @@ export default function AppRoutes() {
         <Route path="ai-tutor" element={<AITutorPage />} />
         <Route path="ai-notes" element={<AINotesPage />} />
         <Route path="ai-recommendations" element={<AIRecommendationsPage />} />
-        <Route path="analytics" element={<FeaturePage type="analytics" />} />
+        <Route path="analytics" element={<StudentAnalyticsPage />} />
         <Route path="settings" element={<Navigate to="/dashboard/account" replace />} />
       </Route>
 

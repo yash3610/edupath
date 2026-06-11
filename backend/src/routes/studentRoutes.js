@@ -1,5 +1,5 @@
 import express from "express";
-import { achievements, continueLearning, courseProgress, dashboardStats, myCourses, recentNotifications, recommendedCourses, upcomingClasses } from "../controllers/lmsController.js";
+import { achievements, continueLearning, courseProgress, dashboardStats, myCourses, recentNotifications, recommendedCourses, studentAnalytics, upcomingClasses } from "../controllers/lmsController.js";
 import {
   studentAskQuestion,
   studentJoinLiveClass,
@@ -20,6 +20,7 @@ const router = express.Router();
 router.use(protect, authorize("student"));
 
 router.get("/dashboard-stats", dashboardStats);
+router.get("/analytics", studentAnalytics);
 router.get("/continue-learning", continueLearning);
 router.get("/recommended-courses", recommendedCourses);
 router.get("/upcoming-classes", upcomingClasses);

@@ -121,10 +121,16 @@ function normalizeEnrollment(enrollment) {
 
 function Stat({ icon: Icon, label, value }) {
   return (
-    <MotionCard className="p-5">
-      <Icon className="h-5 w-5 text-[#ff6b35]" />
-      <p className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-1 text-2xl font-black">{value}</p>
+    <MotionCard className="p-3.5 sm:p-4">
+      <div className="flex min-h-12 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fff1e8] text-[#ff6b35] dark:bg-orange-500/10">
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</p>
+          <p className="mt-0.5 text-xl font-black leading-none">{value}</p>
+        </div>
+      </div>
     </MotionCard>
   );
 }
