@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Icon, MotionCard, SectionHeading } from "../../components/dashboard/DashboardPrimitives.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
-import { apiFormRequest, apiRequest } from "../../services/api.js";
+import { apiFormRequest, apiRequest, assetUrl } from "../../services/api.js";
 
 const defaultPreferences = {
   emailNotifications: true,
@@ -19,6 +20,8 @@ export default function AccountPage() {
   const fileRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -60,6 +63,17 @@ export default function AccountPage() {
       .finally(() => setLoading(false));
   }, [toast]);
 
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreview("");
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [avatarFile]);
+
   function setProfileField(event) {
     const { name, value } = event.target;
     setProfile((current) => ({ ...current, [name]: value }));
@@ -89,22 +103,46 @@ export default function AccountPage() {
     }
   }
 
-  async function uploadAvatar(event) {
+  function selectAvatar(event) {
     const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Please select a JPG, PNG or WebP image.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Profile photo must be smaller than 10 MB.");
+      return;
+    }
+
+    setAvatarFile(file);
+  }
+
+  function cancelAvatarUpload() {
+    if (saving === "avatar") return;
+    setAvatarFile(null);
+  }
+
+  async function uploadAvatar() {
+    if (!avatarFile) return;
     try {
       setSaving("avatar");
       const formData = new FormData();
-      formData.append("avatar", file);
+      formData.append("avatar", avatarFile);
       const result = await apiFormRequest("/api/profile/avatar", formData, { method: "PATCH" });
-      const avatar = result.data.avatar;
+      const nextUser = result.data?.user;
+      const avatar = result.data?.avatar || nextUser?.avatar;
+      if (!avatar) throw new Error("The server did not return the uploaded photo.");
+
       setProfile((current) => ({ ...current, avatar }));
-      updateUser(result.data.user);
+      if (nextUser) updateUser(nextUser);
+      setAvatarFile(null);
       toast.success("Profile photo updated.");
     } catch (error) {
       toast.error(error.message);
     } finally {
-      event.target.value = "";
       setSaving("");
     }
   }
@@ -170,8 +208,9 @@ export default function AccountPage() {
         <MotionCard className="w-full">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[26px] bg-gradient-to-br from-[#ff723a] to-[#fec961] text-2xl font-extrabold text-white shadow-[0_14px_30px_rgba(255,114,58,.2)] sm:h-28 sm:w-28">
-                {profile.avatar ? <img src={profile.avatar} alt={profile.name} className="h-full w-full object-cover" /> : initials}
+              <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[26px] bg-gradient-to-br from-[#ff723a] to-[#fec961] text-2xl font-extrabold text-white shadow-[0_14px_30px_rgba(255,114,58,.2)] sm:h-28 sm:w-28">
+                <span>{initials}</span>
+                {profile.avatar && <img src={assetUrl(profile.avatar)} alt={profile.name} onError={(event) => { event.currentTarget.style.display = "none"; }} className="absolute inset-0 h-full w-full object-cover" />}
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-extrabold uppercase tracking-[.18em] text-[#ff723a]">Your account</p>
@@ -181,9 +220,9 @@ export default function AccountPage() {
               </div>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-44">
-              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadAvatar} />
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={selectAvatar} />
               <button type="button" onClick={() => fileRef.current?.click()} disabled={saving === "avatar"} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-extrabold text-[#1f1c35] hover:border-[#ff723a] disabled:opacity-50">
-                <Icon name="UserRound" className="h-4 w-4" /> {saving === "avatar" ? "Uploading..." : "Change photo"}
+                <Icon name="Camera" className="h-4 w-4" /> Change photo
               </button>
               <button type="button" onClick={() => navigate(dashboardRoot)} className="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm font-extrabold text-slate-600">Back to dashboard</button>
             </div>
@@ -239,6 +278,38 @@ export default function AccountPage() {
           </MotionCard>
         </div>
       </section>
+
+      {avatarFile && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-950/55 p-4 pt-8 sm:items-center sm:pt-4" role="dialog" aria-modal="true" aria-labelledby="avatar-upload-title">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[.18em] text-[#ff723a]">Profile photo</p>
+                <h2 id="avatar-upload-title" className="mt-1 text-xl font-extrabold text-[#1f1c35]">Preview your photo</h2>
+              </div>
+              <button type="button" onClick={cancelAvatarUpload} disabled={saving === "avatar"} className="rounded-xl border border-slate-200 p-2 text-slate-500 disabled:opacity-50" aria-label="Close photo preview">
+                <Icon name="X" className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mx-auto mt-6 h-52 w-52 overflow-hidden rounded-[32px] bg-slate-100">
+              <img src={avatarPreview} alt="Selected profile preview" className="h-full w-full object-cover" />
+            </div>
+            <p className="mt-4 truncate text-center text-sm font-bold text-slate-500">{avatarFile.name}</p>
+
+            <div className="mt-6 grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={saving === "avatar"} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-extrabold text-[#1f1c35] disabled:opacity-50">
+                Choose another
+              </button>
+              <button type="button" onClick={uploadAvatar} disabled={saving === "avatar"} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ff723a] px-4 py-3 text-sm font-extrabold text-white disabled:opacity-60">
+                {saving === "avatar" ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Icon name="Upload" className="h-4 w-4" />}
+                {saving === "avatar" ? "Uploading..." : "Upload photo"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

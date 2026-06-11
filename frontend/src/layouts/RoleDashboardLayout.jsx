@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../components/dashboard/DashboardPrimitives.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import { api } from "../services/api.js";
+import { api, assetUrl } from "../services/api.js";
 
 const configs = {
   admin: {
@@ -47,6 +47,7 @@ export default function RoleDashboardLayout({ role }) {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const notificationRef = useRef(null);
+  const contentRef = useRef(null);
   const { user, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -71,6 +72,7 @@ export default function RoleDashboardLayout({ role }) {
   useEffect(() => {
     setNotificationOpen(false);
     setProfileOpen(false);
+    contentRef.current?.scrollTo({ top: 0, behavior: "instant" });
   }, [location.pathname]);
 
   useEffect(() => {
@@ -101,8 +103,8 @@ export default function RoleDashboardLayout({ role }) {
   }
 
   return (
-    <div className={`role-dashboard role-dashboard--${role} w-full overflow-x-hidden`}>
-      <div className="role-dashboard-shell min-h-screen w-full overflow-x-hidden text-slate-900 dark:text-white">
+    <div className={`role-dashboard role-dashboard--${role} h-screen h-dvh w-full overflow-hidden`}>
+      <div className="role-dashboard-shell h-full w-full overflow-hidden text-slate-900 dark:text-white">
         <aside className="role-dashboard-sidebar fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col px-4 py-5 xl:flex">
           <RoleSidebar config={config} pathFor={pathFor} onNavigate={() => {}} />
         </aside>
@@ -120,8 +122,8 @@ export default function RoleDashboardLayout({ role }) {
           </div>
         )}
 
-        <div className="min-w-0 max-w-full overflow-x-hidden xl:pl-[276px]">
-          <header className="dashboard-topbar role-dashboard-header sticky top-0 z-30 max-w-full px-3 py-3.5 backdrop-blur-xl sm:px-6">
+        <div className="flex h-full min-w-0 max-w-full flex-col overflow-hidden xl:pl-[276px]">
+          <header className="dashboard-topbar role-dashboard-header relative z-30 shrink-0 max-w-full px-3 py-3.5 backdrop-blur-xl sm:px-6">
             <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <button className="shrink-0 rounded-xl border border-slate-200 p-2.5 dark:border-white/10 xl:hidden" onClick={() => setMobileOpen(true)}><Icon name="Menu" /></button>
@@ -155,8 +157,9 @@ export default function RoleDashboardLayout({ role }) {
                 </div>
                 <div className="relative">
                   <button onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }} className="role-dashboard-profile flex items-center gap-2 rounded-xl p-1.5 min-[390px]:pr-3">
-                    <span className="role-dashboard-avatar flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg text-sm font-extrabold text-white">
-                      {user?.avatar ? <img src={user.avatar} alt={user.name || firstName} className="h-full w-full object-cover" /> : firstName[0]}
+                    <span className="role-dashboard-avatar relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg text-sm font-extrabold text-white">
+                      {firstName[0]}
+                      {user?.avatar && <img src={assetUrl(user.avatar)} alt={user.name || firstName} onError={(event) => { event.currentTarget.style.display = "none"; }} className="absolute inset-0 h-full w-full object-cover" />}
                     </span>
                     <span className="hidden text-sm font-extrabold sm:block">{firstName}</span>
                   </button>
@@ -175,8 +178,10 @@ export default function RoleDashboardLayout({ role }) {
 
           </header>
 
-          <main className="dashboard-content role-dashboard-main mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-8">
-            <Outlet context={{ role, user, config }} />
+          <main ref={contentRef} className="dashboard-content role-dashboard-main min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="role-dashboard-page-frame mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-8">
+              <Outlet context={{ role, user, config }} />
+            </div>
           </main>
         </div>
       </div>

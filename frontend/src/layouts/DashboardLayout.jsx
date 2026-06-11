@@ -4,7 +4,7 @@ import { Icon } from "../components/dashboard/DashboardPrimitives.jsx";
 import { student } from "../data/dashboardData.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import { api } from "../services/api.js";
+import { api, assetUrl } from "../services/api.js";
 
 const navGroups = [
   {
@@ -62,6 +62,7 @@ export default function DashboardLayout() {
   const [headerNotifications, setHeaderNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const notificationRef = useRef(null);
+  const contentRef = useRef(null);
   const { user, logout } = useAuth();
   const toast = useToast();
   const location = useLocation();
@@ -98,6 +99,7 @@ export default function DashboardLayout() {
   useEffect(() => {
     setNotificationOpen(false);
     setProfileOpen(false);
+    contentRef.current?.scrollTo({ top: 0, behavior: "instant" });
   }, [location.pathname]);
 
   useEffect(() => {
@@ -132,8 +134,8 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="w-full overflow-x-hidden">
-      <div className="min-h-screen w-full overflow-x-hidden bg-[#f7f8fc] text-slate-900 dark:bg-slate-950 dark:text-white">
+    <div className="h-screen h-dvh w-full overflow-hidden">
+      <div className="h-full w-full overflow-hidden bg-[#f7f8fc] text-slate-900 dark:bg-slate-950 dark:text-white">
         <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[276px] flex-col border-r border-slate-200/80 bg-white px-4 py-5 dark:border-white/10 dark:bg-slate-900 xl:flex">
           <SidebarContent onNavigate={() => {}} />
         </aside>
@@ -153,8 +155,8 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        <div className="min-w-0 max-w-full overflow-x-hidden xl:pl-[276px]">
-          <header className="dashboard-topbar sticky top-0 z-30 max-w-full border-b border-slate-200/80 bg-white/90 px-3 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
+        <div className="flex h-full min-w-0 max-w-full flex-col overflow-hidden xl:pl-[276px]">
+          <header className="dashboard-topbar relative z-30 shrink-0 max-w-full border-b border-slate-200/80 bg-white/90 px-3 py-3.5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90 sm:px-6">
             <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <button className="shrink-0 rounded-xl border border-slate-200 p-2.5 dark:border-white/10 xl:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
@@ -225,7 +227,10 @@ export default function DashboardLayout() {
                 </div>
                 <div className="relative">
                   <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 min-[390px]:pr-3 dark:border-white/10 dark:bg-white/10" onClick={() => { setProfileOpen((value) => !value); setNotificationOpen(false); }}>
-                    <img src={displayStudent.avatar} alt={displayStudent.name} className="h-9 w-9 rounded-lg object-cover" />
+                    <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-[#ff723a] to-[#fec961] text-xs font-extrabold text-white">
+                      {displayStudent.name?.[0]?.toUpperCase() || "S"}
+                      {displayStudent.avatar && <img src={assetUrl(displayStudent.avatar)} alt={displayStudent.name} onError={(event) => { event.currentTarget.style.display = "none"; }} className="absolute inset-0 h-full w-full object-cover" />}
+                    </span>
                     <span className="hidden text-sm font-black sm:block">{displayStudent.name.split(" ")[0]}</span>
                   </button>
                   {profileOpen && (
@@ -246,8 +251,10 @@ export default function DashboardLayout() {
 
           </header>
 
-          <main className="dashboard-content mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-8">
-            <Outlet context={{ student: displayStudent }} />
+          <main ref={contentRef} className="dashboard-content min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="mx-auto w-full max-w-[1500px] px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-8">
+              <Outlet context={{ student: displayStudent }} />
+            </div>
           </main>
         </div>
       </div>

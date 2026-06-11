@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Icon, MotionCard, SectionHeading } from "./DashboardPrimitives.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
-import { apiFormRequest, apiRequest } from "../../services/api.js";
+import { apiFormRequest, apiRequest, assetUrl } from "../../services/api.js";
 
 export default function MessagingWorkspace({ title, emptyContactText }) {
   const { user } = useAuth();
@@ -197,7 +197,7 @@ function otherParticipant(conversation, currentUserId) {
 }
 
 function Avatar({ user }) {
-  if (user?.avatar) return <img src={user.avatar} alt={user.name} className="h-11 w-11 rounded-xl object-cover" />;
+  if (user?.avatar) return <img src={assetUrl(user.avatar)} alt={user.name} className="h-11 w-11 rounded-xl object-cover" />;
   return <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#1f1c35] text-sm font-extrabold text-white">{user?.name?.[0]?.toUpperCase() || "M"}</span>;
 }
 

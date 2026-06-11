@@ -1,5 +1,45 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const configuredApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE_URL = resolveApiBaseUrl(configuredApiUrl);
 let accessToken = "";
+
+function resolveApiBaseUrl(value) {
+  const source = String(value || "").replace(/\/+$/, "");
+  if (typeof window === "undefined") return source;
+
+  try {
+    const url = new URL(source);
+    const pageHost = window.location.hostname;
+    const apiIsLocal = ["localhost", "127.0.0.1"].includes(url.hostname);
+    const pageIsLocal = ["localhost", "127.0.0.1"].includes(pageHost);
+
+    if (apiIsLocal && !pageIsLocal) {
+      url.hostname = pageHost;
+      return url.toString().replace(/\/+$/, "");
+    }
+  } catch {
+    return source;
+  }
+
+  return source;
+}
+
+export function assetUrl(value) {
+  if (!value) return "";
+
+  const source = String(value);
+  if (source.startsWith("/uploads/")) return `${API_BASE_URL}${source}`;
+
+  try {
+    const url = new URL(source);
+    if (url.pathname.startsWith("/uploads/") && ["localhost", "127.0.0.1"].includes(url.hostname)) {
+      return `${API_BASE_URL}${url.pathname}${url.search}`;
+    }
+  } catch {
+    return source;
+  }
+
+  return source;
+}
 
 export function setAccessToken(token) {
   accessToken = token;

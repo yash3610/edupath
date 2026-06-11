@@ -6,7 +6,9 @@ import helmet from "helmet";
 import xss from "xss-clean";
 
 export function applySecurity(app) {
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }));
   app.use(cors({ origin: (process.env.CLIENT_URL || "http://localhost:5173").split(","), credentials: true }));
   app.use(cookieParser());
   app.use(mongoSanitize());

@@ -10,6 +10,17 @@ const allowedTypes = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
+const imageTypes = ["image/jpeg", "image/png", "image/webp"];
+
+export const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!imageTypes.includes(file.mimetype)) return cb(new ApiError(400, "Profile photo must be a JPG, PNG or WebP image"));
+    cb(null, true);
+  },
+});
+
 export const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },

@@ -569,7 +569,9 @@ main > div {
 }
 
 .role-dashboard-main > div > .border,
-.role-dashboard-main > div > section.border {
+.role-dashboard-main > div > section.border,
+.role-dashboard-page-frame > div > .border,
+.role-dashboard-page-frame > div > section.border {
   border-color: var(--dash-border);
 }
 
