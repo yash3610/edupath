@@ -5,6 +5,7 @@ import { LmsTopbar } from "@/features/shared/components/Topbar";
 import { INSTRUCTOR_NAV } from "@/features/shared/config/navigation";
 import { instructor } from "@/features/instructor/data/instructor";
 import { useAuth } from "@/context/AuthContext";
+import DashboardDataGate from "@/components/dashboard/DashboardDataGate";
 export default function InstructorLayout() {
   const { user: sessionUser } = useAuth();
   const user = {
@@ -13,6 +14,7 @@ export default function InstructorLayout() {
     avatar: sessionUser?.avatar || instructor.avatar,
   };
   return (
+    <DashboardDataGate role="instructor">
     <SidebarProvider>
       <div className="relative flex min-h-screen w-full bg-background">
         <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -32,6 +34,7 @@ export default function InstructorLayout() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+    </DashboardDataGate>
   );
 }
 

@@ -5,6 +5,7 @@ import { PageHeader } from "@/features/student/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { notifications as seed } from "@/features/student/data/mock";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 const iconMap = {
   lecture: BookOpen,
   quiz: Trophy,
@@ -13,7 +14,11 @@ const iconMap = {
   assignment: BookOpen,
 };
 export default function NotifPage() {
-  const [list, setList] = useState(seed.map((n) => ({ ...n, read: false })));
+  const [list, setList] = usePersistedDashboardState(
+    "student",
+    "notifications",
+    seed,
+  );
   const unread = list.filter((n) => !n.read).length;
   const markAll = () => {
     setList((l) => l.map((n) => ({ ...n, read: true })));

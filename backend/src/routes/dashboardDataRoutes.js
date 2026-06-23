@@ -1,6 +1,7 @@
 import express from "express";
 import {
   appendDashboardDatasetItem,
+  getDashboardSnapshot,
   getDashboardDataset,
   listDashboardDatasets,
   updateDashboardDataset,
@@ -9,6 +10,7 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 router.use(protect);
+router.get("/:role/snapshot", getDashboardSnapshot);
 router.get("/:role", listDashboardDatasets);
 router.get("/:role/:key", getDashboardDataset);
 router.put("/:role/:key", updateDashboardDataset);

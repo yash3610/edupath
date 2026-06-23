@@ -26,8 +26,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { instructorQuizzes } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function QuizzesPage() {
   const [build, setBuild] = useState(false);
+  const [list, setList] = usePersistedDashboardState("instructor", "instructorQuizzes", instructorQuizzes);
   const cols = [
     {
       key: "title",
@@ -77,7 +79,7 @@ export default function QuizzesPage() {
         }
       />
       <DataTable
-        rows={instructorQuizzes}
+        rows={list}
         columns={cols}
         searchKeys={["title", "course"]}
         actions={[
@@ -88,11 +90,17 @@ export default function QuizzesPage() {
           },
           {
             label: "Duplicate",
-            onClick: (r) => toast.success(`Duplicated ${r.title}`),
+            onClick: (r) => {
+              setList((items) => [{ ...r, id: `Q-${Date.now()}`, title: `${r.title} Copy`, status: "draft", attempts: 0 }, ...items]);
+              toast.success(`Duplicated ${r.title}`);
+            },
           },
           {
             label: "Delete",
-            onClick: (r) => toast.error(`Deleted ${r.title}`),
+            onClick: (r) => {
+              setList((items) => items.filter((item) => item.id !== r.id));
+              toast.error(`Deleted ${r.title}`);
+            },
             danger: true,
           },
         ]}

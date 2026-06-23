@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { pendingApprovals } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 const CHECKLIST = [
   "Title complete and descriptive",
   "Course description thorough",
@@ -25,7 +26,7 @@ const CHECKLIST = [
   "Instructor verified",
 ];
 export default function ApprovalsPage() {
-  const [list, setList] = useState(pendingApprovals);
+  const [list, setList] = usePersistedDashboardState("admin", "pendingApprovals", pendingApprovals);
   const [selected, setSelected] = useState(list[0] ?? null);
   const [reject, setReject] = useState(false);
   const [reason, setReason] = useState("");

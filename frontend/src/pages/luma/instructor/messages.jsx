@@ -7,9 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { messages } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 const SEED = Object.fromEntries(messages.map((m) => [m.id, [{ who: "them", text: m.preview }]]));
 export default function MessagesPage() {
-  const [threads, setThreads] = useState(messages);
+  const [threads, setThreads] = usePersistedDashboardState("instructor", "messages", messages);
   const [activeId, setActiveId] = useState(threads[0].id);
   const [convos, setConvos] = useState(SEED);
   const [input, setInput] = useState("");

@@ -7,9 +7,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { adminRefunds } from "@/features/admin/data/admin";
 import { inr } from "@/features/shared/utils/format";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function RefundsPage() {
   const [tab, setTab] = useState("all");
-  const rows = adminRefunds.filter((r) => tab === "all" || r.status === tab);
+  const [list, setList] = usePersistedDashboardState("admin", "adminRefunds", adminRefunds);
+  const rows = list.filter((r) => tab === "all" || r.status === tab);
+  const updateStatus = (refund, status) => {
+    setList((items) => items.map((item) => item.id === refund.id ? { ...item, status } : item));
+    toast[status === "approved" ? "success" : "error"](`Refund ${refund.id} ${status}`);
+  };
   return (
     <div className="mx-auto max-w-[1300px]">
       <LmsPageHeader
@@ -55,7 +61,7 @@ export default function RefundsPage() {
                 <Button
                   size="sm"
                   className="flex-1 rounded-lg gradient-primary border-0 text-primary-foreground"
-                  onClick={() => toast.success(`Refund ${r.id} approved`)}
+                  onClick={() => updateStatus(r, "approved")}
                 >
                   Approve
                 </Button>
@@ -63,7 +69,7 @@ export default function RefundsPage() {
                   size="sm"
                   variant="outline"
                   className="rounded-lg border-destructive/40 text-destructive hover:bg-destructive/10"
-                  onClick={() => toast.error(`Refund ${r.id} rejected`)}
+                  onClick={() => updateStatus(r, "rejected")}
                 >
                   Reject
                 </Button>

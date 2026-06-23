@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { resources } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function Page() {
+  const [list, setList] = usePersistedDashboardState("instructor", "resources", resources);
   const cols = [
     {
       key: "name",
@@ -43,7 +45,7 @@ export default function Page() {
         }
       />
       <DataTable
-        rows={resources}
+        rows={list}
         columns={cols}
         searchKeys={["name", "course"]}
         actions={[
@@ -54,7 +56,10 @@ export default function Page() {
           },
           {
             label: "Delete",
-            onClick: (r) => toast.error(`Deleted ${r.name}`),
+            onClick: (r) => {
+              setList((items) => items.filter((item) => item.id !== r.id));
+              toast.error(`Deleted ${r.name}`);
+            },
             danger: true,
           },
         ]}

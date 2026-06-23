@@ -10,8 +10,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Textarea } from "@/components/ui/textarea";
 import { instructorReviews, ratingDistribution } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function ReviewsPage() {
-  const [list, setList] = useState(instructorReviews);
+  const [list, setList] = usePersistedDashboardState("instructor", "instructorReviews", instructorReviews);
   const [reply, setReply] = useState(null);
   const [text, setText] = useState("");
   const total = ratingDistribution.reduce((s, x) => s + x.count, 0);

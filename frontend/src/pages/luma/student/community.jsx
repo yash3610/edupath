@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { communityPosts, student } from "@/features/student/data/mock";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
+const serializePosts = (posts) => posts.map(({ mine: _mine, ...post }) => post);
 const SEED_REPLIES = {
   p1: [
     {
@@ -42,7 +44,12 @@ const SEED_REPLIES = {
   ],
 };
 export default function CommunityPage() {
-  const [posts, setPosts] = useState(communityPosts);
+  const [posts, setPosts] = usePersistedDashboardState(
+    "student",
+    "communityPosts",
+    communityPosts,
+    serializePosts,
+  );
   const [voted, setVoted] = useState({});
   const [open, setOpen] = useState(false);
   const [thread, setThread] = useState(null);

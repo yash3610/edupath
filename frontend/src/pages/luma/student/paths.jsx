@@ -25,6 +25,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { learningPathProgress } from "@/features/student/data/mock";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 const INITIAL_PATHS = [
   {
     id: "p1",
@@ -116,7 +118,16 @@ const INITIAL_PATHS = [
   },
 ];
 export default function PathsPage() {
-  const [paths, setPaths] = useState(INITIAL_PATHS);
+  const [progressById, setProgressById] = usePersistedDashboardState(
+    "student",
+    "learningPathProgress",
+    learningPathProgress,
+  );
+  const paths = INITIAL_PATHS.map((path) => ({ ...path, progress: progressById[path.id] ?? path.progress }));
+  const setPaths = (updater) => {
+    const next = typeof updater === "function" ? updater(paths) : updater;
+    setProgressById(Object.fromEntries(next.map((path) => [path.id, path.progress])));
+  };
   const [open, setOpen] = useState(null);
   const onStart = (id) => {
     setPaths((p) => p.map((x) => (x.id === id ? { ...x, progress: Math.max(x.progress, 5) } : x)));

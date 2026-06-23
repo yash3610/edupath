@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { instructorAssignments } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function AssignmentsPage() {
   const [grade, setGrade] = useState(null);
+  const [list, setList] = usePersistedDashboardState("instructor", "instructorAssignments", instructorAssignments);
   return (
     <div className="mx-auto max-w-[1400px]">
       <LmsPageHeader
@@ -26,7 +28,7 @@ export default function AssignmentsPage() {
         }
       />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {instructorAssignments.map((a, i) => (
+        {list.map((a, i) => (
           <motion.div
             key={a.id}
             initial={{ opacity: 0, y: 12 }}
@@ -104,6 +106,7 @@ export default function AssignmentsPage() {
                 <Button
                   className="mt-4 w-full rounded-xl gradient-primary border-0 text-primary-foreground"
                   onClick={() => {
+                    setList((items) => items.map((item) => item.id === grade.id ? { ...item, pending: Math.max(0, item.pending - 1) } : item));
                     toast.success("Submission graded");
                     setGrade(null);
                   }}

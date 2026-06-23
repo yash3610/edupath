@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { tickets } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function SupportPage() {
   const [open, setOpen] = useState(null);
+  const [list, setList] = usePersistedDashboardState("admin", "tickets", tickets);
   const cols = [
     {
       key: "id",
@@ -54,14 +56,17 @@ export default function SupportPage() {
         description="Customer inbox — prioritise and reply."
       />
       <DataTable
-        rows={tickets}
+        rows={list}
         columns={cols}
         searchKeys={["id", "user", "subject"]}
         actions={[
           { label: "Open thread", onClick: (r) => setOpen(r) },
           {
             label: "Mark resolved",
-            onClick: (r) => toast.success(`Resolved ${r.id}`),
+            onClick: (r) => {
+              setList((items) => items.map((item) => item.id === r.id ? { ...item, status: "resolved" } : item));
+              toast.success(`Resolved ${r.id}`);
+            },
           },
         ]}
       />

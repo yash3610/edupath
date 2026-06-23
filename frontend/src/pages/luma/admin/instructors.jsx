@@ -11,8 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { adminInstructors } from "@/features/admin/data/admin";
 import { inr } from "@/features/shared/utils/format";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function InstructorsPage() {
   const [view, setView] = useState("grid");
+  const [list, setList] = usePersistedDashboardState("admin", "adminInstructors", adminInstructors);
+  const setInstructorStatus = (instructor, status) => {
+    setList((items) => items.map((item) => item.id === instructor.id ? { ...item, status } : item));
+    toast(`${status === "approved" ? "Approved" : "Updated"} ${instructor.name}`);
+  };
   const columns = [
     {
       key: "name",
@@ -100,7 +106,7 @@ export default function InstructorsPage() {
 
       {view === "grid" ? (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {adminInstructors.map((r, i) => (
+        {list.map((r, i) => (
             <motion.div
               key={r.id}
               initial={{ opacity: 0, y: 12 }}
@@ -143,7 +149,7 @@ export default function InstructorsPage() {
                       <Button
                         size="sm"
                         className="h-8 rounded-lg gradient-primary border-0 text-primary-foreground text-xs"
-                        onClick={() => toast.success(`Approved ${r.name}`)}
+                        onClick={() => setInstructorStatus(r, "approved")}
                       >
                         <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approve
                       </Button>
@@ -151,7 +157,7 @@ export default function InstructorsPage() {
                         size="sm"
                         variant="outline"
                         className="h-8 rounded-lg border-border/60 text-xs"
-                        onClick={() => toast.error(`Rejected ${r.name}`)}
+                        onClick={() => setInstructorStatus(r, "rejected")}
                       >
                         <ShieldX className="mr-1 h-3.5 w-3.5" /> Reject
                       </Button>
@@ -173,15 +179,15 @@ export default function InstructorsPage() {
         </div>
       ) : (
         <DataTable
-          rows={adminInstructors}
+          rows={list}
           columns={columns}
           searchKeys={["name", "email", "expertise"]}
           actions={[
             {
               label: "Approve",
-              onClick: (r) => toast.success(`Approved ${r.name}`),
+              onClick: (r) => setInstructorStatus(r, "approved"),
             },
-            { label: "Suspend", onClick: (r) => toast(`Suspended ${r.name}`) },
+            { label: "Suspend", onClick: (r) => setInstructorStatus(r, "suspended") },
             {
               label: "View courses",
               onClick: () => toast("Opening courses…"),

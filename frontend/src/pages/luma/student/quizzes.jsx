@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { quizzes } from "@/features/student/data/mock";
+import { quizProgress, quizzes } from "@/features/student/data/mock";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 import { toast } from "sonner";
 const BANK = {
   q1: [
@@ -134,33 +135,14 @@ function questionsFor(id) {
 }
 export default function QuizzesPage() {
   const [activeId, setActiveId] = useState(null);
-  const [bestMap, setBestMap] = useState({});
-  const [attemptsMap, setAttemptsMap] = useState({});
-  useEffect(() => {
-    const raw = localStorage.getItem("luma-quiz-stats");
-    if (raw) {
-      try {
-        const p = JSON.parse(raw);
-        setBestMap(p.best ?? {});
-        setAttemptsMap(p.attempts ?? {});
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
-  const persist = (best, attempts) => {
-    localStorage.setItem("luma-quiz-stats", JSON.stringify({ best, attempts }));
-  };
+  const [progress, setProgress] = usePersistedDashboardState("student", "quizProgress", quizProgress);
+  const bestMap = progress.best;
+  const attemptsMap = progress.attempts;
   const handleFinish = (id, score) => {
-    setBestMap((b) => {
-      const nextBest = { ...b, [id]: Math.max(b[id] ?? 0, score) };
-      setAttemptsMap((a) => {
-        const next = { ...a, [id]: (a[id] ?? 0) + 1 };
-        persist(nextBest, next);
-        return next;
-      });
-      return nextBest;
-    });
+    setProgress((current) => ({
+      best: { ...current.best, [id]: Math.max(current.best[id] ?? 0, score) },
+      attempts: { ...current.attempts, [id]: (current.attempts[id] ?? 0) + 1 },
+    }));
   };
   return (
     <div className="mx-auto max-w-[1400px]">

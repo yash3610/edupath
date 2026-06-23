@@ -12,11 +12,13 @@ import { Progress } from "@/components/ui/progress";
 import { instructorCourses } from "@/features/instructor/data/instructor";
 import { inr } from "@/features/shared/utils/format";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 
 export default function InstructorCourses() {
   const [view, setView] = useState("grid");
   const [status, setStatus] = useState("all");
-  const rows = instructorCourses.filter((c) => status === "all" || c.status === status);
+  const [list, setList] = usePersistedDashboardState("instructor", "instructorCourses", instructorCourses);
+  const rows = list.filter((c) => status === "all" || c.status === status);
   const cols = [
     {
       key: "title",
@@ -74,7 +76,7 @@ export default function InstructorCourses() {
       <LmsPageHeader
         eyebrow="Teaching"
         title="My Courses"
-        description={`${instructorCourses.length} courses · ${instructorCourses.filter((c) => c.status === "published").length} live`}
+        description={`${list.length} courses · ${list.filter((c) => c.status === "published").length} live`}
         actions={
           <>
             <Tabs value={view} onValueChange={(v) => setView(v)}>
@@ -173,15 +175,24 @@ export default function InstructorCourses() {
             { label: "Edit", onClick: () => toast("Opening editor…") },
             {
               label: "Duplicate",
-              onClick: (r) => toast.success(`Duplicated ${r.title}`),
+              onClick: (r) => {
+                setList((items) => [{ ...r, id: `CRS-${Date.now()}`, title: `${r.title} Copy`, status: "draft" }, ...items]);
+                toast.success(`Duplicated ${r.title}`);
+              },
             },
             {
               label: "Archive",
-              onClick: (r) => toast(`Archived ${r.title}`),
+              onClick: (r) => {
+                setList((items) => items.map((item) => item.id === r.id ? { ...item, status: "archived" } : item));
+                toast(`Archived ${r.title}`);
+              },
             },
             {
               label: "Delete",
-              onClick: (r) => toast.error(`Deleted ${r.title}`),
+              onClick: (r) => {
+                setList((items) => items.filter((item) => item.id !== r.id));
+                toast.error(`Deleted ${r.title}`);
+              },
               danger: true,
             },
           ]}

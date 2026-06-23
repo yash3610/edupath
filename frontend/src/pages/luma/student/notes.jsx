@@ -16,8 +16,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { notes as seed } from "@/features/student/data/mock";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function NotesPage() {
-  const [list, setList] = useState(seed);
+  const [list, setList] = usePersistedDashboardState("student", "notes", seed);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState({ course: "", title: "", body: "" });

@@ -11,11 +11,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
 import { doubts } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 
 export default function InstructorDoubts() {
   const [tab, setTab] = useState("open");
   const [reply, setReply] = useState(null);
-  const rows = doubts.filter((d) => tab === "all" || d.status === tab);
+  const [list, setList] = usePersistedDashboardState("instructor", "doubts", doubts);
+  const rows = list.filter((d) => tab === "all" || d.status === tab);
+  const resolve = (doubt) => {
+    setList((items) => items.map((item) => item.id === doubt.id ? { ...item, status: "resolved" } : item));
+    toast.success("Marked resolved");
+  };
   return (
     <div className="mx-auto max-w-[1200px]">
       <LmsPageHeader
@@ -75,7 +81,7 @@ export default function InstructorDoubts() {
                     size="sm"
                     variant="outline"
                     className="rounded-lg border-border/60"
-                    onClick={() => toast.success("Marked resolved")}
+                    onClick={() => resolve(d)}
                   >
                     <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Resolve
                   </Button>
@@ -102,6 +108,7 @@ export default function InstructorDoubts() {
                 <Button
                   className="mt-3 w-full rounded-xl gradient-primary border-0 text-primary-foreground"
                   onClick={() => {
+                    setList((items) => items.map((item) => item.id === reply.id ? { ...item, replies: item.replies + 1 } : item));
                     toast.success("Answer posted");
                     setReply(null);
                   }}

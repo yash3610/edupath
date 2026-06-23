@@ -6,7 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { adminCommunity } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function Page() {
+  const [posts, setPosts] = usePersistedDashboardState("admin", "adminCommunity", adminCommunity);
   return (
     <div className="mx-auto max-w-[1100px]">
       <LmsPageHeader
@@ -15,7 +17,7 @@ export default function Page() {
         description="Reported and reviewed posts across discussion forums."
       />
       <div className="space-y-4">
-        {adminCommunity.map((p, i) => (
+        {posts.map((p, i) => (
           <motion.div
             key={p.id}
             initial={{ opacity: 0, y: 8 }}
@@ -58,7 +60,10 @@ export default function Page() {
                   size="sm"
                   variant="outline"
                   className="rounded-lg border-destructive/40 text-destructive hover:bg-destructive/10"
-                  onClick={() => toast.error("Post removed")}
+                  onClick={() => {
+                    setPosts((items) => items.filter((item) => item.id !== p.id));
+                    toast.error("Post removed");
+                  }}
                 >
                   <ShieldX className="mr-1 h-3.5 w-3.5" /> Remove
                 </Button>

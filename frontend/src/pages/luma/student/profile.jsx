@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { student, stats } from "@/features/student/data/mock";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function ProfilePage() {
   const [form, setForm] = useState({
     name: student.name,
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState(student.avatar);
   const [skillDlg, setSkillDlg] = useState(false);
   const [newSkill, setNewSkill] = useState("");
+  const [, saveStudent] = usePersistedDashboardState("student", "student", student);
   const onAvatar = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -152,7 +154,10 @@ export default function ProfilePage() {
               </div>
               <Button
                 className="rounded-xl gradient-primary border-0 text-primary-foreground"
-                onClick={() => toast.success("Profile saved")}
+                onClick={() => {
+                  saveStudent({ ...student, ...form, skills, avatar });
+                  toast.success("Profile saved");
+                }}
               >
                 <Save className="mr-2 h-4 w-4" /> Save changes
               </Button>

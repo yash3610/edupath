@@ -22,8 +22,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { instructorCourses } from "@/features/instructor/data/instructor";
+import { builderModules, instructorCourses } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 const INITIAL = [
   {
     id: "m1",
@@ -63,7 +64,7 @@ const ICONS = {
 };
 export default function BuilderPage() {
   const [course, setCourse] = useState(instructorCourses[0].id);
-  const [modules, setModules] = useState(INITIAL);
+  const [modules, setModules] = usePersistedDashboardState("instructor", "builderModules", builderModules);
   const addModule = () =>
     setModules([...modules, { id: `m${Date.now()}`, title: "Untitled module", lectures: [] }]);
   const addLecture = (mid) =>

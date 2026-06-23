@@ -449,6 +449,7 @@ const dashboardDatasetSchema = new Schema(
     format: { type: Schema.Types.Mixed, required: true },
     source: { type: String, default: "frontend-mock" },
     version: { type: Number, default: 1 },
+    updatedBy: { type: objectId, ref: "User" },
   },
   { ...baseOptions, minimize: false }
 );

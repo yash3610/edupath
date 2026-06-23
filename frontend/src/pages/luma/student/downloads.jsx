@@ -5,6 +5,8 @@ import { PageHeader } from "@/features/student/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { downloads } from "@/features/student/data/mock";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 const INITIAL = [
   {
     id: "f1",
@@ -37,7 +39,7 @@ const INITIAL = [
 ];
 const iconFor = { pdf: FileText, zip: FileArchive, video: FileVideo };
 export default function DownloadsPage() {
-  const [list, setList] = useState(INITIAL);
+  const [list, setList] = usePersistedDashboardState("student", "downloads", downloads);
   const [done, setDone] = useState({});
   const [progress, setProgress] = useState({});
   const download = (id, name) => {

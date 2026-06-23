@@ -33,10 +33,15 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { upcomingLive } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function LivePage() {
   const [tab, setTab] = useState("upcoming");
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [list, setList] = useState(() => upcomingLive.map((c) => ({ ...c })));
+  const [list, setList] = usePersistedDashboardState(
+    "instructor",
+    "upcomingLive",
+    () => upcomingLive.map((c) => ({ ...c })),
+  );
   const [editing, setEditing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [room, setRoom] = useState(null);

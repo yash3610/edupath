@@ -5,10 +5,11 @@ import { Heart, Play, Star, Trash2 } from "lucide-react";
 import { PageHeader } from "@/features/student/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { courses } from "@/features/student/data/mock";
+import { wishlist } from "@/features/student/data/mock";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function WishlistPage() {
-  const [list, setList] = useState([courses[3], courses[8], courses[5]]);
+  const [list, setList] = usePersistedDashboardState("student", "wishlist", wishlist);
   const remove = (id) => {
     setList((l) => l.filter((x) => x.id !== id));
     toast("Removed from wishlist");

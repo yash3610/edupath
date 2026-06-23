@@ -17,10 +17,23 @@ import { Badge } from "@/components/ui/badge";
 import { adminStudents } from "@/features/admin/data/admin";
 import { inr } from "@/features/shared/utils/format";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function StudentsPage() {
   const [tab, setTab] = useState("all");
   const [open, setOpen] = useState(null);
-  const rows = adminStudents.filter((s) => tab === "all" || s.status === tab);
+  const [list, setList] = usePersistedDashboardState("admin", "adminStudents", adminStudents);
+  const rows = list.filter((s) => tab === "all" || s.status === tab);
+  const toggleStatus = (student) => {
+    const status = student.status === "blocked" ? "active" : "blocked";
+    setList((items) => items.map((item) => item.id === student.id ? { ...item, status } : item));
+    setOpen((current) => current?.id === student.id ? { ...current, status } : current);
+    toast(`${status === "blocked" ? "Blocked" : "Unblocked"} ${student.name}`);
+  };
+  const removeStudent = (student) => {
+    setList((items) => items.filter((item) => item.id !== student.id));
+    setOpen((current) => current?.id === student.id ? null : current);
+    toast.error(`Deleted ${student.name}`);
+  };
   const columns = [
     {
       key: "name",
@@ -80,7 +93,7 @@ export default function StudentsPage() {
       <LmsPageHeader
         eyebrow="People"
         title="Students"
-        description={`Manage ${adminStudents.length.toLocaleString()} learners — view enrolments, block, message and more.`}
+        description={`Manage ${list.length.toLocaleString()} learners — view enrolments, block, message and more.`}
         actions={
           <>
             <Button variant="outline" className="rounded-xl border-border/60">
@@ -124,11 +137,11 @@ export default function StudentsPage() {
           },
           {
             label: "Block / unblock",
-            onClick: (r) => toast(`${r.status === "blocked" ? "Unblocked" : "Blocked"} ${r.name}`),
+            onClick: toggleStatus,
           },
           {
             label: "Delete student",
-            onClick: (r) => toast.error(`Deleted ${r.name}`),
+            onClick: removeStudent,
             danger: true,
           },
         ]}
@@ -213,9 +226,7 @@ export default function StudentsPage() {
                 <Button
                   variant="outline"
                   className="rounded-xl border-border/60"
-                  onClick={() =>
-                    toast(`${open.status === "blocked" ? "Unblocked" : "Blocked"} ${open.name}`)
-                  }
+                  onClick={() => toggleStatus(open)}
                 >
                   {open.status === "blocked" ? "Unblock" : "Block"}
                 </Button>

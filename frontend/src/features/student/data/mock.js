@@ -149,6 +149,15 @@ export const courses = [
     status: "not-started",
   },
 ];
+export const wishlist = [courses[3], courses[8], courses[5]];
+export const downloads = [
+  { id: "f1", name: "React Patterns — Cheatsheet", course: "Advanced React", size: "1.4 MB", type: "pdf" },
+  { id: "f2", name: "ML Notebook Pack", course: "ML Foundations", size: "82 MB", type: "zip" },
+  { id: "f3", name: "Lecture 12 — Video (720p)", course: "Advanced React", size: "412 MB", type: "video" },
+  { id: "f4", name: "Design Tokens Starter", course: "Modern Design", size: "260 KB", type: "zip" },
+];
+export const learningPathProgress = { p1: 62, p2: 38, p3: 14, p4: 0 };
+export const quizProgress = { best: {}, attempts: {} };
 export const continueLearning = {
   course: courses[0],
   lecture: "Compound Components & the Provider Pattern",
@@ -387,30 +396,35 @@ export const notifications = [
     type: "lecture",
     text: "New lecture added in Advanced React: 'Server Components in Production'",
     time: "5m ago",
+    read: false,
   },
   {
     id: "n2",
     type: "quiz",
     text: "Your quiz 'React Hooks Deep Dive' was graded — 93%",
     time: "1h ago",
+    read: false,
   },
   {
     id: "n3",
     type: "cert",
     text: "Certificate issued for Building with LLMs",
     time: "2h ago",
+    read: false,
   },
   {
     id: "n4",
     type: "community",
     text: "Priya replied to your question on State Management",
     time: "4h ago",
+    read: false,
   },
   {
     id: "n5",
     type: "assignment",
     text: "Instructor feedback ready on 'Linear Regression from Scratch'",
     time: "Yesterday",
+    read: false,
   },
 ];
 export const orders = [

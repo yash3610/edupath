@@ -3,8 +3,9 @@ import { LmsPageHeader } from "@/features/shared/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { instructorNotifications } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function NotifPage() {
-  const [list, setList] = useState(instructorNotifications);
+  const [list, setList] = usePersistedDashboardState("instructor", "instructorNotifications", instructorNotifications);
   const unread = list.filter((n) => !n.read).length;
   const toggle = (id) => setList((l) => l.map((n) => (n.id === id ? { ...n, read: !n.read } : n)));
   const markAll = () => {

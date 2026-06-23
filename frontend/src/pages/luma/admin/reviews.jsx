@@ -8,9 +8,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
 import { adminReviews } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function ReviewsPage() {
   const [tab, setTab] = useState("all");
-  const rows = adminReviews.filter((r) => tab === "all" || r.status === tab);
+  const [list, setList] = usePersistedDashboardState("admin", "adminReviews", adminReviews);
+  const rows = list.filter((r) => tab === "all" || r.status === tab);
+  const toggleVisibility = (review) => {
+    const status = review.status === "hidden" ? "visible" : "hidden";
+    setList((items) => items.map((item) => item.id === review.id ? { ...item, status } : item));
+    toast(`${status === "hidden" ? "Hidden" : "Unhidden"} review`);
+  };
   return (
     <div className="mx-auto max-w-[1300px]">
       <LmsPageHeader
@@ -66,7 +73,7 @@ export default function ReviewsPage() {
                 size="sm"
                 variant="outline"
                 className="rounded-lg border-border/60"
-                onClick={() => toast(`${r.status === "hidden" ? "Unhidden" : "Hidden"} review`)}
+                onClick={() => toggleVisibility(r)}
               >
                 {r.status === "hidden" ? "Unhide" : "Hide"}
               </Button>

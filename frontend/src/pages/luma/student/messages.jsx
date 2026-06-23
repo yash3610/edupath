@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { messages } from "@/features/student/data/mock";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 const SEED = {
   m1: [
     {
@@ -31,7 +32,7 @@ const SEED = {
   ],
 };
 export default function MessagesPage() {
-  const [threads, setThreads] = useState(messages);
+  const [threads, setThreads] = usePersistedDashboardState("student", "messages", messages);
   const [activeId, setActiveId] = useState(threads[0].id);
   const [convos, setConvos] = useState(SEED);
   const [input, setInput] = useState("");

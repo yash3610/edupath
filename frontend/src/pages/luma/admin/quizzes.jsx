@@ -3,7 +3,13 @@ import { DataTable } from "@/features/shared/components/DataTable";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
 import { adminQuizzes } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function Page() {
+  const [list, setList] = usePersistedDashboardState("admin", "adminQuizzes", adminQuizzes);
+  const updateStatus = (quiz, status) => {
+    setList((items) => items.map((item) => item.id === quiz.id ? { ...item, status } : item));
+    toast[status === "published" ? "success" : "error"](`${status === "published" ? "Approved" : "Rejected"} ${quiz.title}`);
+  };
   const cols = [
     {
       key: "title",
@@ -43,7 +49,7 @@ export default function Page() {
         description="All quizzes across courses — review, approve, and analyze."
       />
       <DataTable
-        rows={adminQuizzes}
+        rows={list}
         columns={cols}
         searchKeys={["title", "course", "instructor"]}
         actions={[
@@ -53,11 +59,11 @@ export default function Page() {
           },
           {
             label: "Approve",
-            onClick: (r) => toast.success(`Approved ${r.title}`),
+            onClick: (r) => updateStatus(r, "published"),
           },
           {
             label: "Reject",
-            onClick: (r) => toast.error(`Rejected ${r.title}`),
+            onClick: (r) => updateStatus(r, "rejected"),
             danger: true,
           },
         ]}

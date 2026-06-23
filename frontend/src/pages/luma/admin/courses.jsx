@@ -38,10 +38,17 @@ import { Switch } from "@/components/ui/switch";
 import { adminCourses as INITIAL } from "@/features/admin/data/admin";
 import { inr } from "@/features/shared/utils/format";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
+const serializeCourses = (courses) => courses.map(({ featured: _featured, ...course }) => course);
 export default function CoursesPage() {
   const [view, setView] = useState("grid");
   const [status, setStatus] = useState("all");
-  const [list, setList] = useState(() => INITIAL.map((c) => ({ ...c, featured: false })));
+  const [list, setList] = usePersistedDashboardState(
+    "admin",
+    "adminCourses",
+    () => INITIAL.map((c) => ({ ...c, featured: false })),
+    serializeCourses,
+  );
   const [manageOf, setManageOf] = useState(null);
   const [previewOf, setPreviewOf] = useState(null);
   const [deleteOf, setDeleteOf] = useState(null);

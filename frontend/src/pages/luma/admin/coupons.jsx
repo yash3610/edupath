@@ -23,9 +23,11 @@ import {
 } from "@/components/ui/select";
 import { adminCoupons } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function CouponsPage() {
-  const [list, setList] = useState(adminCoupons);
+  const [list, setList] = usePersistedDashboardState("admin", "adminCoupons", adminCoupons);
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState({ code: "", type: "Percent", value: 20, max: 500, min: 1999, expiry: "" });
   return (
     <div className="mx-auto max-w-[1300px]">
       <LmsPageHeader
@@ -105,11 +107,11 @@ export default function CouponsPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Code</Label>
-              <Input placeholder="WELCOME500" className="mt-1 rounded-xl font-mono uppercase" />
+              <Input value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })} placeholder="WELCOME500" className="mt-1 rounded-xl font-mono uppercase" />
             </div>
             <div>
               <Label>Type</Label>
-              <Select defaultValue="Percent">
+              <Select value={draft.type} onValueChange={(type) => setDraft({ ...draft, type })}>
                 <SelectTrigger className="mt-1 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -121,19 +123,19 @@ export default function CouponsPage() {
             </div>
             <div>
               <Label>Value</Label>
-              <Input placeholder="20" type="number" className="mt-1 rounded-xl" />
+              <Input value={draft.value} onChange={(e) => setDraft({ ...draft, value: Number(e.target.value) })} placeholder="20" type="number" className="mt-1 rounded-xl" />
             </div>
             <div>
               <Label>Max usage</Label>
-              <Input placeholder="500" type="number" className="mt-1 rounded-xl" />
+              <Input value={draft.max} onChange={(e) => setDraft({ ...draft, max: Number(e.target.value) })} placeholder="500" type="number" className="mt-1 rounded-xl" />
             </div>
             <div>
               <Label>Min order ₹</Label>
-              <Input placeholder="1999" type="number" className="mt-1 rounded-xl" />
+              <Input value={draft.min} onChange={(e) => setDraft({ ...draft, min: Number(e.target.value) })} placeholder="1999" type="number" className="mt-1 rounded-xl" />
             </div>
             <div>
               <Label>Expiry</Label>
-              <Input type="date" className="mt-1 rounded-xl" />
+              <Input value={draft.expiry} onChange={(e) => setDraft({ ...draft, expiry: e.target.value })} type="date" className="mt-1 rounded-xl" />
             </div>
           </div>
           <DialogFooter>
@@ -142,7 +144,10 @@ export default function CouponsPage() {
             </Button>
             <Button
               onClick={() => {
+                if (!draft.code || !draft.expiry) return toast.error("Code and expiry are required");
+                setList((items) => [{ ...draft, used: 0, status: "active" }, ...items]);
                 toast.success("Coupon created");
+                setDraft({ code: "", type: "Percent", value: 20, max: 500, min: 1999, expiry: "" });
                 setOpen(false);
               }}
               className="rounded-xl gradient-primary border-0 text-primary-foreground"

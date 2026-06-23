@@ -18,8 +18,9 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
 import { adminCategories } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function CategoriesPage() {
-  const [list, setList] = useState(adminCategories);
+  const [list, setList] = usePersistedDashboardState("admin", "adminCategories", adminCategories);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const add = () => {

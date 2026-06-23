@@ -406,3 +406,23 @@ export const instructorNotifications = Array.from({ length: 8 }, (_, i) => ({
   time: ["5m", "12m", "32m", "1h", "2h", "3h", "5h", "Yesterday"][i] + " ago",
   read: i > 2,
 }));
+export const builderModules = [
+  {
+    id: "m1",
+    title: "Introduction",
+    lectures: [
+      { id: "l1", title: "Welcome to the course", type: "video", duration: "08:24", preview: true },
+      { id: "l2", title: "Course resources", type: "pdf" },
+      { id: "l3", title: "Module 1 quiz", type: "quiz" },
+    ],
+  },
+  {
+    id: "m2",
+    title: "Foundations",
+    lectures: [
+      { id: "l4", title: "Compound components", type: "video", duration: "22:45" },
+      { id: "l5", title: "Render props", type: "video", duration: "18:10" },
+      { id: "l6", title: "Build a popover", type: "assignment" },
+    ],
+  },
+];

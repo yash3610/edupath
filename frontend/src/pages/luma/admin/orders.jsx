@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { adminOrders } from "@/features/admin/data/admin";
 import { inr } from "@/features/shared/utils/format";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function OrdersPage() {
+  const [list, setList] = usePersistedDashboardState("admin", "adminOrders", adminOrders);
   const columns = [
     {
       key: "id",
@@ -79,14 +81,17 @@ export default function OrdersPage() {
         }
       />
       <DataTable
-        rows={adminOrders}
+        rows={list}
         columns={columns}
         searchKeys={["id", "student", "course"]}
         actions={[
           { label: "View invoice", onClick: () => toast("Opening invoice…") },
           {
             label: "Issue refund",
-            onClick: (r) => toast.error(`Refund issued for ${r.id}`),
+            onClick: (r) => {
+              setList((items) => items.map((item) => item.id === r.id ? { ...item, status: "refunded" } : item));
+              toast.error(`Refund issued for ${r.id}`);
+            },
             danger: true,
           },
         ]}

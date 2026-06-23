@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { apiRequest } from "@/services/api";
 const sections = [
   {
     title: "Preferences",
@@ -62,7 +63,7 @@ const sections = [
 export default function SettingsPage() {
   const [pw, setPw] = useState({ current: "", next: "" });
   const [confirmDel, setConfirmDel] = useState(false);
-  const updatePw = () => {
+  const updatePw = async () => {
     if (!pw.current || !pw.next) {
       toast.error("Both fields required");
       return;
@@ -71,8 +72,16 @@ export default function SettingsPage() {
       toast.error("New password must be at least 8 chars");
       return;
     }
-    setPw({ current: "", next: "" });
-    toast.success("Password updated");
+    try {
+      await apiRequest("/api/profile/change-password", {
+        method: "PATCH",
+        body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }),
+      });
+      setPw({ current: "", next: "" });
+      toast.success("Password updated");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
   return (
     <div className="mx-auto max-w-[1000px]">
@@ -93,7 +102,15 @@ export default function SettingsPage() {
                   </div>
                   <Switch
                     defaultChecked={it.on}
-                    onCheckedChange={(v) => toast(`${it.k} ${v ? "on" : "off"}`)}
+                    onCheckedChange={async (v) => {
+                      try {
+                        const key = it.k.toLowerCase().replace(/[^a-z0-9]+(.)/g, (_, letter) => letter.toUpperCase());
+                        await apiRequest("/api/settings", { method: "PATCH", body: JSON.stringify({ [key]: v }) });
+                        toast(`${it.k} ${v ? "on" : "off"}`);
+                      } catch (error) {
+                        toast.error(error.message);
+                      }
+                    }}
                   />
                 </li>
               ))}
@@ -155,7 +172,14 @@ export default function SettingsPage() {
             <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => toast.error("Account scheduled for deletion in 24h")}
+              onClick={async () => {
+                try {
+                  await apiRequest("/api/settings/delete-account", { method: "DELETE" });
+                  toast.error("Account scheduled for deletion");
+                } catch (error) {
+                  toast.error(error.message);
+                }
+              }}
             >
               Yes, delete
             </AlertDialogAction>

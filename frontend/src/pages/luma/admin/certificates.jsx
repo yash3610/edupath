@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { adminCertificates } from "@/features/admin/data/admin";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function Page() {
+  const [list, setList] = usePersistedDashboardState("admin", "adminCertificates", adminCertificates);
   const cols = [
     {
       key: "id",
@@ -43,7 +45,7 @@ export default function Page() {
         }
       />
       <DataTable
-        rows={adminCertificates}
+        rows={list}
         columns={cols}
         searchKeys={["id", "student", "course"]}
         actions={[
@@ -54,7 +56,10 @@ export default function Page() {
           { label: "Download PDF", onClick: () => toast("Downloading…") },
           {
             label: "Revoke",
-            onClick: (r) => toast.error(`Revoked ${r.id}`),
+            onClick: (r) => {
+              setList((items) => items.map((item) => item.id === r.id ? { ...item, status: "revoked" } : item));
+              toast.error(`Revoked ${r.id}`);
+            },
             danger: true,
           },
         ]}

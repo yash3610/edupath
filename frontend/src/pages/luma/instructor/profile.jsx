@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { instructor } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
+import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 export default function Page() {
+  const [profile, setProfile] = usePersistedDashboardState("instructor", "instructor", instructor);
+  const [form, setForm] = useState({ name: profile.name, bio: profile.bio });
   return (
     <div className="mx-auto max-w-[1100px]">
       <LmsPageHeader
@@ -35,7 +38,7 @@ export default function Page() {
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div>
               <Label>Full name</Label>
-              <Input defaultValue={instructor.name} className="mt-1 rounded-xl" />
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 rounded-xl" />
             </div>
             <div>
               <Label>Email</Label>
@@ -51,7 +54,7 @@ export default function Page() {
             </div>
             <div className="md:col-span-2">
               <Label>Bio</Label>
-              <Textarea rows={4} defaultValue={instructor.bio} className="mt-1 rounded-xl" />
+              <Textarea rows={4} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className="mt-1 rounded-xl" />
             </div>
             <div className="md:col-span-2">
               <Label>Expertise</Label>
@@ -67,7 +70,10 @@ export default function Page() {
 
           <Button
             className="mt-6 rounded-xl gradient-primary border-0 text-primary-foreground"
-            onClick={() => toast.success("Profile saved")}
+            onClick={() => {
+              setProfile({ ...profile, ...form });
+              toast.success("Profile saved");
+            }}
           >
             Save changes
           </Button>
@@ -77,3 +83,4 @@ export default function Page() {
   );
 }
 
+import { useState } from "react";

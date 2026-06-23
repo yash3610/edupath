@@ -12,6 +12,7 @@ export function inferDashboardFormat(value) {
     };
   }
   if (typeof value === "object") {
+    if (Object.keys(value).length === 0) return { type: "record", value: { type: "any" } };
     return {
       type: "object",
       fields: Object.fromEntries(Object.entries(value).map(([key, item]) => [key, inferDashboardFormat(item)])),
@@ -21,10 +22,25 @@ export function inferDashboardFormat(value) {
 }
 
 export function validateDashboardFormat(value, format, path = "data") {
+  rejectUnsafeKeys(value, path);
   const errors = [];
   validateValue(value, format, path, errors);
   if (errors.length) throw new ApiError(400, `Dashboard data format mismatch: ${errors.slice(0, 5).join("; ")}`);
   return true;
+}
+
+function rejectUnsafeKeys(value, path) {
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => rejectUnsafeKeys(item, `${path}[${index}]`));
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (["__proto__", "prototype", "constructor"].includes(key) || key.startsWith("$") || key.includes(".")) {
+      throw new ApiError(400, `Unsafe field name at ${path}.${key}`);
+    }
+    rejectUnsafeKeys(child, `${path}.${key}`);
+  }
 }
 
 function validateValue(value, format, path, errors) {
@@ -42,6 +58,14 @@ function validateValue(value, format, path, errors) {
     value.forEach((item, index) => validateValue(item, format.item, `${path}[${index}]`, errors));
     return;
   }
+  if (format.type === "record") {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      errors.push(`${path} must be an object map`);
+      return;
+    }
+    Object.entries(value).forEach(([key, item]) => validateValue(item, format.value, `${path}.${key}`, errors));
+    return;
+  }
   if (format.type === "object") {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       errors.push(`${path} must be an object`);
@@ -49,7 +73,7 @@ function validateValue(value, format, path, errors) {
     }
     const expected = Object.keys(format.fields).sort();
     const received = Object.keys(value).sort();
-    const missing = expected.filter((key) => !received.includes(key));
+    const missing = expected.filter((key) => !format.fields[key].optional && !received.includes(key));
     const extra = received.filter((key) => !expected.includes(key));
     if (missing.length) errors.push(`${path} missing fields: ${missing.join(", ")}`);
     if (extra.length) errors.push(`${path} has unknown fields: ${extra.join(", ")}`);
@@ -74,10 +98,14 @@ function mergeFormats(formats) {
   }
 
   if (formats.every((format) => format.type === "object")) {
-    const commonKeys = Object.keys(formats[0].fields).filter((key) => formats.every((format) => key in format.fields));
+    const allKeys = [...new Set(formats.flatMap((format) => Object.keys(format.fields)))];
     return {
       type: "object",
-      fields: Object.fromEntries(commonKeys.map((key) => [key, mergeFormats(formats.map((format) => format.fields[key]))])),
+      fields: Object.fromEntries(allKeys.map((key) => {
+        const present = formats.map((format) => format.fields[key]).filter(Boolean);
+        const merged = mergeFormats(present);
+        return [key, { ...merged, optional: present.length !== formats.length || Boolean(merged.optional) }];
+      })),
     };
   }
 

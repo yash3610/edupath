@@ -159,6 +159,7 @@ Dashboard roots:
 The frontend mock exports are also stored unchanged in the `dashboarddatasets` collection. Each record keeps its inferred field/type format. New items and replacements can be validated through:
 
 - `GET /api/dashboard-data/:role`
+- `GET /api/dashboard-data/:role/snapshot`
 - `GET /api/dashboard-data/:role/:key`
 - `POST /api/dashboard-data/:role/:key/items`
 - `PUT /api/dashboard-data/:role/:key`
