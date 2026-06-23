@@ -117,13 +117,28 @@ async function issueCertificateIfEligible(student, courseId, progress) {
   return certificate;
 }
 
-export const dashboardStats = asyncHandler(async (req, res) => ok(res, {
-  enrolledCourses: await Enrollment.countDocuments({ student: userId(req) }),
-  completedCourses: await Enrollment.countDocuments({ student: userId(req), status: "completed" }),
-  learningHours: 146,
-  certificates: await Certificate.countDocuments({ student: userId(req) }),
-  quizAverage: 88,
-}));
+export const dashboardStats = asyncHandler(async (req, res) => {
+  const student = userId(req);
+  const [enrollments, watchTime, certificates, quizScores] = await Promise.all([
+    Enrollment.find({ student }).select("status progress").lean(),
+    LectureProgress.aggregate([
+      { $match: { student } },
+      { $group: { _id: null, seconds: { $sum: "$watchTimeSeconds" } } },
+    ]),
+    Certificate.countDocuments({ student }),
+    QuizAttempt.find({ student, status: { $in: ["submitted", "auto-submitted", "passed", "failed"] } }).select("percentage score").lean(),
+  ]);
+  const quizAverage = quizScores.length
+    ? Math.round(quizScores.reduce((sum, item) => sum + Number(item.percentage ?? item.score ?? 0), 0) / quizScores.length)
+    : 0;
+  ok(res, {
+    enrolledCourses: enrollments.length,
+    completedCourses: enrollments.filter((item) => item.status === "completed" || item.progress >= 100).length,
+    learningHours: Number(((watchTime[0]?.seconds || 0) / 3600).toFixed(1)),
+    certificates,
+    quizAverage,
+  });
+});
 export const studentAnalytics = asyncHandler(async (req, res) => {
   const student = userId(req);
   const [enrollments, progress, attempts, certificateCount] = await Promise.all([
@@ -760,7 +775,13 @@ export const paidEnrollment = asyncHandler(async (req, res) => {
 export const checkEnrollment = asyncHandler(async (req, res) => ok(res, { enrolled: Boolean(await Enrollment.findOne({ student: userId(req), course: req.params.courseId })) }));
 export const myEnrollments = asyncHandler(async (req, res) => ok(res, await Enrollment.find({ student: userId(req) }).populate("course")));
 
-export const instructorDashboard = asyncHandler(async (req, res) => ok(res, { courses: await Course.countDocuments({ instructor: userId(req) }), students: await Enrollment.countDocuments({}) }));
+export const instructorDashboard = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  ok(res, {
+    courses: courseIds.length,
+    students: await Enrollment.distinct("student", { course: { $in: courseIds }, status: { $ne: "cancelled" } }).then((items) => items.length),
+  });
+});
 export const instructorStats = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
   const revenue = await Order.aggregate([{ $match: { course: { $in: courseIds }, status: "paid" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]);

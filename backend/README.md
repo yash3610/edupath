@@ -139,3 +139,26 @@ Zoom and Google Meet are currently external meeting links. Their native attendan
 
 ## Security
 Helmet, CORS, rate limiting, Mongo sanitize, XSS clean, JWT middleware, role middleware and file validation are wired in `src/middleware`.
+## Dashboard database setup
+
+The current application uses the `backend/src` API and MongoDB models as the canonical backend for all three dashboards.
+
+```bash
+npm run db:reset
+npm run dev
+```
+
+`db:reset` drops the configured MongoDB database, recreates indexes, and seeds connected Admin, Instructor, and Student demo data. Configure all seed credentials in `.env`; the student seed variables are documented in `.env.example`.
+
+Dashboard roots:
+
+- Student: `/dashboard`
+- Instructor: `/instructor/dashboard`
+- Admin: `/admin/dashboard`
+
+The frontend mock exports are also stored unchanged in the `dashboarddatasets` collection. Each record keeps its inferred field/type format. New items and replacements can be validated through:
+
+- `GET /api/dashboard-data/:role`
+- `GET /api/dashboard-data/:role/:key`
+- `POST /api/dashboard-data/:role/:key/items`
+- `PUT /api/dashboard-data/:role/:key`

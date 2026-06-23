@@ -23,6 +23,7 @@ import quizRoutes from "./routes/quizRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import wishlistRoutes from "./routes/wishlistRoutes.js";
+import dashboardDataRoutes from "./routes/dashboardDataRoutes.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 import { applySecurity } from "./middleware/securityMiddleware.js";
 
@@ -60,6 +61,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/instructor", instructorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/dashboard-data", dashboardDataRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

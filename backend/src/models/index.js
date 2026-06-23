@@ -178,8 +178,14 @@ export const Lecture = makeModel(
   )
 );
 
-export const Enrollment = makeModel("Enrollment", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, status: { type: String, enum: ["active", "completed", "cancelled"], default: "active" }, progress: { type: Number, default: 0 }, enrolledAt: { type: Date, default: Date.now } }, baseOptions));
-export const LectureProgress = makeModel("LectureProgress", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, lecture: { type: objectId, ref: "Lecture", required: true }, completed: { type: Boolean, default: false }, watchedPercentage: { type: Number, default: 0 }, lastPositionSeconds: { type: Number, default: 0 }, watchTimeSeconds: { type: Number, default: 0 }, bookmarked: { type: Boolean, default: false }, bookmarkTimestamps: [{ seconds: Number, label: String }] }, baseOptions));
+const enrollmentSchema = new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, status: { type: String, enum: ["active", "completed", "cancelled"], default: "active" }, progress: { type: Number, min: 0, max: 100, default: 0 }, enrolledAt: { type: Date, default: Date.now } }, baseOptions);
+enrollmentSchema.index({ student: 1, course: 1 }, { unique: true });
+export const Enrollment = makeModel("Enrollment", enrollmentSchema);
+
+const lectureProgressSchema = new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, lecture: { type: objectId, ref: "Lecture", required: true }, completed: { type: Boolean, default: false }, watchedPercentage: { type: Number, min: 0, max: 100, default: 0 }, lastPositionSeconds: { type: Number, default: 0 }, watchTimeSeconds: { type: Number, default: 0 }, bookmarked: { type: Boolean, default: false }, bookmarkTimestamps: [{ seconds: Number, label: String }] }, baseOptions);
+lectureProgressSchema.index({ student: 1, lecture: 1 }, { unique: true });
+lectureProgressSchema.index({ student: 1, course: 1 });
+export const LectureProgress = makeModel("LectureProgress", lectureProgressSchema);
 export const CourseAnalytics = makeModel("CourseAnalytics", new Schema({ course: { type: objectId, ref: "Course", required: true, unique: true }, totalViews: { type: Number, default: 0 }, totalWatchTimeSeconds: { type: Number, default: 0 }, activeStudents: { type: Number, default: 0 }, completionRate: { type: Number, default: 0 }, quizPassRate: { type: Number, default: 0 }, assignmentSubmissionRate: { type: Number, default: 0 }, revenue: { type: Number, default: 0 } }, baseOptions));
 export const Note = makeModel("Note", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course" }, lecture: { type: objectId, ref: "Lecture" }, title: String, content: String, pinned: { type: Boolean, default: false } }, baseOptions));
 
@@ -300,10 +306,19 @@ export const QuizAttempt = makeModel(
     baseOptions
   )
 );
+QuizAttempt.schema.index({ quiz: 1, student: 1, attemptNumber: 1 }, { unique: true });
 export const Assignment = makeModel("Assignment", new Schema({ course: { type: objectId, ref: "Course" }, title: String, description: String, dueDate: Date, allowedFileTypes: [String], maxMarks: Number }, baseOptions));
-export const AssignmentSubmission = makeModel("AssignmentSubmission", new Schema({ assignment: { type: objectId, ref: "Assignment" }, student: { type: objectId, ref: "User" }, fileUrl: String, status: { type: String, enum: ["pending", "submitted", "graded", "overdue"], default: "submitted" }, grade: String, feedback: String }, baseOptions));
-export const Certificate = makeModel("Certificate", new Schema({ student: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, instructor: { type: objectId, ref: "User" }, certificateCode: { type: String, unique: true }, issuedAt: Date, completionDate: Date, verificationUrl: String, qrCodeUrl: String, pdfUrl: String }, baseOptions));
-export const Wishlist = makeModel("Wishlist", new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true } }, baseOptions));
+const assignmentSubmissionSchema = new Schema({ assignment: { type: objectId, ref: "Assignment", required: true }, student: { type: objectId, ref: "User", required: true }, fileUrl: String, status: { type: String, enum: ["pending", "submitted", "graded", "overdue"], default: "submitted" }, grade: String, feedback: String }, baseOptions);
+assignmentSubmissionSchema.index({ assignment: 1, student: 1 }, { unique: true });
+export const AssignmentSubmission = makeModel("AssignmentSubmission", assignmentSubmissionSchema);
+
+const certificateSchema = new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, instructor: { type: objectId, ref: "User" }, certificateCode: { type: String, unique: true }, issuedAt: Date, completionDate: Date, verificationUrl: String, qrCodeUrl: String, pdfUrl: String }, baseOptions);
+certificateSchema.index({ student: 1, course: 1 }, { unique: true });
+export const Certificate = makeModel("Certificate", certificateSchema);
+
+const wishlistSchema = new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true } }, baseOptions);
+wishlistSchema.index({ student: 1, course: 1 }, { unique: true });
+export const Wishlist = makeModel("Wishlist", wishlistSchema);
 export const Notification = makeModel("Notification", new Schema({ user: { type: objectId, ref: "User" }, type: String, title: String, message: String, read: { type: Boolean, default: false } }, baseOptions));
 export const Conversation = makeModel("Conversation", new Schema({ participants: [{ type: objectId, ref: "User" }], lastMessage: String, lastMessageAt: Date }, baseOptions));
 export const Message = makeModel("Message", new Schema({ conversation: { type: objectId, ref: "Conversation" }, sender: { type: objectId, ref: "User" }, body: String, attachmentUrl: String, attachmentName: String, attachmentType: String, readBy: [{ type: objectId, ref: "User" }] }, baseOptions));
@@ -311,7 +326,9 @@ export const Message = makeModel("Message", new Schema({ conversation: { type: o
 export const Order = makeModel("Order", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, items: [Schema.Types.Mixed], amount: Number, status: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending" }, invoiceNumber: String, razorpayOrderId: String }, baseOptions));
 export const Payment = makeModel("Payment", new Schema({ user: { type: objectId, ref: "User" }, order: { type: objectId, ref: "Order" }, razorpayOrderId: String, razorpayPaymentId: String, amount: Number, status: String, method: String }, baseOptions));
 export const RefundRequest = makeModel("RefundRequest", new Schema({ user: { type: objectId, ref: "User" }, order: { type: objectId, ref: "Order" }, payment: { type: objectId, ref: "Payment" }, reason: String, status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" } }, baseOptions));
-export const Review = makeModel("Review", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, rating: Number, comment: String }, baseOptions));
+const reviewSchema = new Schema({ user: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true }, rating: { type: Number, min: 1, max: 5 }, comment: String }, baseOptions);
+reviewSchema.index({ user: 1, course: 1 }, { unique: true });
+export const Review = makeModel("Review", reviewSchema);
 export const DiscussionQuestion = makeModel("DiscussionQuestion", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, body: String, tags: [String] }, baseOptions));
 export const DiscussionAnswer = makeModel("DiscussionAnswer", new Schema({ question: { type: objectId, ref: "DiscussionQuestion" }, user: { type: objectId, ref: "User" }, body: String, upvotes: [{ type: objectId, ref: "User" }], accepted: { type: Boolean, default: false } }, baseOptions));
 export const CalendarEvent = makeModel("CalendarEvent", new Schema({
@@ -422,3 +439,18 @@ export const Coupon = makeModel("Coupon", new Schema({ code: { type: String, uni
 export const AIChat = makeModel("AIChat", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, question: String, answer: String }, baseOptions));
 export const AISummary = makeModel("AISummary", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, lecture: { type: objectId, ref: "Lecture" }, summary: String, keyPoints: [String], actionItems: [String] }, baseOptions));
 export const MLAnalytics = makeModel("MLAnalytics", new Schema({ user: { type: objectId, ref: "User" }, learningPattern: Schema.Types.Mixed, engagementScore: Number, completionProbability: Number, weakTopics: [String], strongTopics: [String], skillGrowth: [Schema.Types.Mixed], successPrediction: String }, baseOptions));
+
+const dashboardDatasetSchema = new Schema(
+  {
+    role: { type: String, enum: ["admin", "instructor", "student"], required: true, index: true },
+    key: { type: String, required: true, trim: true },
+    valueType: { type: String, enum: ["array", "object"], required: true },
+    data: { type: Schema.Types.Mixed, required: true },
+    format: { type: Schema.Types.Mixed, required: true },
+    source: { type: String, default: "frontend-mock" },
+    version: { type: Number, default: 1 },
+  },
+  { ...baseOptions, minimize: false }
+);
+dashboardDatasetSchema.index({ role: 1, key: 1 }, { unique: true });
+export const DashboardDataset = makeModel("DashboardDataset", dashboardDatasetSchema);
