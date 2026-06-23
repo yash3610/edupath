@@ -53,8 +53,11 @@ export function LmsSidebar({ role, user, groups }) {
               <SidebarMenu>
                 {g.items.map((item) => {
                   const Icon = Icons[item.icon] ?? Icons.Circle;
-                  const base = `/${role.toLowerCase()}`;
-                  const active = item.url === base ? path === base : path.startsWith(item.url);
+                  const dashboardRoot = `/${role.toLowerCase()}/dashboard`;
+                  const active =
+                    item.url === dashboardRoot
+                      ? path === item.url
+                      : path === item.url || path.startsWith(`${item.url}/`);
                   return (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton
