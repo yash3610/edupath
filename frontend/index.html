@@ -8,18 +8,40 @@
       content="online learning, education, e-learning, courses, tutorials, educational resources, skill development, career enhancement"
     />
     <link rel="icon" type="image/x-icon" href="/assets/images/favicon.svg" />
-    <link rel="stylesheet" href="/assets/plugins/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/assets/plugins/css/animate.min.css" />
-    <link rel="stylesheet" href="/assets/plugins/css/owl.carousel.min.css" />
-    <link rel="stylesheet" href="/assets/plugins/css/maginific-popup.min.css" />
-    <link rel="stylesheet" href="/assets/plugins/css/nice-select.min.css" />
-    <link rel="stylesheet" href="/assets/plugins/css/icofont.css" />
-    <link rel="stylesheet" href="/assets/plugins/css/uicons.css" />
-    <link rel="stylesheet" href="/style.css" />
+    <link data-public-style rel="stylesheet" href="/assets/plugins/css/bootstrap.min.css" />
+    <link data-public-style rel="stylesheet" href="/assets/plugins/css/animate.min.css" />
+    <link data-public-style rel="stylesheet" href="/assets/plugins/css/owl.carousel.min.css" />
+    <link data-public-style rel="stylesheet" href="/assets/plugins/css/maginific-popup.min.css" />
+    <link data-public-style rel="stylesheet" href="/assets/plugins/css/nice-select.min.css" />
+    <link data-public-style rel="stylesheet" href="/assets/plugins/css/icofont.css" />
+    <link data-public-style rel="stylesheet" href="/assets/plugins/css/uicons.css" />
+    <link data-public-style rel="stylesheet" href="/style.css" />
+    <link data-public-style rel="stylesheet" href="/src/styles.css" />
+    <link id="luma-dashboard-styles" rel="stylesheet" href="/luma-dashboard.css" />
+    <script>
+      (() => {
+        const dashboardPath = /^\/(?:dashboard|admin\/dashboard|instructor\/dashboard)(?:\/|$)/.test(
+          window.location.pathname,
+        );
+        document.documentElement.dataset.appSurface = dashboardPath ? "dashboard" : "public";
+        document.querySelectorAll('link[rel="stylesheet"]:not(#luma-dashboard-styles)').forEach((link) => {
+          link.media = dashboardPath ? "not all" : "all";
+        });
+        document.getElementById("luma-dashboard-styles").media = dashboardPath ? "all" : "not all";
+      })();
+    </script>
     <title>Edupath - Education, Course & Online Learning</title>
   </head>
   <body class="ep-magic-cursor">
     <div id="root"></div>
+    <script>
+      (() => {
+        const dashboardPath = document.documentElement.dataset.appSurface === "dashboard";
+        document.querySelectorAll('link[rel="stylesheet"]:not(#luma-dashboard-styles)').forEach((link) => {
+          link.media = dashboardPath ? "not all" : "all";
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

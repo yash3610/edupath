@@ -5,7 +5,7 @@ import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
-import "./styles.css";
+import { Toaster } from "./components/ui/sonner.jsx";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -14,6 +14,7 @@ createRoot(document.getElementById("root")).render(
         <AuthProvider>
           <CartProvider>
             <App />
+            <Toaster richColors position="top-right" />
           </CartProvider>
         </AuthProvider>
       </ToastProvider>

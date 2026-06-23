@@ -28,6 +28,10 @@ import WishlistPage from "../pages/WishlistPage.jsx";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import RoleDashboardLayout from "../layouts/RoleDashboardLayout.jsx";
+import LumaStudentLayout from "../layouts/luma/StudentLayout.jsx";
+import LumaAdminLayout from "../layouts/luma/AdminLayout.jsx";
+import LumaInstructorLayout from "../layouts/luma/InstructorLayout.jsx";
+import LumaPage from "./LumaPage.jsx";
 import DashboardHome from "../pages/dashboard/DashboardHome.jsx";
 import RoleDashboardHome from "../pages/dashboard/RoleDashboardHome.jsx";
 const AssignmentsPage = React.lazy(() => import("../pages/dashboard/AssignmentsPage.jsx"));
@@ -67,8 +71,52 @@ const QuizPage = React.lazy(() => import("../pages/dashboard/QuizPage.jsx"));
 const QuizResultPage = React.lazy(() => import("../pages/dashboard/QuizResultPage.jsx"));
 const RoleManagementPage = React.lazy(() => import("../pages/dashboard/RoleManagementPage.jsx"));
 
+const lumaStudentPages = [
+  "achievements", "ai", "analytics", "assignments", "calendar", "certificates",
+  "community", "continue", "courses", "downloads", "messages", "notes",
+  "notifications", "orders", "paths", "profile", "quizzes", "settings", "wishlist",
+];
+
+const lumaAdminPages = [
+  "approvals", "assignments", "categories", "certificates", "cms", "community",
+  "coupons", "courses", "instructors", "live", "modules", "notifications",
+  "orders", "payments", "quizzes", "refunds", "reports", "reviews", "settings",
+  "students", "support",
+];
+
+const lumaInstructorPages = [
+  "analytics", "assignments", "builder", "courses", "create", "doubts",
+  "earnings", "live", "messages", "modules", "notifications", "payouts",
+  "profile", "quizzes", "resources", "reviews", "settings", "students",
+];
+
 function DashboardSuspense({ children }) {
-  return <React.Suspense fallback={<div className="section-gap text-center">Loading dashboard...</div>}>{children}</React.Suspense>;
+  return (
+    <React.Suspense
+      fallback={
+        <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--background)", color: "var(--foreground)" }}>
+          <div style={{ textAlign: "center" }}>
+            <div
+              aria-hidden="true"
+              style={{
+                width: 36,
+                height: 36,
+                margin: "0 auto",
+                borderRadius: "50%",
+                border: "4px solid color-mix(in oklab, currentColor 12%, transparent)",
+                borderTopColor: "var(--primary)",
+                animation: "edupath-dashboard-spin .75s linear infinite",
+              }}
+            />
+            <p style={{ marginTop: 14, fontSize: 14, fontWeight: 600 }}>Loading dashboard...</p>
+            <style>{`@keyframes edupath-dashboard-spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </React.Suspense>
+  );
 }
 
 function ParamRedirect({ to }) {
@@ -114,8 +162,11 @@ export default function AppRoutes() {
         <Route path="/404" element={<NotFoundPage />} />
       </Route>
 
-      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={["student"]}><DashboardSuspense><DashboardLayout /></DashboardSuspense></ProtectedRoute>}>
-        <Route index element={<DashboardHome />} />
+      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={["student"]}><DashboardSuspense><LumaStudentLayout /></DashboardSuspense></ProtectedRoute>}>
+        <Route index element={<LumaPage role="student" />} />
+        {lumaStudentPages.map((name) => (
+          <Route key={`student-${name}`} path={name} element={<LumaPage role="student" name={name} />} />
+        ))}
         <Route path="courses" element={<MyCoursesPage />} />
         <Route path="learn" element={<LearningRoomPage />} />
         <Route path="learn/:courseId" element={<LearningRoomPage />} />
@@ -156,9 +207,12 @@ export default function AppRoutes() {
 
       <Route
         path="/admin/dashboard"
-        element={<ProtectedRoute allowedRoles={["admin"]} loginPath="/staff/login"><DashboardSuspense><RoleDashboardLayout role="admin" /></DashboardSuspense></ProtectedRoute>}
+        element={<ProtectedRoute allowedRoles={["admin"]} loginPath="/staff/login"><DashboardSuspense><LumaAdminLayout /></DashboardSuspense></ProtectedRoute>}
       >
-        <Route index element={<RoleDashboardHome />} />
+        <Route index element={<LumaPage role="admin" />} />
+        {lumaAdminPages.map((name) => (
+          <Route key={`admin-${name}`} path={name} element={<LumaPage role="admin" name={name} />} />
+        ))}
         <Route path="students" element={<RoleManagementPage type="students" />} />
         <Route path="instructors" element={<RoleManagementPage type="instructors" />} />
         <Route path="courses" element={<AdminCoursesPage />} />
@@ -184,9 +238,12 @@ export default function AppRoutes() {
 
       <Route
         path="/instructor/dashboard"
-        element={<ProtectedRoute allowedRoles={["instructor"]} loginPath="/staff/login"><DashboardSuspense><RoleDashboardLayout role="instructor" /></DashboardSuspense></ProtectedRoute>}
+        element={<ProtectedRoute allowedRoles={["instructor"]} loginPath="/staff/login"><DashboardSuspense><LumaInstructorLayout /></DashboardSuspense></ProtectedRoute>}
       >
-        <Route index element={<RoleDashboardHome />} />
+        <Route index element={<LumaPage role="instructor" />} />
+        {lumaInstructorPages.map((name) => (
+          <Route key={`instructor-${name}`} path={name} element={<LumaPage role="instructor" name={name} />} />
+        ))}
         <Route path="my-courses" element={<InstructorCoursesPage />} />
         <Route path="courses/:courseId/analytics" element={<CourseAnalyticsPage />} />
         <Route path="course-builder" element={<InstructorCourseBuilderPage />} />

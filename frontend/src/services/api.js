@@ -42,6 +42,11 @@ export function assetUrl(value) {
   return source;
 }
 
+export function apiUrl(path) {
+  const normalizedPath = String(path || "").startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
 export function setAccessToken(token) {
   accessToken = token;
 }
