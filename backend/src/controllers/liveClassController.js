@@ -1,4 +1,5 @@
 import {
+  CalendarEvent,
   Course,
   Enrollment,
   LiveClass,
@@ -92,6 +93,39 @@ function hideMeetingLink(item, role) {
   return value;
 }
 
+async function liveClassAudience(liveClass) {
+  const studentIds = await enrolledStudentIds(liveClass.course);
+  return [...new Set([liveClass.instructor, ...studentIds].filter(Boolean).map(String))];
+}
+
+async function syncLiveClassCalendar(liveClass, userIds) {
+  const users = [...new Set((userIds || []).filter(Boolean).map(String))];
+  if (!users.length) return;
+  await CalendarEvent.bulkWrite(users.map((user) => ({
+    updateOne: {
+      filter: { user, liveClass: liveClass._id },
+      update: {
+        $set: {
+          user,
+          liveClass: liveClass._id,
+          course: liveClass.course,
+          title: liveClass.title,
+          description: liveClass.description || "Live class",
+          location: liveClass.meetingLink || liveClass.meetingUrl || liveClass.meetingPlatform || "",
+          type: "live-class",
+          startAt: liveClass.startAt,
+          endAt: liveClass.endAt,
+        },
+      },
+      upsert: true,
+    },
+  })));
+}
+
+async function removeLiveClassCalendar(liveClassId) {
+  await CalendarEvent.deleteMany({ liveClass: liveClassId });
+}
+
 export const instructorCreateLiveClass = asyncHandler(async (req, res) => {
   await ensureAssignedCourse(req.body.course, userId(req));
   if (req.body.module && !(await Module.exists({ _id: req.body.module, course: req.body.course }))) throw new ApiError(400, "Module does not belong to the selected course");
@@ -106,6 +140,13 @@ export const instructorCreateLiveClass = asyncHandler(async (req, res) => {
     title: "New live class approval",
     message: `${liveClass.title} is waiting for approval.`,
   });
+  if (liveClass.status === "scheduled") {
+    const audience = await liveClassAudience(liveClass);
+    await Promise.all([
+      syncLiveClassCalendar(liveClass, audience),
+      notifyUsers(audience, { title: "Live class scheduled", message: `${liveClass.title} has been scheduled for ${liveClass.startAt.toLocaleString()}.`, email: true }),
+    ]);
+  }
   created(res, await liveClass.populate(populated), "Live class scheduled");
 });
 
@@ -134,13 +175,19 @@ export const instructorUpdateLiveClass = asyncHandler(async (req, res) => {
     liveClass.rejectionReason = undefined;
   }
   await liveClass.save();
+  if (liveClass.status === "scheduled") {
+    const audience = await liveClassAudience(liveClass);
+    await removeLiveClassCalendar(liveClass._id);
+    await syncLiveClassCalendar(liveClass, audience);
+    await notifyUsers(audience, { title: "Live class updated", message: `${liveClass.title} is now scheduled for ${liveClass.startAt.toLocaleString()}.`, email: true });
+  }
   ok(res, await liveClass.populate(populated), "Live class updated");
 });
 
 export const instructorDeleteLiveClass = asyncHandler(async (req, res) => {
   const liveClass = await ownedLiveClass(req);
   if (!["draft", "pending-approval", "rejected", "cancelled"].includes(liveClass.status)) throw new ApiError(409, "Only draft, pending, rejected or cancelled classes can be deleted");
-  await Promise.all([liveClass.deleteOne(), LiveClassAttendance.deleteMany({ liveClass: liveClass._id }), LiveClassQuestion.deleteMany({ liveClass: liveClass._id })]);
+  await Promise.all([liveClass.deleteOne(), LiveClassAttendance.deleteMany({ liveClass: liveClass._id }), LiveClassQuestion.deleteMany({ liveClass: liveClass._id }), removeLiveClassCalendar(liveClass._id)]);
   ok(res, null, "Live class deleted");
 });
 
@@ -180,7 +227,10 @@ export const instructorCancelLiveClass = asyncHandler(async (req, res) => {
   liveClass.cancellationReason = req.body.reason || "Cancelled by instructor";
   liveClass.cancelledAt = new Date();
   await liveClass.save();
-  await notifyUsers(await enrolledStudentIds(liveClass.course), { title: "Live class cancelled", message: `${liveClass.title}: ${liveClass.cancellationReason}`, email: true });
+  await Promise.all([
+    removeLiveClassCalendar(liveClass._id),
+    notifyUsers(await enrolledStudentIds(liveClass.course), { title: "Live class cancelled", message: `${liveClass.title}: ${liveClass.cancellationReason}`, email: true }),
+  ]);
   ok(res, liveClass, "Live class cancelled");
 });
 
@@ -273,7 +323,11 @@ export const adminApproveLiveClass = asyncHandler(async (req, res) => {
   liveClass.approvedAt = new Date();
   liveClass.rejectionReason = undefined;
   await liveClass.save();
-  await notifyUsers([liveClass.instructor, ...(await enrolledStudentIds(liveClass.course))], { title: "Live class scheduled", message: `${liveClass.title} has been approved for ${liveClass.startAt.toLocaleString()}.`, email: true });
+  const audience = await liveClassAudience(liveClass);
+  await Promise.all([
+    syncLiveClassCalendar(liveClass, audience),
+    notifyUsers(audience, { title: "Live class scheduled", message: `${liveClass.title} has been approved for ${liveClass.startAt.toLocaleString()}.`, email: true }),
+  ]);
   ok(res, liveClass, "Live class approved");
 });
 
@@ -295,7 +349,11 @@ export const adminCancelLiveClass = asyncHandler(async (req, res) => {
   liveClass.cancellationReason = req.body.reason || "Cancelled by admin";
   liveClass.cancelledAt = new Date();
   await liveClass.save();
-  await notifyUsers([liveClass.instructor, ...(await enrolledStudentIds(liveClass.course))], { title: "Live class cancelled", message: `${liveClass.title}: ${liveClass.cancellationReason}`, email: true });
+  const audience = await liveClassAudience(liveClass);
+  await Promise.all([
+    removeLiveClassCalendar(liveClass._id),
+    notifyUsers(audience, { title: "Live class cancelled", message: `${liveClass.title}: ${liveClass.cancellationReason}`, email: true }),
+  ]);
   ok(res, liveClass, "Live class cancelled");
 });
 
@@ -304,7 +362,12 @@ export const adminRescheduleLiveClass = asyncHandler(async (req, res) => {
   if (!liveClass) throw new ApiError(404, "Live class not found");
   Object.assign(liveClass, normalizePayload(req.body, liveClass), { status: "scheduled", approvalStatus: "approved" });
   await liveClass.save();
-  await notifyUsers([liveClass.instructor, ...(await enrolledStudentIds(liveClass.course))], { title: "Live class rescheduled", message: `${liveClass.title} is now scheduled for ${liveClass.startAt.toLocaleString()}.`, email: true });
+  const audience = await liveClassAudience(liveClass);
+  await removeLiveClassCalendar(liveClass._id);
+  await Promise.all([
+    syncLiveClassCalendar(liveClass, audience),
+    notifyUsers(audience, { title: "Live class rescheduled", message: `${liveClass.title} is now scheduled for ${liveClass.startAt.toLocaleString()}.`, email: true }),
+  ]);
   ok(res, liveClass, "Live class rescheduled");
 });
 
@@ -324,7 +387,7 @@ export const adminAnnouncement = asyncHandler(async (req, res) => {
 export const adminDeleteLiveClass = asyncHandler(async (req, res) => {
   const liveClass = await LiveClass.findByIdAndDelete(req.params.id);
   if (!liveClass) throw new ApiError(404, "Live class not found");
-  await Promise.all([LiveClassAttendance.deleteMany({ liveClass: liveClass._id }), LiveClassQuestion.deleteMany({ liveClass: liveClass._id })]);
+  await Promise.all([LiveClassAttendance.deleteMany({ liveClass: liveClass._id }), LiveClassQuestion.deleteMany({ liveClass: liveClass._id }), removeLiveClassCalendar(liveClass._id)]);
   ok(res, null, "Live class deleted");
 });
 

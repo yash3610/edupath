@@ -333,16 +333,19 @@ reviewSchema.index({ user: 1, course: 1 }, { unique: true });
 export const Review = makeModel("Review", reviewSchema);
 export const DiscussionQuestion = makeModel("DiscussionQuestion", new Schema({ user: { type: objectId, ref: "User" }, course: { type: objectId, ref: "Course" }, title: String, body: String, tags: [String] }, baseOptions));
 export const DiscussionAnswer = makeModel("DiscussionAnswer", new Schema({ question: { type: objectId, ref: "DiscussionQuestion" }, user: { type: objectId, ref: "User" }, body: String, upvotes: [{ type: objectId, ref: "User" }], accepted: { type: Boolean, default: false } }, baseOptions));
-export const CalendarEvent = makeModel("CalendarEvent", new Schema({
+const calendarEventSchema = new Schema({
   user: { type: objectId, ref: "User", required: true },
   course: { type: objectId, ref: "Course" },
+  liveClass: { type: objectId, ref: "LiveClass" },
   title: { type: String, required: true, trim: true },
   description: String,
   location: String,
   type: { type: String, enum: ["study", "live-class", "quiz", "assignment", "workshop", "deadline", "personal"], default: "study" },
   startAt: { type: Date, required: true },
   endAt: Date,
-}, baseOptions));
+}, baseOptions);
+calendarEventSchema.index({ user: 1, liveClass: 1 }, { unique: true, sparse: true });
+export const CalendarEvent = makeModel("CalendarEvent", calendarEventSchema);
 const liveClassSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
