@@ -49,7 +49,7 @@ export function LmsTopbar({ user, notifPath, primaryAction }) {
       <div className="flex-1 md:hidden" />
 
       {primaryAction && (
-        <Link to={primaryAction.to} className="hidden sm:inline-flex">
+        <Link to={primaryAction.to} className="ml-auto hidden sm:inline-flex">
           <Button
             size="sm"
             className="h-9 rounded-xl gradient-primary border-0 text-primary-foreground"
@@ -59,7 +59,12 @@ export function LmsTopbar({ user, notifPath, primaryAction }) {
         </Link>
       )}
 
-      <Button variant="ghost" size="icon" onClick={toggle} className="rounded-xl">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggle}
+        className={primaryAction ? "rounded-xl" : "ml-auto rounded-xl"}
+      >
         {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       </Button>
 

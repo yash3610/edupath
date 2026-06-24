@@ -42,7 +42,7 @@ export function Topbar() {
         </kbd>
       </div>
       <div className="flex-1 md:hidden" />
-      <Link to="/admin/dashboard" className="hidden md:inline-flex">
+      <Link to="/admin/dashboard" className="ml-auto hidden md:inline-flex">
         <Button variant="outline" size="sm" className="h-9 rounded-xl border-border/60">
           Admin
         </Button>
