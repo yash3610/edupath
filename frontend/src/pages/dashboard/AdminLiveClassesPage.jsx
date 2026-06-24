@@ -4,6 +4,7 @@ import { MotionCard } from "../../components/dashboard/DashboardPrimitives.jsx";
 import { LiveClassCard, LiveClassSkeleton } from "../../components/dashboard/live/LiveClassComponents.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { liveClassApi } from "../../services/liveClassApi.js";
+import { confirmAction, promptText } from "../../utils/sweetAlert.js";
 
 export default function AdminLiveClassesPage() {
   const toast = useToast();
@@ -28,9 +29,41 @@ export default function AdminLiveClassesPage() {
 
   async function act(item, action) {
     try {
+      let reason = "";
+      if (action === "delete") {
+        const confirmed = await confirmAction({
+          title: "Delete this live class?",
+          text: item.title,
+          confirmButtonText: "Delete class",
+          danger: true,
+        });
+        if (!confirmed) return;
+      }
+      if (action === "reject") {
+        const result = await promptText({
+          title: "Reject live class?",
+          text: item.title,
+          inputLabel: "Reason",
+          defaultValue: "Changes required",
+          confirmButtonText: "Reject class",
+        });
+        if (!result.confirmed) return;
+        reason = result.value || "Changes required";
+      }
+      if (action === "cancel") {
+        const result = await promptText({
+          title: "Cancel live class?",
+          text: item.title,
+          inputLabel: "Cancellation reason",
+          defaultValue: "Cancelled by admin",
+          confirmButtonText: "Cancel class",
+        });
+        if (!result.confirmed) return;
+        reason = result.value || "Cancelled by admin";
+      }
       if (action === "approve") await liveClassApi.approveLiveClass(item._id);
-      if (action === "reject") await liveClassApi.rejectLiveClass(item._id, window.prompt("Rejection reason") || "Changes required");
-      if (action === "cancel") await liveClassApi.cancelAdminLiveClass(item._id, window.prompt("Cancellation reason") || "Cancelled by admin");
+      if (action === "reject") await liveClassApi.rejectLiveClass(item._id, reason);
+      if (action === "cancel") await liveClassApi.cancelAdminLiveClass(item._id, reason);
       if (action === "delete") await liveClassApi.deleteAdminLiveClass(item._id);
       toast.success("Live class updated.");
       await load();

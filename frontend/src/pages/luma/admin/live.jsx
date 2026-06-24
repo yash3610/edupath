@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
 import { liveClassApi } from "@/services/liveClassApi";
+import { confirmAction, promptText } from "@/utils/sweetAlert";
 import { toast } from "sonner";
 
 const statusGroups = {
@@ -38,7 +39,9 @@ export default function LivePage() {
       const result = await liveClassApi.getAdminLiveClasses();
       setRows(result.data?.classes || result.data || []);
     } catch (error) {
-      toast.error(error.message || "Could not load live classes");
+      toast.error("Live classes could not be loaded", {
+        description: error.message || "Please refresh and try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -54,15 +57,62 @@ export default function LivePage() {
   }, [rows, tab]);
 
   async function act(item, action) {
+    const labels = {
+      approve: ["Approving live class...", "Live class approved"],
+      reject: ["Rejecting live class...", "Live class rejected"],
+      cancel: ["Cancelling live class...", "Live class cancelled"],
+      delete: ["Deleting live class...", "Live class deleted"],
+    };
+    let reason = "";
+    if (action === "delete") {
+      const confirmed = await confirmAction({
+        title: "Delete this live class?",
+        text: item.title,
+        confirmButtonText: "Delete class",
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
+    if (action === "reject") {
+      const result = await promptText({
+        title: "Reject live class?",
+        text: item.title,
+        inputLabel: "Reason",
+        placeholder: "Write what the instructor should change",
+        defaultValue: "Changes required",
+        confirmButtonText: "Reject class",
+      });
+      if (!result.confirmed) return;
+      reason = result.value || "Changes required";
+    }
+    if (action === "cancel") {
+      const result = await promptText({
+        title: "Cancel live class?",
+        text: item.title,
+        inputLabel: "Cancellation reason",
+        placeholder: "Tell learners why this class is cancelled",
+        defaultValue: "Cancelled by admin",
+        confirmButtonText: "Cancel class",
+      });
+      if (!result.confirmed) return;
+      reason = result.value || "Cancelled by admin";
+    }
+    const toastId = toast.loading(labels[action][0], { description: item.title });
     try {
       if (action === "approve") await liveClassApi.approveLiveClass(item._id);
-      if (action === "reject") await liveClassApi.rejectLiveClass(item._id, window.prompt("Rejection reason") || "Changes required");
-      if (action === "cancel") await liveClassApi.cancelAdminLiveClass(item._id, window.prompt("Cancellation reason") || "Cancelled by admin");
-      if (action === "delete" && window.confirm(`Delete ${item.title}?`)) await liveClassApi.deleteAdminLiveClass(item._id);
-      toast.success("Live class updated");
+      if (action === "reject") await liveClassApi.rejectLiveClass(item._id, reason);
+      if (action === "cancel") await liveClassApi.cancelAdminLiveClass(item._id, reason);
+      if (action === "delete") await liveClassApi.deleteAdminLiveClass(item._id);
+      toast.success(labels[action][1], {
+        id: toastId,
+        description: item.title,
+      });
       await load();
     } catch (error) {
-      toast.error(error.message || "Action failed");
+      toast.error("Live class action failed", {
+        id: toastId,
+        description: error.message || "Please try again.",
+      });
     }
   }
 

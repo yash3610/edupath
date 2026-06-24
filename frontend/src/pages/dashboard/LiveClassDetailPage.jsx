@@ -5,6 +5,7 @@ import { MotionCard } from "../../components/dashboard/DashboardPrimitives.jsx";
 import { AttendanceTable, CountdownTimer, LiveClassStatusBadge, formatDate } from "../../components/dashboard/live/LiveClassComponents.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { liveClassApi } from "../../services/liveClassApi.js";
+import { promptText } from "../../utils/sweetAlert.js";
 
 export default function LiveClassDetailPage({ role }) {
   const { id } = useParams();
@@ -23,11 +24,34 @@ export default function LiveClassDetailPage({ role }) {
 
   async function act(action) {
     try {
+      let reason = "";
+      if (action === "cancel") {
+        const result = await promptText({
+          title: "Cancel live class?",
+          text: item.title,
+          inputLabel: "Cancellation reason",
+          defaultValue: "Cancelled by instructor",
+          confirmButtonText: "Cancel class",
+        });
+        if (!result.confirmed) return;
+        reason = result.value || "Cancelled by instructor";
+      }
+      if (action === "reject") {
+        const result = await promptText({
+          title: "Reject live class?",
+          text: item.title,
+          inputLabel: "Reason",
+          defaultValue: "Changes required",
+          confirmButtonText: "Reject class",
+        });
+        if (!result.confirmed) return;
+        reason = result.value || "Changes required";
+      }
       if (action === "start") await liveClassApi.startLiveClass(id);
       if (action === "complete") await liveClassApi.completeLiveClass(id);
-      if (action === "cancel") await liveClassApi.cancelLiveClass(id, window.prompt("Cancellation reason") || "Cancelled by instructor");
+      if (action === "cancel") await liveClassApi.cancelLiveClass(id, reason);
       if (action === "approve") await liveClassApi.approveLiveClass(id);
-      if (action === "reject") await liveClassApi.rejectLiveClass(id, window.prompt("Rejection reason") || "Changes required");
+      if (action === "reject") await liveClassApi.rejectLiveClass(id, reason);
       toast.success("Live class updated.");
       await load();
     } catch (error) { toast.error(error.message); }

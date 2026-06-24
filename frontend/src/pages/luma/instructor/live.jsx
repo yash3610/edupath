@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
 import { liveClassApi } from "@/services/liveClassApi";
+import { confirmAction, promptText } from "@/utils/sweetAlert";
 import { toast } from "sonner";
 
 const statusGroups = {
@@ -37,7 +38,9 @@ export default function LivePage() {
       const result = await liveClassApi.getInstructorLiveClasses();
       setRows(result.data || []);
     } catch (error) {
-      toast.error(error.message || "Could not load live classes");
+      toast.error("Live classes could not be loaded", {
+        description: error.message || "Please refresh and try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -53,15 +56,50 @@ export default function LivePage() {
   }, [rows, tab]);
 
   async function act(item, action) {
+    const labels = {
+      start: ["Starting live class...", "Live class started"],
+      complete: ["Ending live class...", "Live class ended"],
+      cancel: ["Cancelling live class...", "Live class cancelled"],
+      delete: ["Deleting live class...", "Live class deleted"],
+    };
+    let reason = "";
+    if (action === "delete") {
+      const confirmed = await confirmAction({
+        title: "Delete this live class?",
+        text: item.title,
+        confirmButtonText: "Delete class",
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
+    if (action === "cancel") {
+      const result = await promptText({
+        title: "Cancel live class?",
+        text: item.title,
+        inputLabel: "Cancellation reason",
+        placeholder: "Tell learners why this class is cancelled",
+        defaultValue: "Cancelled by instructor",
+        confirmButtonText: "Cancel class",
+      });
+      if (!result.confirmed) return;
+      reason = result.value || "Cancelled by instructor";
+    }
+    const toastId = toast.loading(labels[action][0], { description: item.title });
     try {
       if (action === "start") await liveClassApi.startLiveClass(item._id);
       if (action === "complete") await liveClassApi.completeLiveClass(item._id);
-      if (action === "cancel") await liveClassApi.cancelLiveClass(item._id, window.prompt("Cancellation reason") || "Cancelled by instructor");
-      if (action === "delete" && window.confirm(`Delete ${item.title}?`)) await liveClassApi.deleteLiveClass(item._id);
-      toast.success("Live class updated");
+      if (action === "cancel") await liveClassApi.cancelLiveClass(item._id, reason);
+      if (action === "delete") await liveClassApi.deleteLiveClass(item._id);
+      toast.success(labels[action][1], {
+        id: toastId,
+        description: item.title,
+      });
       await load();
     } catch (error) {
-      toast.error(error.message || "Action failed");
+      toast.error("Live class action failed", {
+        id: toastId,
+        description: error.message || "Please try again.",
+      });
     }
   }
 

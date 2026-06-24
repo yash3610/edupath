@@ -19,8 +19,8 @@ export default function CourseDetailsPage() {
   if (!course) return <><Breadcrumb title="Course details" /><div className="section-gap text-center">Loading course...</div></>;
 
   const inCart = items.some((item) => item._id === course._id);
-  function enroll() {
-    addCourse(course);
+  function addToCart() {
+    if (!inCart) addCourse(course);
     navigate("/cart");
   }
 
@@ -53,12 +53,14 @@ export default function CourseDetailsPage() {
                 <div className="ep-course__sidebar-data">
                   <h4 className="ep-course__sidebar-title">Course Includes</h4>
                   <ul className="ep-course__sidebar-data-list">
-                    <li><span>Price:</span><strong className="price">₹{Number(course.price || 0).toFixed(2)}</strong></li>
+                    <li><span>Price:</span><strong className="price">Rs. {Number(course.price || 0).toFixed(2)}</strong></li>
                     <li><span>Instructor:</span><strong>{course.instructor}</strong></li>
                     <li><span>Rating:</span><strong>{course.rating || 5}/5</strong></li>
                     <li><span>Access:</span><strong>Lifetime</strong></li>
                   </ul>
-                  <button type="button" className="ep-btn course-enroll-button" onClick={enroll}>{inCart ? "Go to Cart" : "Enroll Now"}</button>
+                  <button type="button" className="ep-btn course-enroll-button" onClick={addToCart}>
+                    <i className={inCart ? "fi fi-rs-shopping-cart-check" : "fi fi-rr-shopping-cart"} /> {inCart ? "Go to Cart" : "Add to Cart"}
+                  </button>
                 </div>
               </aside>
             </div>

@@ -8,7 +8,7 @@ import { loadRazorpayScript, paymentApi } from "../services/paymentApi.js";
 
 export default function CheckoutPage() {
   const { user } = useAuth();
-  const { items, total, clearCart } = useCart();
+  const { courseItems, productItems, courseTotal, clearCart } = useCart();
   const toast = useToast();
   const [form, setForm] = useState({ customerName: user?.name || "", phone: "", address: "" });
   const [status, setStatus] = useState({ loading: false, error: "", success: "", orderId: "" });
@@ -19,14 +19,14 @@ export default function CheckoutPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!items.length) return;
+    if (!courseItems.length) return;
     setStatus({ loading: true, error: "", success: "", orderId: "" });
 
     try {
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) throw new Error("Razorpay checkout could not be loaded. Check your internet connection.");
 
-      const result = await paymentApi.createOrder(items.map((item) => ({ courseId: item._id })));
+      const result = await paymentApi.createOrder(courseItems.map((item) => ({ courseId: item._id })));
       const order = result.data;
 
       if (order.free) {
@@ -43,7 +43,7 @@ export default function CheckoutPage() {
         amount: Math.round(Number(order.amount) * 100),
         currency: order.currency || "INR",
         name: "EduPath",
-        description: `Enrollment for ${order.courses?.length || items.length} course(s)`,
+        description: `Enrollment for ${order.courses?.length || courseItems.length} course(s)`,
         order_id: order.razorpayOrderId,
         prefill: {
           name: form.customerName || user?.name,
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
       <Breadcrumb title="Checkout" />
       <section className="ep-checkout section-gap">
         <div className="container ep-container">
-          {items.length === 0 ? (
+          {courseItems.length === 0 ? (
             <div className="text-center"><h3>No courses selected</h3><Link to="/course" className="ep-btn mg-top-20">Browse Courses</Link></div>
           ) : (
             <form className="ep-checkout__form" onSubmit={handleSubmit}>
@@ -136,9 +136,10 @@ export default function CheckoutPage() {
                   <div className="ep-checkout__section ep-checkout__section--order">
                     <h2 className="ep-checkout__section-title">Order Summary</h2>
                     <div className="ep-checkout__summary">
-                      {items.map((course) => <div className="ep-checkout__summary-item" key={course._id}><div className="ep-checkout__summary-item-name"><img src={course.image || course.thumbnail} alt="" /><span>{course.title}</span></div><span>₹{Number(course.price || 0).toFixed(2)}</span></div>)}
+                      {courseItems.map((course) => <div className="ep-checkout__summary-item" key={course._id}><div className="ep-checkout__summary-item-name"><img src={course.image || course.thumbnail} alt="" /><span>{course.title}</span></div><span>Rs. {Number(course.price || 0).toFixed(2)}</span></div>)}
                     </div>
-                    <div className="ep-cart__totals-row"><strong>Total</strong><strong>₹{total.toFixed(2)}</strong></div>
+                    {productItems.length > 0 && <p className="cart-summary-note">Books stay in your cart. This checkout will process courses only.</p>}
+                    <div className="ep-cart__totals-row"><strong>Total</strong><strong>Rs. {courseTotal.toFixed(2)}</strong></div>
                     {status.error && <p className="form-message form-message--error" role="alert">{status.error}</p>}
                     <button className="ep-cart__checkout-button" type="submit" disabled={status.loading}>{status.loading ? "Opening Razorpay..." : "Pay Securely with Razorpay"}</button>
                   </div>

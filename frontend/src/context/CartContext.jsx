@@ -19,30 +19,48 @@ export function CartProvider({ children }) {
     localStorage.setItem(CART_KEY, JSON.stringify(nextItems));
   }
 
-  function addCourse(course) {
-    if (items.some((item) => item._id === course._id)) {
-      toast.info("This course is already in your cart.", "Already added");
-      return;
-    }
-    persist([...items, { ...course, quantity: 1 }]);
-    toast.success(`${course.title || "Course"} added to cart.`);
+  function itemId(item) {
+    return item._id || item.id;
   }
 
-  function removeCourse(courseId) {
-    persist(items.filter((item) => item._id !== courseId));
-    toast.info("Course removed from cart.");
+  function addItem(item) {
+    const nextItem = { ...item, _id: itemId(item), type: item.type || "course", quantity: item.quantity || 1 };
+    if (items.some((current) => itemId(current) === nextItem._id)) {
+      toast.info(`${nextItem.title || "Item"} is already in your cart.`, "Already added");
+      return;
+    }
+    persist([...items, nextItem]);
+    toast.success(`${nextItem.title || "Item"} added to cart.`);
   }
+
+  function addCourse(course) {
+    addItem({ ...course, type: "course" });
+  }
+
+  function removeItem(id) {
+    persist(items.filter((item) => itemId(item) !== id));
+    toast.info("Item removed from cart.");
+  }
+
+  const courseItems = items.filter((item) => (item.type || "course") === "course");
+  const productItems = items.filter((item) => (item.type || "course") !== "course");
 
   const value = useMemo(() => ({
     items,
+    courseItems,
+    productItems,
+    addItem,
     addCourse,
-    removeCourse,
+    removeItem,
+    removeCourse: removeItem,
     clearCart: () => {
       persist([]);
       toast.info("Cart cleared.");
     },
     total: items.reduce((sum, item) => sum + Number(item.price || 0), 0),
-  }), [items, toast]);
+    courseTotal: courseItems.reduce((sum, item) => sum + Number(item.price || 0), 0),
+    productTotal: productItems.reduce((sum, item) => sum + Number(item.price || 0), 0),
+  }), [items, courseItems, productItems, toast]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

@@ -11,6 +11,11 @@ async function withFallback(request, fallback) {
 }
 
 export const quizApi = {
+  getAdminQuizzes: (status = "") => apiRequest(`/api/admin/quizzes${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+  approveAdminQuiz: (id) => apiRequest(`/api/admin/quizzes/${id}/approve`, { method: "PATCH" }),
+  rejectAdminQuiz: (id) => apiRequest(`/api/admin/quizzes/${id}/reject`, { method: "PATCH" }),
+  deleteAdminQuiz: (id) => apiRequest(`/api/admin/quizzes/${id}`, { method: "DELETE" }),
+
   getStudentQuizzes: () => withFallback(() => apiRequest("/api/quizzes/student"), fallbackQuizzes),
   getCourseQuizzes: (courseId) => withFallback(() => apiRequest(`/api/quizzes/student/course/${courseId}`), fallbackQuizzes.filter((quiz) => quiz.course?._id === courseId)),
   getQuizInstructions: (id) => withFallback(() => apiRequest(`/api/quizzes/${id}/instructions`), fallbackInstructions),
