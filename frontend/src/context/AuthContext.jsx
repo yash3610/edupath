@@ -20,6 +20,7 @@ export function AuthProvider({ children }) {
     api.refresh()
       .then((result) => {
         if (sessionVersion.current !== version) return;
+        setAccessToken(result.data.accessToken || "");
         setSession({ user: result.data.user, accessToken: result.data.accessToken });
       })
       .catch(() => {

@@ -23,6 +23,7 @@ import {
   Notification,
   Order,
   Payment,
+  PlatformSettings,
   Payout,
   Quiz,
   QuizAttempt,
@@ -83,18 +84,21 @@ const normalizeCoursePayload = (body) => {
 };
 
 async function issueCertificateIfEligible(student, courseId, progress) {
-  if (progress < 100) return null;
+  const platformSettings = await readPlatformSettings();
+  const certificateSettings = platformSettings.certificate || {};
+  if (!certificateSettings.autoIssue) return null;
+  if (certificateSettings.requireFullProgress && progress < 100) return null;
   const course = await Course.findById(courseId);
   if (!course?.certificateEnabled) return null;
   const existing = await Certificate.findOne({ student, course: courseId });
   if (existing) return existing;
 
-  if (course.certificateRules?.requireQuizzes) {
+  if (course.certificateRules?.requireQuizzes || certificateSettings.requireQuizPass) {
     const quizIds = await Quiz.find({ course: courseId }).distinct("_id");
     const passed = await QuizAttempt.distinct("quiz", { student, quiz: { $in: quizIds }, status: "passed" });
     if (passed.length < quizIds.length) return null;
   }
-  if (course.certificateRules?.requireAssignments) {
+  if (course.certificateRules?.requireAssignments || certificateSettings.requireAssignmentCompletion) {
     const assignmentIds = await Assignment.find({ course: courseId }).distinct("_id");
     const completed = await AssignmentSubmission.distinct("assignment", { student, assignment: { $in: assignmentIds }, status: { $in: ["submitted", "graded"] } });
     if (completed.length < assignmentIds.length) return null;
@@ -102,7 +106,8 @@ async function issueCertificateIfEligible(student, courseId, progress) {
 
   const certificateCode = `EDU-${randomUUID().slice(0, 8).toUpperCase()}`;
   const baseUrl = process.env.API_PUBLIC_URL || `http://localhost:${process.env.PORT || 5000}`;
-  const verificationUrl = `${baseUrl}/api/certificates/verify/${certificateCode}`;
+  const verificationPrefix = certificateSettings.verificationPrefix || "/api/certificates/verify";
+  const verificationUrl = `${baseUrl}${verificationPrefix.startsWith("/") ? "" : "/"}${verificationPrefix}/${certificateCode}`;
   const certificate = await Certificate.create({
     student,
     course: courseId,
@@ -425,16 +430,30 @@ export const createReminder = asyncHandler(async (req, res) => created(res, awai
 export const updateReminder = asyncHandler(async (req, res) => ok(res, await Reminder.findOneAndUpdate({ _id: req.params.reminderId, user: userId(req) }, req.body, { new: true })));
 
 export const notifications = asyncHandler(async (req, res) => {
+  await Notification.deleteMany({ createdAt: { $lt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) } });
   const query = { user: userId(req) };
   if (req.query.unread === "true") query.read = false;
   const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 0, 0), 50);
   let notificationQuery = Notification.find(query).sort({ createdAt: -1 });
   if (limit) notificationQuery = notificationQuery.limit(limit);
-  ok(res, await notificationQuery);
+  const items = await notificationQuery;
+  if (req.query.summary === "true") {
+    const unreadCount = await Notification.countDocuments({ user: userId(req), read: false });
+    return ok(res, { items, unreadCount });
+  }
+  ok(res, items);
 });
-export const readNotification = asyncHandler(async (req, res) => ok(res, await Notification.findOneAndUpdate({ _id: req.params.notificationId, user: userId(req) }, { read: true }, { new: true })));
-export const readAllNotifications = asyncHandler(async (req, res) => ok(res, await Notification.updateMany({ user: userId(req) }, { read: true })));
-export const deleteNotification = asyncHandler(async (req, res) => ok(res, await Notification.deleteOne({ _id: req.params.notificationId, user: userId(req) })));
+export const readNotification = asyncHandler(async (req, res) => {
+  const notification = await Notification.findOneAndUpdate({ _id: req.params.notificationId, user: userId(req) }, { read: true }, { new: true });
+  if (!notification) throw new ApiError(404, "Notification not found");
+  ok(res, notification, "Notification marked as read");
+});
+export const readAllNotifications = asyncHandler(async (req, res) => ok(res, await Notification.updateMany({ user: userId(req), read: false }, { read: true }), "Notifications marked as read"));
+export const deleteNotification = asyncHandler(async (req, res) => {
+  const notification = await Notification.findOneAndDelete({ _id: req.params.notificationId, user: userId(req) });
+  if (!notification) throw new ApiError(404, "Notification not found");
+  ok(res, notification, "Notification deleted");
+});
 
 export const conversations = asyncHandler(async (req, res) => {
   const items = await Conversation.find({ participants: userId(req) })
@@ -597,6 +616,99 @@ export const patchSettings = asyncHandler(async (req, res) => {
 });
 export const deleteAccount = asyncHandler(async (req, res) => ok(res, await User.findByIdAndUpdate(userId(req), { status: "blocked" }), "Account scheduled for deletion"));
 
+const defaultPlatformSettings = {
+  platform: {
+    name: "EduPath",
+    supportEmail: "support@edupath.com",
+    currency: "INR",
+    timezone: "Asia/Kolkata",
+    language: "English",
+    maintenanceMode: false,
+  },
+  payment: {
+    provider: "razorpay",
+    mode: "test",
+    currency: "INR",
+    taxPercent: 18,
+    minimumOrderAmount: 1,
+    enableCoupons: true,
+    enableRefunds: true,
+  },
+  email: {
+    fromName: "EduPath",
+    fromEmail: "support@edupath.com",
+    smtpHost: "",
+    smtpPort: 587,
+    replyTo: "support@edupath.com",
+    enableTransactionalEmail: true,
+  },
+  certificate: {
+    issuerName: "EduPath Academy",
+    signatureName: "EduPath Admin",
+    verificationPrefix: "/api/certificates/verify",
+    autoIssue: true,
+    requireFullProgress: true,
+    requireQuizPass: false,
+    requireAssignmentCompletion: false,
+  },
+  notifications: {
+    courseLaunchEmail: true,
+    instructorPayoutEmail: true,
+    failedPaymentAlert: true,
+    refundRequestSms: false,
+    adminDigestEmail: true,
+    liveClassReminder: true,
+  },
+  roles: {
+    allowInstructorSignup: false,
+    requireInstructorApproval: true,
+    defaultStudentStatus: "active",
+    defaultInstructorStatus: "pending",
+    studentCanDeleteAccount: true,
+    instructorCanCreateLiveClasses: true,
+  },
+  security: {
+    enforceAdmin2fa: false,
+    requireStrongPasswords: true,
+    auditLogRetentionDays: 90,
+    sessionTimeoutMinutes: 15,
+    maxLoginAttempts: 5,
+    ipAllowlist: "",
+  },
+};
+
+function deepMerge(base, updates) {
+  const output = { ...base };
+  for (const [key, value] of Object.entries(updates || {})) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      output[key] = deepMerge(base?.[key] || {}, value);
+    } else {
+      output[key] = value;
+    }
+  }
+  return output;
+}
+
+async function readPlatformSettings() {
+  const settings = await PlatformSettings.findOne({ key: "admin-platform" }).lean();
+  return deepMerge(defaultPlatformSettings, settings?.data || {});
+}
+
+export const getPlatformSettings = asyncHandler(async (_req, res) => {
+  ok(res, await readPlatformSettings());
+});
+
+export const patchPlatformSettings = asyncHandler(async (req, res) => {
+  const current = await PlatformSettings.findOne({ key: "admin-platform" }).lean();
+  const data = deepMerge(deepMerge(defaultPlatformSettings, current?.data || {}), req.body || {});
+  const settings = await PlatformSettings.findOneAndUpdate(
+    { key: "admin-platform" },
+    { key: "admin-platform", data, updatedBy: userId(req) },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  ok(res, settings.data, "Platform settings updated");
+});
+
 export const askDoubt = asyncHandler(async (req, res) => {
   const answer = await askAI({ question: req.body.question, context: req.body.context });
   created(res, await AIChat.create({ user: userId(req), course: req.body.courseId, question: req.body.question, answer }));
@@ -696,11 +808,14 @@ export const createPaymentOrder = asyncHandler(async (req, res) => {
   const payableCourses = courses.filter((course) => !enrolledIds.has(String(course._id)));
   if (!payableCourses.length) throw new ApiError(409, "You are already enrolled in these courses");
 
+  const platformSettings = await readPlatformSettings();
+  const paymentSettings = platformSettings.payment || {};
   const amount = payableCourses.reduce((sum, course) => sum + Number(course.price || 0), 0);
   if (amount <= 0) {
     await Enrollment.insertMany(payableCourses.map((course) => ({ student: userId(req), course: course._id, status: "active" })), { ordered: false }).catch(() => {});
     return created(res, { free: true, amount: 0, courses: payableCourses }, "Free course enrollment completed");
   }
+  if (amount < Number(paymentSettings.minimumOrderAmount || 0)) throw new ApiError(400, `Minimum order amount is ${paymentSettings.minimumOrderAmount}`);
 
   const order = await Order.create({
     user: userId(req),
@@ -710,7 +825,8 @@ export const createPaymentOrder = asyncHandler(async (req, res) => {
     status: "pending",
     invoiceNumber: `EDU-${Date.now()}`,
   });
-  const razorpayOrder = await createRazorpayOrder({ amount, receipt: String(order._id) });
+  const currency = paymentSettings.currency || platformSettings.platform?.currency || "INR";
+  const razorpayOrder = await createRazorpayOrder({ amount, currency, receipt: String(order._id) });
   order.razorpayOrderId = razorpayOrder.id;
   await order.save();
 
@@ -719,7 +835,7 @@ export const createPaymentOrder = asyncHandler(async (req, res) => {
     orderId: order._id,
     razorpayOrderId: razorpayOrder.id,
     amount,
-    currency: razorpayOrder.currency || "INR",
+    currency: razorpayOrder.currency || currency,
     courses: payableCourses.map((course) => ({ _id: course._id, title: course.title, price: course.price })),
   }, "Payment order created");
 });

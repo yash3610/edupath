@@ -32,6 +32,10 @@ async function createSession(user, res) {
   return { user, accessToken };
 }
 
+function createAccessSession(user) {
+  return { user, accessToken: signAccessToken(user) };
+}
+
 function clearRefreshCookie(res) {
   const { maxAge: _maxAge, ...options } = refreshCookieOptions();
   res.clearCookie(refreshCookieName, options);
@@ -106,7 +110,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid or inactive session");
   }
 
-  res.json({ success: true, data: await createSession(user, res) });
+  res.json({ success: true, data: createAccessSession(user) });
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {

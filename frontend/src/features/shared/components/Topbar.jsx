@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Bell, Command as CmdIcon, MessageSquare, Moon, Plus, Search, Sun } from "lucide-react";
+import { Command as CmdIcon, MessageSquare, Moon, Plus, Search, Sun } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,32 +13,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/context/AuthContext";
+
 export function LmsTopbar({ user, notifPath, primaryAction }) {
   const { logout } = useAuth();
-  const roleBase = user.role.toLowerCase() === "admin"
-    ? "/admin/dashboard"
-    : "/instructor/dashboard";
+  const roleBase = user.role.toLowerCase() === "admin" ? "/admin/dashboard" : "/instructor/dashboard";
   const [dark, setDark] = useState(true);
+
   useEffect(() => {
     const stored = localStorage.getItem("luma-theme");
     const isDark = stored ? stored === "dark" : true;
     setDark(isDark);
     document.documentElement.classList.toggle("dark", isDark);
   }, []);
+
   const toggle = () => {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
     localStorage.setItem("luma-theme", next ? "dark" : "light");
   };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl md:px-6">
       <SidebarTrigger className="-ml-1" />
       <div className="relative hidden flex-1 max-w-md md:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search students, courses, orders…"
+          placeholder="Search students, courses, orders..."
           className="h-10 rounded-xl border-border/60 bg-muted/40 pl-9 pr-16 placeholder:text-muted-foreground/70 focus-visible:ring-primary/40"
         />
         <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline-flex">
@@ -50,55 +52,17 @@ export function LmsTopbar({ user, notifPath, primaryAction }) {
 
       {primaryAction && (
         <Link to={primaryAction.to} className="ml-auto hidden sm:inline-flex">
-          <Button
-            size="sm"
-            className="h-9 rounded-xl gradient-primary border-0 text-primary-foreground"
-          >
+          <Button size="sm" className="h-9 rounded-xl gradient-primary border-0 text-primary-foreground">
             <Plus className="mr-1.5 h-3.5 w-3.5" /> {primaryAction.label}
           </Button>
         </Link>
       )}
 
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggle}
-        className={primaryAction ? "rounded-xl" : "ml-auto rounded-xl"}
-      >
+      <Button variant="ghost" size="icon" onClick={toggle} className={primaryAction ? "rounded-xl" : "ml-auto rounded-xl"}>
         {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       </Button>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative rounded-xl">
-            <Bell className="h-4 w-4" />
-            <Badge className="absolute -right-0.5 -top-0.5 h-4 min-w-4 rounded-full px-1 text-[10px] gradient-accent border-0 text-accent-foreground">
-              5
-            </Badge>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80 rounded-2xl">
-          <DropdownMenuLabel className="flex items-center justify-between">
-            Notifications{" "}
-            <Link to={notifPath} className="text-xs text-primary">
-              View all
-            </Link>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {[
-            ["💸", "Payout sent — ₹3.8L"],
-            ["🎓", "Certificate LUMA-ML-0042 issued"],
-            ["⭐", "New 5★ review on Modern Design"],
-            ["📝", "12 assignments to grade"],
-            ["🛒", "Order #LMA-20247 paid"],
-          ].map(([e, t]) => (
-            <DropdownMenuItem key={t} className="gap-3 rounded-lg">
-              <span className="text-base">{e}</span>
-              <span className="text-sm">{t}</span>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <NotificationBell notifPath={notifPath} />
 
       <Button variant="ghost" size="icon" className="rounded-xl hidden sm:inline-flex">
         <MessageSquare className="h-4 w-4" />
@@ -122,10 +86,7 @@ export function LmsTopbar({ user, notifPath, primaryAction }) {
           <DropdownMenuItem asChild><Link to={`${roleBase}/profile`}>Profile</Link></DropdownMenuItem>
           <DropdownMenuItem asChild><Link to={`${roleBase}/settings`}>Settings</Link></DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={() => logout()}
-          >
+          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => logout()}>
             Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>

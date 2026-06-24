@@ -319,7 +319,9 @@ export const Certificate = makeModel("Certificate", certificateSchema);
 const wishlistSchema = new Schema({ student: { type: objectId, ref: "User", required: true }, course: { type: objectId, ref: "Course", required: true } }, baseOptions);
 wishlistSchema.index({ student: 1, course: 1 }, { unique: true });
 export const Wishlist = makeModel("Wishlist", wishlistSchema);
-export const Notification = makeModel("Notification", new Schema({ user: { type: objectId, ref: "User" }, type: String, title: String, message: String, read: { type: Boolean, default: false } }, baseOptions));
+const notificationSchema = new Schema({ user: { type: objectId, ref: "User" }, type: String, title: String, message: String, read: { type: Boolean, default: false } }, baseOptions);
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2 * 24 * 60 * 60 });
+export const Notification = makeModel("Notification", notificationSchema);
 export const Conversation = makeModel("Conversation", new Schema({ participants: [{ type: objectId, ref: "User" }], lastMessage: String, lastMessageAt: Date }, baseOptions));
 export const Message = makeModel("Message", new Schema({ conversation: { type: objectId, ref: "Conversation" }, sender: { type: objectId, ref: "User" }, body: String, attachmentUrl: String, attachmentName: String, attachmentType: String, readBy: [{ type: objectId, ref: "User" }] }, baseOptions));
 
@@ -455,3 +457,13 @@ const dashboardDatasetSchema = new Schema(
 );
 dashboardDatasetSchema.index({ role: 1, key: 1 }, { unique: true });
 export const DashboardDataset = makeModel("DashboardDataset", dashboardDatasetSchema);
+
+const platformSettingsSchema = new Schema(
+  {
+    key: { type: String, required: true, unique: true, default: "admin-platform" },
+    data: { type: Schema.Types.Mixed, default: {} },
+    updatedBy: { type: objectId, ref: "User" },
+  },
+  { ...baseOptions, minimize: false }
+);
+export const PlatformSettings = makeModel("PlatformSettings", platformSettingsSchema);

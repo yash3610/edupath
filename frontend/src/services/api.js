@@ -169,7 +169,20 @@ export const api = {
   refresh: () => refreshAccessToken(),
   logout: () => apiRequest("/api/auth/logout", { method: "POST" }),
   me: () => apiRequest("/api/auth/me"),
-  notifications: (limit = 5) => apiRequest(`/api/notifications?unread=true&limit=${limit}`),
+  notifications: (options = 5) => {
+    const params = new URLSearchParams();
+    if (typeof options === "number") {
+      params.set("limit", String(options));
+      params.set("unread", "true");
+    } else {
+      if (options.limit) params.set("limit", String(options.limit));
+      if (options.unread) params.set("unread", "true");
+      if (options.summary) params.set("summary", "true");
+    }
+    return apiRequest(`/api/notifications${params.toString() ? `?${params}` : ""}`);
+  },
+  readNotification: (notificationId) => apiRequest(`/api/notifications/${encodeURIComponent(notificationId)}/read`, { method: "PATCH" }),
+  readAllNotifications: () => apiRequest("/api/notifications/read-all", { method: "PATCH" }),
   deleteNotification: (notificationId) => apiRequest(`/api/notifications/${encodeURIComponent(notificationId)}`, { method: "DELETE" }),
   order: (payload) => apiRequest("/api/orders", { method: "POST", body: JSON.stringify(payload) }),
   myOrders: () => apiRequest("/api/orders/my"),

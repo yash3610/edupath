@@ -233,7 +233,6 @@ export default function AppRoutes() {
         <Route path="moderation" element={<RoleManagementPage type="moderation" />} />
         <Route path="reports" element={<RoleManagementPage type="reports" />} />
         <Route path="account" element={<AccountPage />} />
-        <Route path="settings" element={<Navigate to="/admin/dashboard/account" replace />} />
       </Route>
 
       <Route
