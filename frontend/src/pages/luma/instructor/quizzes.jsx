@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { motion } from "framer-motion";
-import { Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, BarChart3, CheckCircle2, Plus, RefreshCcw, Trash2, X } from "lucide-react";
 import { LmsPageHeader } from "@/features/shared/components/PageHeader";
 import { DataTable } from "@/features/shared/components/DataTable";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
@@ -26,11 +26,10 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { instructorQuizzes } from "@/features/instructor/data/instructor";
 import { toast } from "sonner";
-import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
+import { quizApi } from "@/services/quizApi";
 
-const courseOptions = ["Advanced React", "Modern Design", "TypeScript Pro"];
+const RESULT_PAGE_SIZE = 8;
 
 const createQuestion = () => ({
   id: `question-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -59,13 +58,104 @@ const createDraft = () => ({
   ],
 });
 
+const getQuizId = (quiz) => quiz?._id || quiz?.id;
+
+const draftFromQuiz = (quiz) => ({
+  title: quiz.title || "",
+  course: quiz.course?._id || quiz.course || "",
+  duration: quiz.duration || quiz.durationMinutes || 20,
+  marks: quiz.totalMarks || quiz.marksCount || 0,
+  passingMarks: quiz.passingMarks || 0,
+  difficulty: quiz.difficulty || "medium",
+  shuffle: Boolean(quiz.shuffleQuestions),
+  showResults: quiz.showResultImmediately ?? true,
+  questions: (quiz.questions?.length ? quiz.questions : createDraft().questions).map((question) => ({
+    id: question._id || question.id || `question-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    text: question.questionText || question.question || question.text || "",
+    type: question.questionType || question.type || "single-choice",
+    marks: question.marks || 1,
+    answer: question.correctAnswer || question.answer || question.options?.find((option) => option.isCorrect)?.label || "A",
+    options: (question.options?.length ? question.options : ["", "", "", ""]).map((option) => option.text || option),
+  })),
+});
+
+const normalizeQuiz = (quiz) => {
+  const attempts = Number(quiz.attemptsCount ?? quiz.attempts ?? 0);
+  const passRate = Number(quiz.passRate ?? quiz.pass ?? 0);
+  return {
+    ...quiz,
+    id: getQuizId(quiz),
+    courseTitle: quiz.course?.title || quiz.courseTitle || quiz.course || "Unassigned course",
+    questionsCount: quiz.questions?.length || quiz.questionsCount || quiz.questions || 0,
+    marksCount: quiz.totalMarks || quiz.marks || 0,
+    attemptsCount: attempts,
+    passRate,
+  };
+};
+
+const toQuizPayload = (draft, status) => {
+  const questions = draft.questions.map((question, index) => ({
+    questionText: question.text.trim(),
+    questionType: question.type,
+    marks: Number(question.marks) || 1,
+    difficulty: draft.difficulty,
+    correctAnswer: question.answer,
+    options: question.options.map((option, optionIndex) => ({
+      label: String.fromCharCode(65 + optionIndex),
+      text: option.trim(),
+      isCorrect: String.fromCharCode(65 + optionIndex) === question.answer,
+    })),
+    order: index + 1,
+  }));
+
+  return {
+    title: draft.title.trim(),
+    course: draft.course,
+    duration: Number(draft.duration) || 15,
+    totalMarks: Number(draft.marks) || questions.reduce((sum, question) => sum + Number(question.marks || 0), 0),
+    passingMarks: Number(draft.passingMarks) || 0,
+    difficulty: draft.difficulty,
+    shuffleQuestions: draft.shuffle,
+    showResultImmediately: draft.showResults,
+    showCorrectAnswers: draft.showResults,
+    attemptsAllowed: 3,
+    status,
+    questions,
+  };
+};
+
 export default function QuizzesPage() {
   const [build, setBuild] = useState(false);
   const [draft, setDraft] = useState(createDraft);
   const [activeQuestion, setActiveQuestion] = useState(0);
+  const [courses, setCourses] = useState([]);
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [resultsPage, setResultsPage] = useState(0);
   const quizBuilderScrollRef = useRef(null);
-  const [list, setList] = usePersistedDashboardState("instructor", "instructorQuizzes", instructorQuizzes);
   const currentQuestion = draft.questions[activeQuestion] || draft.questions[0];
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const [quizResult, courseResult] = await Promise.all([
+        quizApi.getInstructorQuizzes(),
+        quizApi.getInstructorCourses(),
+      ]);
+      setList((quizResult.data || []).map(normalizeQuiz));
+      setCourses(courseResult.data || []);
+    } catch (error) {
+      toast.error("Quiz data load zala nahi", {
+        description: error.message || "Backend/API check kara.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!build) return;
@@ -74,8 +164,14 @@ export default function QuizzesPage() {
     });
   }, [build]);
 
-  const openBuilder = () => {
-    setDraft(createDraft());
+  useEffect(() => {
+    load();
+  }, []);
+
+  const openBuilder = (quiz = null) => {
+    const existingQuiz = quiz && getQuizId(quiz) ? quiz : null;
+    setEditingQuiz(existingQuiz);
+    setDraft(existingQuiz ? draftFromQuiz(existingQuiz) : createDraft());
     setActiveQuestion(0);
     setBuild(true);
     window.requestAnimationFrame(() => {
@@ -141,7 +237,7 @@ export default function QuizzesPage() {
     });
   };
 
-  const saveDraft = () => {
+  const saveQuiz = async (status) => {
     const title = draft.title.trim();
     if (!title) {
       toast.error("Quiz title is required.");
@@ -151,29 +247,70 @@ export default function QuizzesPage() {
       toast.error("Please pick a course.");
       return;
     }
-    if (draft.questions.some((question) => !question.text.trim())) {
+    if (draft.questions.some((question) => !question.text.trim() || question.options.some((option) => !option.trim()))) {
       toast.error("Please add text for every question.");
       return;
     }
 
-    setList((items) => [
-      {
-        id: `Q-${Date.now()}`,
-        title,
-        course: draft.course,
-        questions: draft.questions.length,
-        questionDetails: draft.questions,
-        marks: Number(draft.marks) || 0,
-        attempts: 0,
-        pass: 0,
-        difficulty: draft.difficulty,
-        status: "draft",
-      },
-      ...items,
-    ]);
-    toast.success("Quiz saved as draft");
-    setBuild(false);
+    try {
+      setSaving(true);
+      if (editingQuiz) {
+        await quizApi.updateInstructorQuiz(getQuizId(editingQuiz), toQuizPayload(draft, status));
+        if (status === "published") await quizApi.publishInstructorQuiz(getQuizId(editingQuiz));
+      } else {
+        await quizApi.createInstructorQuiz(toQuizPayload(draft, status));
+      }
+      toast.success(status === "published" ? "Quiz published" : "Quiz saved as draft");
+      setBuild(false);
+      setEditingQuiz(null);
+      await load();
+    } catch (error) {
+      toast.error("Quiz save zala nahi", {
+        description: error.message || "Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const publishExisting = async (quiz) => {
+    try {
+      await quizApi.publishInstructorQuiz(getQuizId(quiz));
+      toast.success(`${quiz.title} published`);
+      await load();
+    } catch (error) {
+      toast.error("Publish zala nahi", { description: error.message });
+    }
+  };
+
+  const deleteQuiz = async (quiz) => {
+    try {
+      await quizApi.deleteInstructorQuiz(getQuizId(quiz));
+      toast.success(`${quiz.title} deleted`);
+      await load();
+    } catch (error) {
+      toast.error("Delete zala nahi", { description: error.message });
+    }
+  };
+
+  const openAnalytics = async (quiz) => {
+    setAnalytics({ quiz, studentResults: [] });
+    setResultsPage(0);
+    try {
+      setAnalyticsLoading(true);
+      const result = await quizApi.getInstructorQuizAnalytics(getQuizId(quiz));
+      setAnalytics(result.data);
+    } catch (error) {
+      toast.error("Analytics load zale nahi", { description: error.message });
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const resultQuiz = analytics?.quiz || analytics;
+  const studentResults = analytics?.studentResults || [];
+  const resultPages = Math.max(1, Math.ceil(studentResults.length / RESULT_PAGE_SIZE));
+  const pagedStudentResults = studentResults.slice(resultsPage * RESULT_PAGE_SIZE, resultsPage * RESULT_PAGE_SIZE + RESULT_PAGE_SIZE);
 
   const cols = [
     {
@@ -184,18 +321,18 @@ export default function QuizzesPage() {
     {
       key: "course",
       header: "Course",
-      render: (r) => <span className="text-sm text-muted-foreground">{r.course}</span>,
+      render: (r) => <span className="text-sm text-muted-foreground">{r.courseTitle}</span>,
     },
-    { key: "questions", header: "Q", render: (r) => r.questions },
+    { key: "questionsCount", header: "Q", render: (r) => r.questionsCount },
     {
-      key: "attempts",
+      key: "attemptsCount",
       header: "Attempts",
-      render: (r) => r.attempts.toLocaleString(),
+      render: (r) => r.attemptsCount.toLocaleString(),
     },
     {
-      key: "pass",
+      key: "passRate",
       header: "Pass",
-      render: (r) => <span className="text-success font-medium">{r.pass}%</span>,
+      render: (r) => <span className="text-success font-medium">{r.passRate}%</span>,
     },
     {
       key: "difficulty",
@@ -212,45 +349,144 @@ export default function QuizzesPage() {
   return (
     <div className="mx-auto max-w-[1500px]">
       <LmsPageHeader
-        eyebrow="Learners"
-        title="Quiz Builder"
-        description="Create assessments with multiple question types."
+        eyebrow={analytics ? "Results" : "Learners"}
+        title={analytics ? resultQuiz?.title || "Student Results" : "Quiz Builder"}
+        description={analytics ? "Student attempts, marks, pass rate, and score details for this quiz." : "Create assessments with multiple question types."}
         actions={
-          <Button
-            className="rounded-xl gradient-primary border-0 text-primary-foreground"
-            onClick={openBuilder}
-          >
-            <Plus className="mr-1.5 h-4 w-4" /> New quiz
-          </Button>
+          analytics ? (
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setAnalytics(null);
+                setResultsPage(0);
+              }}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" className="rounded-xl" onClick={load} disabled={loading}>
+                <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
+              </Button>
+              <Button
+                className="rounded-xl gradient-primary border-0 text-primary-foreground"
+                onClick={() => openBuilder()}
+              >
+                <Plus className="mr-1.5 h-4 w-4" /> New quiz
+              </Button>
+            </>
+          )
         }
       />
-      <DataTable
-        rows={list}
-        columns={cols}
-        searchKeys={["title", "course"]}
-        actions={[
-          { label: "Edit questions", onClick: openBuilder },
-          {
-            label: "View analytics",
-            onClick: () => toast("Opening analytics..."),
-          },
-          {
-            label: "Duplicate",
-            onClick: (r) => {
-              setList((items) => [{ ...r, id: `Q-${Date.now()}`, title: `${r.title} Copy`, status: "draft", attempts: 0 }, ...items]);
-              toast.success(`Duplicated ${r.title}`);
+      {analytics ? (
+        <div className="space-y-4">
+          <div
+            className="grid gap-3"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
+          >
+            {[
+              ["Attempts", analytics?.totalAttempts || 0],
+              ["Students", analytics?.studentResults?.length || 0],
+              ["Average", `${analytics?.averageScore || 0}%`],
+              ["Pass rate", `${analytics?.passRate || 0}%`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl card-premium p-4">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+                <div className="mt-2 font-display text-2xl font-semibold">{value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl card-premium overflow-hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+              <div>
+                <div className="text-sm font-semibold">Student results</div>
+                <div className="text-xs text-muted-foreground">
+                  {resultQuiz?.course?.title || resultQuiz?.courseTitle || "Course"} result details
+                </div>
+              </div>
+              {analyticsLoading && <Badge variant="outline" className="border-border/60">Loading</Badge>}
+            </div>
+            <div className="hidden grid-cols-[minmax(0,1fr)_120px_100px_110px] gap-3 border-b border-border/60 bg-muted/30 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground md:grid">
+              <div>Student</div>
+              <div>Score</div>
+              <div>Percent</div>
+              <div>Status</div>
+            </div>
+            <div className="divide-y divide-border/60">
+              {pagedStudentResults.map((attempt) => (
+                <div key={attempt._id} className="grid gap-3 px-4 py-3 text-sm md:grid-cols-[minmax(0,1fr)_120px_100px_110px] md:items-center">
+                  <div>
+                    <div className="font-medium">{attempt.student?.name || "Student"}</div>
+                    <div className="text-xs text-muted-foreground">{attempt.student?.email || "No email"}</div>
+                  </div>
+                  <div className="font-medium">{attempt.score}/{attempt.totalMarks}</div>
+                  <div>{attempt.percentage || 0}%</div>
+                  <StatusBadge status={attempt.isPassed ? "passed" : "failed"} />
+                </div>
+              ))}
+              {!analyticsLoading && !(analytics?.studentResults || []).length && (
+                <div className="p-10 text-center text-sm text-muted-foreground">
+                  <BarChart3 className="mx-auto mb-2 h-5 w-5" />
+                  No student has solved this quiz yet.
+                </div>
+              )}
+            </div>
+            {studentResults.length > RESULT_PAGE_SIZE && (
+              <div className="flex items-center justify-between border-t border-border/60 px-4 py-3 text-xs text-muted-foreground">
+                <span>
+                  {studentResults.length} students - page {resultsPage + 1} of {resultPages}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={resultsPage === 0}
+                    onClick={() => setResultsPage((page) => Math.max(0, page - 1))}
+                    className="rounded-lg"
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={resultsPage >= resultPages - 1}
+                    onClick={() => setResultsPage((page) => Math.min(resultPages - 1, page + 1))}
+                    className="rounded-lg"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <DataTable
+          rows={list}
+          columns={cols}
+          searchKeys={["title", "courseTitle", "status", "difficulty"]}
+          emptyTitle={loading ? "Loading quizzes..." : "No quizzes yet"}
+          emptyDesc={loading ? "Fetching your live quiz data." : "Create a draft or publish a quiz directly from here."}
+          actions={[
+            { label: "Edit questions", onClick: openBuilder },
+            {
+              label: "View student results",
+              onClick: openAnalytics,
             },
-          },
-          {
-            label: "Delete",
-            onClick: (r) => {
-              setList((items) => items.filter((item) => item.id !== r.id));
-              toast.error(`Deleted ${r.title}`);
+            {
+              label: "Publish",
+              onClick: publishExisting,
             },
-            danger: true,
-          },
-        ]}
-      />
+            {
+              label: "Delete",
+              onClick: deleteQuiz,
+              danger: true,
+            },
+          ]}
+        />
+      )}
 
       <Dialog open={build} onOpenChange={setBuild}>
         <DialogPortal>
@@ -319,7 +555,7 @@ export default function QuizzesPage() {
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
           <DialogHeader className="shrink-0 border-b border-border/60 px-4 py-2 pr-14 sm:px-6">
-            <DialogTitle className="font-display">New quiz</DialogTitle>
+            <DialogTitle className="font-display">{editingQuiz ? "Edit quiz" : "New quiz"}</DialogTitle>
           </DialogHeader>
 
           <div
@@ -349,9 +585,9 @@ export default function QuizzesPage() {
                     <SelectValue placeholder="Pick a course" />
                   </SelectTrigger>
                   <SelectContent>
-                    {courseOptions.map((course) => (
-                      <SelectItem key={course} value={course}>
-                        {course}
+                    {courses.map((course) => (
+                      <SelectItem key={course._id} value={course._id}>
+                        {course.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -630,13 +866,17 @@ export default function QuizzesPage() {
             <Button variant="ghost" className="rounded-xl" onClick={() => setBuild(false)}>
               Cancel
             </Button>
-            <Button className="rounded-xl gradient-primary border-0 text-primary-foreground" onClick={saveDraft}>
-              Save {draft.questions.length} question{draft.questions.length === 1 ? "" : "s"}
+            <Button variant="outline" className="rounded-xl" onClick={() => saveQuiz("draft")} disabled={saving}>
+              Save as draft
+            </Button>
+            <Button className="rounded-xl gradient-primary border-0 text-primary-foreground" onClick={() => saveQuiz("published")} disabled={saving}>
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Publish now
             </Button>
           </DialogFooter>
           </DialogPrimitive.Content>
         </DialogPortal>
       </Dialog>
+
     </div>
   );
 }

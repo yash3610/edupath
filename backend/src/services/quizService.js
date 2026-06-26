@@ -40,7 +40,7 @@ export const sanitizeQuizForAttempt = (quiz) => ({
 
 export const ensureCanAttemptQuiz = async ({ quiz, studentId }) => {
   if (!quiz) throw new ApiError(404, "Quiz not found");
-  if (quiz.status !== "published" || !quiz.isApproved) throw new ApiError(403, "Quiz is not available yet");
+  if (quiz.status !== "published") throw new ApiError(403, "Quiz is not available yet");
 
   const now = new Date();
   if (quiz.startDate && now < quiz.startDate) throw new ApiError(403, "Quiz has not started");

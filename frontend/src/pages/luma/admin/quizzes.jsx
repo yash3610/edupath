@@ -20,7 +20,6 @@ import { DataTable } from "@/features/shared/components/DataTable";
 import { LmsPageHeader } from "@/features/shared/components/PageHeader";
 import { StatusBadge } from "@/features/shared/components/StatusBadge";
 import { quizApi } from "@/services/quizApi";
-import { confirmAction } from "@/utils/sweetAlert";
 
 const statusOptions = [
   { label: "All status", value: "all" },
@@ -39,7 +38,10 @@ function normalizeQuiz(quiz) {
     instructorName: quiz.instructor?.name || quiz.instructor?.email || "Instructor",
     questionsCount: questions,
     marksCount: marks,
-    approvedLabel: quiz.isApproved ? "Approved" : "Pending",
+    attemptsCount: quiz.attemptsCount || 0,
+    studentsSolvedCount: quiz.studentsSolvedCount || 0,
+    averageScore: quiz.averageScore || 0,
+    passRate: quiz.passRate || 0,
   };
 }
 
@@ -79,22 +81,15 @@ export default function Page() {
     { key: "instructorName", header: "Instructor", render: (r) => r.instructorName },
     { key: "questionsCount", header: "Questions", render: (r) => r.questionsCount },
     { key: "marksCount", header: "Marks", render: (r) => r.marksCount },
-    {
-      key: "attemptsAllowed",
-      header: "Attempts",
-      sort: (a, b) => Number(a.attemptsAllowed || 0) - Number(b.attemptsAllowed || 0),
-      render: (r) => Number(r.attemptsAllowed || 0).toLocaleString(),
-    },
+    { key: "attemptsCount", header: "Attempts", render: (r) => r.attemptsCount.toLocaleString() },
+    { key: "studentsSolvedCount", header: "Students", render: (r) => r.studentsSolvedCount },
+    { key: "averageScore", header: "Avg", render: (r) => <span className="font-medium">{r.averageScore}%</span> },
     {
       key: "passingMarks",
       header: "Passing",
       render: (r) => <span className="font-medium text-success">{r.passingMarks || 0}</span>,
     },
-    {
-      key: "approvedLabel",
-      header: "Approval",
-      render: (r) => <span className={r.isApproved ? "font-medium text-success" : "font-medium text-amber-600"}>{r.approvedLabel}</span>,
-    },
+    { key: "passRate", header: "Pass", render: (r) => <span className="font-medium text-success">{r.passRate}%</span> },
     {
       key: "status",
       header: "Status",
@@ -102,40 +97,14 @@ export default function Page() {
     },
   ], []);
 
-  const runAction = async (quiz, action) => {
-    const labels = {
-      approve: { loading: "Approving quiz...", success: "Quiz approved", description: "Students can now see this quiz." },
-      reject: { loading: "Rejecting quiz...", success: "Quiz rejected", description: "The quiz was moved back to draft." },
-      delete: { loading: "Deleting quiz...", success: "Quiz deleted", description: "The quiz was removed from the admin list." },
-    };
-
-    if (action === "delete") {
-      const confirmed = await confirmAction({
-        title: "Delete this quiz?",
-        text: quiz.title,
-        confirmButtonText: "Delete quiz",
-        danger: true,
-      });
-      if (!confirmed) return;
-    }
-
-    const toastId = toast.loading(labels[action].loading, {
-      description: quiz.title,
-    });
-
+  const openQuizDetails = async (quiz) => {
+    setSelectedQuiz({ ...quiz, studentResults: [] });
     try {
-      if (action === "approve") await quizApi.approveAdminQuiz(quiz._id);
-      if (action === "reject") await quizApi.rejectAdminQuiz(quiz._id);
-      if (action === "delete") await quizApi.deleteAdminQuiz(quiz._id);
-      toast.success(labels[action].success, {
-        id: toastId,
-        description: `${quiz.title}. ${labels[action].description}`,
-      });
-      await load();
+      const result = await quizApi.getAdminQuizAnalytics(quiz._id);
+      setSelectedQuiz({ ...normalizeQuiz(result.data.quiz), ...result.data });
     } catch (error) {
-      toast.error("Quiz action failed", {
-        id: toastId,
-        description: error.message || `Could not ${action} ${quiz.title}.`,
+      toast.error("Quiz analytics could not be loaded", {
+        description: error.message || "Please refresh and try again.",
       });
     }
   };
@@ -145,7 +114,7 @@ export default function Page() {
       <LmsPageHeader
         eyebrow="Catalog"
         title="Quizzes"
-        description="All quizzes across courses - review, approve, and analyze."
+        description="All instructor-created quizzes with student attempts, marks, and pass analytics."
         actions={
           <Button variant="outline" className="rounded-xl" onClick={load} disabled={loading}>
             <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
@@ -155,7 +124,7 @@ export default function Page() {
       <DataTable
         rows={list}
         columns={cols}
-        searchKeys={["title", "courseTitle", "instructorName", "status", "approvedLabel"]}
+        searchKeys={["title", "courseTitle", "instructorName", "status"]}
         filters={
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="h-10 w-[180px] rounded-xl bg-muted/30">
@@ -170,32 +139,52 @@ export default function Page() {
         emptyDesc={loading ? "Fetching latest quiz data." : "When instructors create quizzes, they will show up here."}
         actions={[
           {
-            label: "View questions",
-            onClick: (r) => setSelectedQuiz(r),
-          },
-          {
-            label: "Approve",
-            onClick: (r) => runAction(r, "approve"),
-          },
-          {
-            label: "Reject",
-            onClick: (r) => runAction(r, "reject"),
-            danger: true,
-          },
-          {
-            label: "Delete",
-            onClick: (r) => runAction(r, "delete"),
-            danger: true,
+            label: "View analytics",
+            onClick: openQuizDetails,
           },
         ]}
       />
 
       <Dialog open={!!selectedQuiz} onOpenChange={(open) => !open && setSelectedQuiz(null)}>
-        <DialogContent className="max-h-[82vh] overflow-y-auto rounded-2xl sm:max-w-3xl">
+        <DialogContent className="max-h-[82vh] overflow-y-auto rounded-2xl sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{selectedQuiz?.title}</DialogTitle>
-            <DialogDescription>{selectedQuiz?.courseTitle} - {selectedQuiz?.questionsCount || 0} questions</DialogDescription>
+            <DialogDescription>
+              {selectedQuiz?.course?.title || selectedQuiz?.courseTitle} - created by {selectedQuiz?.instructor?.name || selectedQuiz?.instructorName || "Instructor"}
+            </DialogDescription>
           </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-4">
+            {[
+              ["Attempts", selectedQuiz?.totalAttempts || selectedQuiz?.attemptsCount || 0],
+              ["Students", selectedQuiz?.studentsSolved || selectedQuiz?.studentsSolvedCount || 0],
+              ["Average", `${selectedQuiz?.averageScore || 0}%`],
+              ["Pass rate", `${selectedQuiz?.passRate || 0}%`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-border/60 bg-muted/30 p-3">
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="mt-1 font-display text-2xl font-semibold">{value}</div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl border border-border/60">
+            <div className="border-b border-border/60 px-4 py-3 text-sm font-semibold">Students who solved this quiz</div>
+            <div className="divide-y divide-border/60">
+              {(selectedQuiz?.studentResults || []).map((attempt) => (
+                <div key={attempt._id} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[1fr_90px_90px_90px] sm:items-center">
+                  <div>
+                    <div className="font-medium">{attempt.student?.name || "Student"}</div>
+                    <div className="text-xs text-muted-foreground">{attempt.student?.email || "No email"}</div>
+                  </div>
+                  <div>{attempt.score}/{attempt.totalMarks}</div>
+                  <div>{attempt.percentage || 0}%</div>
+                  <StatusBadge status={attempt.isPassed ? "passed" : "failed"} />
+                </div>
+              ))}
+              {!(selectedQuiz?.studentResults || []).length && (
+                <div className="p-6 text-center text-sm text-muted-foreground">No student attempts yet.</div>
+              )}
+            </div>
+          </div>
           <div className="space-y-3">
             {(selectedQuiz?.questions || []).map((question, index) => (
               <div key={question._id || index} className="rounded-xl border border-border/70 bg-muted/20 p-4">

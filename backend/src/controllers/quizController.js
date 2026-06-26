@@ -32,7 +32,7 @@ const attemptMeta = async (quiz, studentId) => {
 export const getStudentQuizzes = asyncHandler(async (req, res) => {
   const enrollments = await Enrollment.find({ student: userId(req), status: { $in: ["active", "completed"] } }).select("course");
   const courseIds = enrollments.map((item) => item.course);
-  const query = { course: { $in: courseIds }, status: "published", isApproved: true };
+  const query = { course: { $in: courseIds }, status: "published" };
   if (req.query.courseId) query.course = req.query.courseId;
   if (req.query.difficulty) query.difficulty = req.query.difficulty;
   if (req.query.search) query.title = { $regex: req.query.search, $options: "i" };
@@ -157,7 +157,8 @@ export const instructorCreateQuiz = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.body.course, instructor: userId(req) });
   if (!course) throw new ApiError(404, "Course not found");
   const totalMarks = req.body.totalMarks || req.body.questions?.reduce((sum, question) => sum + Number(question.marks || 1), 0) || 0;
-  const quiz = await Quiz.create({ ...req.body, slug: req.body.slug || `${slugify(req.body.title)}-${Date.now()}`, instructor: userId(req), totalMarks });
+  const status = req.body.status === "published" ? "published" : "draft";
+  const quiz = await Quiz.create({ ...req.body, status, isApproved: status === "published", slug: req.body.slug || `${slugify(req.body.title)}-${Date.now()}`, instructor: userId(req), totalMarks });
   created(res, quiz);
 });
 
@@ -209,7 +210,7 @@ export const reorderQuestions = asyncHandler(async (req, res) => {
   await quiz.save();
   ok(res, quiz, "Questions reordered");
 });
-export const publishQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findOneAndUpdate({ _id: req.params.quizId, instructor: userId(req) }, { status: "published" }, { new: true }), "Quiz published"));
+export const publishQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findOneAndUpdate({ _id: req.params.quizId, instructor: userId(req) }, { status: "published", isApproved: true }, { new: true }), "Quiz published"));
 
 export const quizAnalytics = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findOne({ _id: req.params.quizId, instructor: userId(req) });
@@ -240,7 +241,33 @@ export const adminQuizzes = asyncHandler(async (req, res) => {
   const query = {};
   if (req.query.status) query.status = req.query.status;
   if (req.query.courseId) query.course = req.query.courseId;
-  ok(res, await Quiz.find(query).populate("course instructor", "title name email").sort({ createdAt: -1 }));
+  const quizzes = await Quiz.find(query).populate("course instructor", "title name email").sort({ createdAt: -1 });
+  const data = await Promise.all(quizzes.map(async (quiz) => {
+    const attempts = await QuizAttempt.find({ quiz: quiz._id, status: { $ne: "in-progress" } });
+    const passed = attempts.filter((attempt) => attempt.isPassed).length;
+    return {
+      ...quiz.toObject(),
+      attemptsCount: attempts.length,
+      studentsSolvedCount: new Set(attempts.map((attempt) => String(attempt.student))).size,
+      averageScore: attempts.length ? Math.round(attempts.reduce((sum, attempt) => sum + Number(attempt.percentage || 0), 0) / attempts.length) : 0,
+      passRate: attempts.length ? Math.round((passed / attempts.length) * 100) : 0,
+    };
+  }));
+  ok(res, data);
+});
+export const adminQuizAnalytics = asyncHandler(async (req, res) => {
+  const quiz = await Quiz.findById(req.params.quizId).populate("course instructor", "title name email");
+  if (!quiz) throw new ApiError(404, "Quiz not found");
+  const attempts = await QuizAttempt.find({ quiz: req.params.quizId, status: { $ne: "in-progress" } }).populate("student", "name email");
+  const passed = attempts.filter((attempt) => attempt.isPassed).length;
+  ok(res, {
+    quiz,
+    totalAttempts: attempts.length,
+    studentsSolved: new Set(attempts.map((attempt) => String(attempt.student?._id || attempt.student))).size,
+    averageScore: attempts.length ? Math.round(attempts.reduce((sum, attempt) => sum + Number(attempt.percentage || 0), 0) / attempts.length) : 0,
+    passRate: attempts.length ? Math.round((passed / attempts.length) * 100) : 0,
+    studentResults: attempts,
+  });
 });
 export const adminApproveQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findByIdAndUpdate(req.params.quizId, { isApproved: true, status: "published" }, { new: true }), "Quiz approved"));
 export const adminRejectQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findByIdAndUpdate(req.params.quizId, { isApproved: false, status: "draft" }, { new: true }), "Quiz rejected"));

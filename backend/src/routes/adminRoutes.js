@@ -1,5 +1,5 @@
 import express from "express";
-import { adminApproveQuiz, adminDeleteQuiz, adminQuizzes, adminRejectQuiz } from "../controllers/quizController.js";
+import { adminApproveQuiz, adminDeleteQuiz, adminQuizAnalytics, adminQuizzes, adminRejectQuiz } from "../controllers/quizController.js";
 import {
   adminAnnouncement,
   adminApproveLiveClass,
@@ -66,6 +66,7 @@ router.get("/live-classes/:id/attendance", liveClassIdParam, validate, adminAtte
 router.post("/live-classes/:id/announcement", liveClassIdParam, validate, adminAnnouncement);
 router.delete("/live-classes/:id", liveClassIdParam, validate, adminDeleteLiveClass);
 router.get("/quizzes", adminQuizzes);
+router.get("/quizzes/:quizId/analytics", quizIdParam, validate, adminQuizAnalytics);
 router.patch("/quizzes/:quizId/approve", quizIdParam, validate, adminApproveQuiz);
 router.patch("/quizzes/:quizId/reject", quizIdParam, validate, adminRejectQuiz);
 router.delete("/quizzes/:quizId", quizIdParam, validate, adminDeleteQuiz);
