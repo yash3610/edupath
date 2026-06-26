@@ -212,7 +212,7 @@ export default function QuizzesPage() {
       </div>
 
       <Dialog open={!!activeId} onOpenChange={(o) => !o && setActiveId(null)}>
-        <DialogContent className="max-w-2xl rounded-2xl border-border/60 bg-card p-0 overflow-hidden">
+        <DialogContent className="top-4 max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-2xl translate-y-0 overflow-y-auto rounded-2xl border-border/60 bg-card p-0">
           {activeId && (
             <QuizRunner
               quiz={quizzes.find((x) => x.id === activeId)}
