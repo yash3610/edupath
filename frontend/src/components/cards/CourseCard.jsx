@@ -5,11 +5,12 @@ import { useCart } from "../../context/CartContext.jsx";
 export default function CourseCard({ course }) {
   const { items, addCourse } = useCart();
   const inCart = items.some((item) => item._id === course._id);
+  const image = course.image || course.thumbnail || "/assets/images/course/course-1/1.png";
 
   return (
     <article className="ep-course__card">
       <Link to={`/course/${course.slug}`} className="ep-course__img">
-        <img src={course.image} alt={course.title} />
+        <img src={image} alt={course.title} />
       </Link>
       <div className="ep-course__content">
         <span className="ep-course__category">{course.category}</span>

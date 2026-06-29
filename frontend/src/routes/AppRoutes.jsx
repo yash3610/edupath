@@ -46,6 +46,7 @@ const AdminQuizManagementPage = React.lazy(() => import("../pages/dashboard/Admi
 const InstructorQuizAnalyticsPage = React.lazy(() => import("../pages/dashboard/InstructorQuizAnalyticsPage.jsx"));
 const InstructorQuizBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorQuizBuilderPage.jsx"));
 const InstructorQuizManagementPage = React.lazy(() => import("../pages/dashboard/InstructorQuizManagementPage.jsx"));
+const InstructorCourseCreatePage = React.lazy(() => import("../pages/dashboard/InstructorCourseCreatePage.jsx"));
 const InstructorCourseBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorCourseBuilderPage.jsx"));
 const InstructorCoursesPage = React.lazy(() => import("../pages/dashboard/InstructorCoursesPage.jsx"));
 const CourseAnalyticsPage = React.lazy(() => import("../pages/dashboard/CourseAnalyticsPage.jsx"));
@@ -85,9 +86,7 @@ const lumaAdminPages = [
 ];
 
 const lumaInstructorPages = [
-  "analytics", "assignments", "builder", "courses", "create", "doubts",
-  "earnings", "live", "messages", "modules", "notifications", "payouts",
-  "profile", "quizzes", "resources", "reviews", "settings", "students",
+  "notifications", "resources",
 ];
 
 function DashboardSuspense({ children }) {
@@ -243,10 +242,15 @@ export default function AppRoutes() {
         {lumaInstructorPages.map((name) => (
           <Route key={`instructor-${name}`} path={name} element={<LumaPage role="instructor" name={name} />} />
         ))}
-        <Route path="my-courses" element={<InstructorCoursesPage />} />
+        <Route path="courses" element={<InstructorCoursesPage />} />
+        <Route path="my-courses" element={<Navigate to="/instructor/dashboard/courses" replace />} />
         <Route path="courses/:courseId/analytics" element={<CourseAnalyticsPage />} />
-        <Route path="course-builder" element={<InstructorCourseBuilderPage />} />
+        <Route path="create" element={<InstructorCourseCreatePage />} />
+        <Route path="builder" element={<InstructorCourseBuilderPage view="builder" />} />
+        <Route path="modules" element={<InstructorCourseBuilderPage view="modules" />} />
+        <Route path="course-builder" element={<Navigate to="/instructor/dashboard/builder" replace />} />
         <Route path="students" element={<RoleManagementPage type="studentsProgress" />} />
+        <Route path="live" element={<Navigate to="/instructor/dashboard/live-classes" replace />} />
         <Route path="live-classes" element={<InstructorLiveClassesPage />} />
         <Route path="live-classes/create" element={<LiveClassFormPage />} />
         <Route path="live-classes/:id/edit" element={<LiveClassFormPage />} />

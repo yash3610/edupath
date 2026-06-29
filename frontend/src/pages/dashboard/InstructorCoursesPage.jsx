@@ -28,7 +28,7 @@ export default function InstructorCoursesPage() {
       <section className="rounded-[28px] bg-[#1f1c35] p-6 text-white sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[.18em] text-[#fec961]">Teaching Studio</p>
         <h2 className="mt-2 text-3xl font-extrabold">Assigned courses</h2>
-        <p className="mt-2 text-sm text-white/65">Admin assigns courses here. You can manage curriculum, teaching, students, and performance.</p>
+        <p className="mt-2 text-sm text-white/65">Create courses, manage curriculum, track students, and review performance from one place.</p>
       </section>
 
       <MotionCard className="p-4">
@@ -51,7 +51,7 @@ export default function InstructorCoursesPage() {
                     <BookOpen className="h-5 w-5 text-[#ff723a]" />
                   </div>
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <Link to={`/instructor/dashboard/course-builder?course=${course._id}`} className="action"><Layers3 className="h-4 w-4" /> Curriculum</Link>
+                    <Link to={`/instructor/dashboard/builder?course=${course._id}`} className="action"><Layers3 className="h-4 w-4" /> Curriculum</Link>
                     <Link to={`/instructor/dashboard/courses/${course._id}/analytics`} className="action"><BarChart3 className="h-4 w-4" /> Analytics</Link>
                   </div>
                 </div>
@@ -61,7 +61,7 @@ export default function InstructorCoursesPage() {
         </div>
       )}
 
-      {!loading && !filtered.length && <MotionCard className="text-center"><h3 className="text-xl font-extrabold">No courses assigned</h3><p className="mt-2 text-sm text-slate-500">An admin needs to assign a course to your instructor account.</p></MotionCard>}
+      {!loading && !filtered.length && <MotionCard className="text-center"><h3 className="text-xl font-extrabold">No courses yet</h3><p className="mt-2 text-sm text-slate-500">Create your first course to start building curriculum.</p><Link to="/instructor/dashboard/create" className="action mt-4">Create course</Link></MotionCard>}
       <style>{`.action{display:inline-flex;align-items:center;gap:.4rem;border-radius:.65rem;background:#f8fafc;padding:.55rem .7rem;font-size:.72rem;font-weight:800}.dark .action{background:rgba(255,255,255,.08)}`}</style>
     </div>
   );

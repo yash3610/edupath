@@ -55,6 +55,22 @@ const ok = (res, data, message = "OK") => res.json({ success: true, message, dat
 const created = (res, data, message = "Created") => res.status(201).json({ success: true, message, data });
 const userId = (req) => req.user?._id;
 const toList = (value) => Array.isArray(value) ? value : String(value || "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+const slugify = (value) => String(value || "")
+  .toLowerCase()
+  .trim()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+
+async function uniqueCourseSlug(source, ignoreId) {
+  const base = slugify(source) || `course-${Date.now()}`;
+  let slug = base;
+  let suffix = 1;
+  while (await Course.exists({ slug, ...(ignoreId ? { _id: { $ne: ignoreId } } : {}) })) {
+    suffix += 1;
+    slug = `${base}-${suffix}`;
+  }
+  return slug;
+}
 
 async function requireStudentEnrollment(req, courseId) {
   const enrollment = await Enrollment.findOne({
@@ -80,6 +96,13 @@ const normalizeCoursePayload = (body) => {
     payload.price = 0;
     payload.discountPrice = 0;
   }
+  if (payload.free === true || payload.free === "true") {
+    payload.pricingType = "free";
+    payload.price = 0;
+    payload.discountPrice = 0;
+  }
+  if (payload.certificate !== undefined) payload.certificateEnabled = payload.certificate === true || payload.certificate === "true";
+  if (payload.visibility === "private") payload.disabled = true;
   return payload;
 };
 
@@ -226,13 +249,35 @@ export const achievements = asyncHandler(async (req, res) => ok(res, { streak: 1
 
 export const myCourses = asyncHandler(async (req, res) => {
   const query = { student: userId(req) };
-  const enrollments = await Enrollment.find(query).populate("course");
+  const enrollments = await Enrollment.find(query).populate("course").lean();
   const filtered = enrollments.filter((item) => {
     const statusMatch = !req.query.status || item.status === req.query.status;
     const searchMatch = !req.query.search || item.course?.title?.toLowerCase().includes(String(req.query.search).toLowerCase());
     return statusMatch && searchMatch;
   });
-  ok(res, filtered);
+  const hydrated = await Promise.all(filtered.map(async (item) => {
+    if (!item.course?._id) return item;
+    const [totalLectures, completedLectures, firstIncomplete] = await Promise.all([
+      Lecture.countDocuments({ course: item.course._id, published: { $ne: false } }),
+      LectureProgress.countDocuments({ student: userId(req), course: item.course._id, completed: true }),
+      Lecture.findOne({
+        course: item.course._id,
+        published: { $ne: false },
+        _id: { $nin: await LectureProgress.find({ student: userId(req), course: item.course._id, completed: true }).distinct("lecture") },
+      }).sort({ order: 1 }).select("title").lean(),
+    ]);
+    return {
+      ...item,
+      progress: totalLectures ? Math.round((completedLectures / totalLectures) * 100) : Number(item.progress || 0),
+      course: {
+        ...item.course,
+        totalLectures,
+        completedLectures,
+        currentLecture: firstIncomplete?.title || (totalLectures ? "Course completed" : "Open next lesson"),
+      },
+    };
+  }));
+  ok(res, hydrated);
 });
 export const courseProgress = asyncHandler(async (req, res) => ok(res, await LectureProgress.find({ student: userId(req), course: req.params.courseId })));
 
@@ -935,6 +980,35 @@ export const instructorRecentActivity = asyncHandler(async (req, res) => {
   ok(res, await Enrollment.find({ course: { $in: courseIds } }).populate("student", "name email").populate("course", "title").sort({ createdAt: -1 }).limit(10));
 });
 export const instructorUpcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(10)));
+export const instructorCreateCourse = asyncHandler(async (req, res) => {
+  const payload = normalizeCoursePayload(req.body);
+  if (!payload.title?.trim()) throw new ApiError(400, "Course title is required");
+  payload.slug = await uniqueCourseSlug(payload.slug || payload.title);
+  payload.instructor = userId(req);
+  payload.status = "assigned";
+  const course = await Course.create(payload);
+  created(res, course, "Course draft created");
+});
+export const instructorUpdateCourse = asyncHandler(async (req, res) => {
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) });
+  if (!course) throw new ApiError(404, "Course not found");
+  if (!["assigned", "content_in_progress", "changes_requested"].includes(course.status)) {
+    throw new ApiError(409, "This course cannot be edited in its current status");
+  }
+  const payload = normalizeCoursePayload(req.body);
+  const allowed = [
+    "title", "subtitle", "slug", "category", "subcategory", "language", "level", "thumbnail",
+    "promoVideoUrl", "shortDescription", "description", "learningOutcomes", "requirements",
+    "targetAudience", "tags", "pricingType", "price", "discountPrice", "currency",
+    "couponEnabled", "sequentialLearning", "certificateEnabled", "disabled",
+  ];
+  const updates = Object.fromEntries(Object.entries(payload).filter(([key]) => allowed.includes(key)));
+  if (updates.title && !updates.slug) updates.slug = await uniqueCourseSlug(updates.title, course._id);
+  if (updates.slug) updates.slug = await uniqueCourseSlug(updates.slug, course._id);
+  const updated = await Course.findByIdAndUpdate(course._id, updates, { new: true, runValidators: true });
+  await markCourseContentInProgress(course._id);
+  ok(res, updated, "Course updated");
+});
 export const instructorCourseDetails = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) }).populate("instructor", "name email");
   if (!course) throw new ApiError(404, "Course not found");
@@ -1133,6 +1207,8 @@ export const adminCourses = asyncHandler(async (_req, res) => {
 });
 export const adminCreateCourse = asyncHandler(async (req, res) => {
   const payload = normalizeCoursePayload(req.body);
+  if (!payload.title?.trim()) throw new ApiError(400, "Course title is required");
+  payload.slug = await uniqueCourseSlug(payload.slug || payload.title);
   if (req.file) {
     const thumbnail = await uploadBuffer(req.file, "courses/thumbnails");
     payload.thumbnail = thumbnail.url;
@@ -1168,6 +1244,8 @@ export const adminUpdateCourse = asyncHandler(async (req, res) => {
   }
   const existing = await Course.findById(req.params.courseId);
   if (!existing) throw new ApiError(404, "Course not found");
+  if (payload.title && !payload.slug) payload.slug = await uniqueCourseSlug(payload.title, existing._id);
+  if (payload.slug) payload.slug = await uniqueCourseSlug(payload.slug, existing._id);
   const previousInstructor = String(existing.instructor || "");
   if (payload.instructor && payload.instructor !== previousInstructor && existing.status === "draft") payload.status = "assigned";
   if (payload.instructor === null && ["assigned", "content_in_progress", "changes_requested"].includes(existing.status)) payload.status = "draft";

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Course, User } from "../models/index.js";
+import { Course, Lecture, Module, User } from "../models/index.js";
 import { fallbackBlogs, fallbackCourses, fallbackEvents, fallbackProducts, fallbackTeam } from "../data/fallbackContent.js";
 import { sendEmail } from "../services/emailService.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -52,7 +52,24 @@ export const publicCourseDetails = asyncHandler(async (req, res) => {
   const [courseWithInstructor] = course ? await withInstructorNames([course]) : [];
   const fallback = fallbackCourses.find((item) => item.slug === req.params.slug || item._id === req.params.slug || item.legacyId === req.params.slug);
   if (!course && !fallback) return res.status(404).json({ success: false, message: "Course not found" });
-  ok(res, courseWithInstructor ? normalizeCourse(courseWithInstructor) : fallback);
+  if (!courseWithInstructor) return ok(res, fallback);
+
+  const [modules, lectures] = await Promise.all([
+    Module.find({ course: courseWithInstructor._id, published: { $ne: false } }).sort({ order: 1 }).lean(),
+    Lecture.find({ course: courseWithInstructor._id, published: { $ne: false } })
+      .select("module title type durationSeconds estimatedDurationMinutes isPreview order")
+      .sort({ order: 1 })
+      .lean(),
+  ]);
+
+  ok(res, {
+    ...normalizeCourse(courseWithInstructor),
+    modules: modules.map((module) => ({
+      ...module,
+      lectures: lectures.filter((lecture) => String(lecture.module) === String(module._id)),
+    })),
+    lectureCount: lectures.length,
+  });
 });
 
 export const publicBlogs = asyncHandler(async (_req, res) => ok(res, fallbackBlogs));
