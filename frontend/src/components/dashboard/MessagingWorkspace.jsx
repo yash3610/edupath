@@ -17,6 +17,7 @@ export default function MessagingWorkspace({ title, emptyContactText }) {
   const [sending, setSending] = useState(false);
   const fileInput = useRef(null);
   const messageEnd = useRef(null);
+  const messagesPane = useRef(null);
 
   const loadConversations = useCallback(async () => {
     const result = await apiRequest("/api/messages/conversations");
@@ -62,7 +63,8 @@ export default function MessagingWorkspace({ title, emptyContactText }) {
   }, [loadConversations, openConversation, selected]);
 
   useEffect(() => {
-    messageEnd.current?.scrollIntoView({ behavior: "smooth" });
+    const pane = messagesPane.current;
+    if (pane) pane.scrollTop = pane.scrollHeight;
   }, [messages]);
 
   const filtered = useMemo(() => conversations.filter((conversation) => {
@@ -129,10 +131,12 @@ export default function MessagingWorkspace({ title, emptyContactText }) {
   const selectedContact = selected ? otherParticipant(selected, user?._id) : null;
 
   return (
-    <div className="space-y-5">
-      <SectionHeading eyebrow="Messages" title={title} />
-      <div className="grid gap-5 xl:grid-cols-[350px_1fr]">
-        <MotionCard className="p-4">
+    <div className="flex h-[calc(100vh-145px)] min-h-0 flex-col overflow-hidden">
+      <div className="shrink-0">
+        <SectionHeading eyebrow="Messages" title={title} />
+      </div>
+      <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-[350px_1fr]">
+        <MotionCard className="flex min-h-0 flex-col overflow-hidden p-4">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-white/10">
             <Icon name="Search" className="h-4 w-4 text-slate-400" />
             <input value={query} onChange={(event) => setQuery(event.target.value)} className="dashboard-search-input w-full bg-transparent text-sm font-bold outline-none" placeholder="Search conversations" />
@@ -141,7 +145,7 @@ export default function MessagingWorkspace({ title, emptyContactText }) {
             <option value="">{availableContacts.length ? "Start a new conversation" : emptyContactText}</option>
             {availableContacts.map((contact) => <option key={contact._id} value={contact._id}>{contact.name} · {contact.role}</option>)}
           </select>
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain">
             {filtered.map((conversation) => {
               const contact = otherParticipant(conversation, user?._id);
               return (
@@ -159,12 +163,12 @@ export default function MessagingWorkspace({ title, emptyContactText }) {
           </div>
         </MotionCard>
 
-        <MotionCard className="flex min-h-[600px] flex-col overflow-hidden p-0">
-          <div className="flex items-center gap-3 border-b border-slate-200 p-4 dark:border-white/10">
+        <MotionCard className="flex min-h-0 flex-col overflow-hidden p-0">
+          <div className="flex shrink-0 items-center gap-3 border-b border-slate-200 p-4 dark:border-white/10">
             {selectedContact ? <Avatar user={selectedContact} /> : <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/10"><Icon name="MessageCircle" /></span>}
             <div><h3 className="font-extrabold">{selectedContact?.name || "Select a conversation"}</h3><p className="text-xs text-slate-500">{selectedContact ? `${selectedContact.role} · ${selectedContact.email}` : "Choose a contact to begin"}</p></div>
           </div>
-          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-4 dark:bg-transparent">
+          <div ref={messagesPane} className="h-0 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-slate-50/50 p-4 dark:bg-transparent">
             {messages.map((message) => {
               const mine = String(message.sender?._id || message.sender) === String(user?._id);
               return (
@@ -180,7 +184,7 @@ export default function MessagingWorkspace({ title, emptyContactText }) {
             {selected && !messages.length && <p className="py-16 text-center text-sm font-bold text-slate-400">No messages yet. Say hello.</p>}
             <div ref={messageEnd} />
           </div>
-          <form onSubmit={send} className="flex gap-2 border-t border-slate-200 p-4 dark:border-white/10">
+          <form onSubmit={send} className="flex shrink-0 gap-2 border-t border-slate-200 p-4 dark:border-white/10">
             <input ref={fileInput} type="file" className="hidden" accept="image/jpeg,image/png,image/webp,application/pdf,application/zip,.docx" onChange={(event) => upload(event.target.files?.[0])} />
             <button type="button" disabled={!selected || sending} onClick={() => fileInput.current?.click()} className="rounded-xl border border-slate-200 p-3 disabled:opacity-40 dark:border-white/10"><Icon name="UploadCloud" /></button>
             <input disabled={!selected || sending} value={body} onChange={(event) => setBody(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none dark:border-white/10 dark:bg-slate-800" placeholder="Type a message..." />

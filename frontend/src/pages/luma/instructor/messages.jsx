@@ -122,6 +122,7 @@ export default function MessagesPage() {
   const [demoMode, setDemoMode] = useState(false);
   const fileRef = useRef(null);
   const bottomRef = useRef(null);
+  const messagesPaneRef = useRef(null);
 
   const loadConversations = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
@@ -179,6 +180,18 @@ export default function MessagesPage() {
   const demoMsgs = demoConvos[activeId] || [];
   const visibleMessages = demoMode ? demoMsgs : remoteMessages;
 
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    window.scrollTo({ top: 0, left: 0 });
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
   const loadMessages = useCallback(async (conversationId) => {
     if (!conversationId || demoMode) return;
     setMessagesLoading(true);
@@ -205,7 +218,8 @@ export default function MessagesPage() {
   }, [active?.id, active?.type, demoMode, loadMessages, setDemoList]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
+    const pane = messagesPaneRef.current;
+    if (pane) pane.scrollTop = pane.scrollHeight;
   }, [visibleMessages.length, activeId]);
 
   async function openThread(thread) {
@@ -342,16 +356,18 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1300px] flex-col">
-      <LmsPageHeader
-        eyebrow="Account"
-        title="Messages"
-        description="Conversations with your students."
-      />
+    <div className="mx-auto flex h-[calc(100vh-6rem)] min-h-0 max-w-[1300px] flex-col overflow-hidden">
+      <div className="shrink-0">
+        <LmsPageHeader
+          eyebrow="Account"
+          title="Messages"
+          description="Conversations with your students."
+        />
+      </div>
 
-      <div className="grid h-[calc(100svh-220px)] min-h-[560px] grid-cols-1 gap-0 overflow-hidden rounded-2xl card-premium md:grid-cols-[320px_1fr]">
-        <aside className="flex min-h-0 flex-col border-r border-border/60 bg-muted/10">
-          <div className="border-b border-border/60 p-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden rounded-2xl card-premium md:grid-cols-[320px_1fr]">
+        <aside className="flex h-full min-h-0 flex-col overflow-hidden border-r border-border/60 bg-muted/10">
+          <div className="shrink-0 border-b border-border/60 p-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -363,7 +379,7 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="h-0 min-h-0 flex-1 overflow-y-scroll overscroll-contain">
             {loading ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -410,10 +426,10 @@ export default function MessagesPage() {
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col bg-background">
+        <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
           {active ? (
             <>
-              <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+              <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <Avatar className="h-9 w-9 shrink-0">
                     <AvatarImage src={active.avatar} />
@@ -428,7 +444,7 @@ export default function MessagesPage() {
                 </div>
               </header>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div ref={messagesPaneRef} className="h-0 min-h-0 flex-1 overflow-y-scroll overscroll-contain p-4">
                 {messagesLoading ? (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -473,7 +489,7 @@ export default function MessagesPage() {
               </div>
 
               <form
-                className="flex items-center gap-2 border-t border-border/60 p-3"
+                className="flex shrink-0 items-center gap-2 border-t border-border/60 p-3"
                 onSubmit={(event) => {
                   event.preventDefault();
                   sendMessage();
