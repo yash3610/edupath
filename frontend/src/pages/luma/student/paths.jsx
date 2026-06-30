@@ -216,10 +216,10 @@ export default function PathsPage() {
       </div>
 
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <DialogContent className="max-w-2xl rounded-2xl border-border/60 bg-card">
+        <DialogContent className="bottom-4 top-4 flex w-[calc(100vw-2rem)] max-w-2xl translate-y-0 flex-col overflow-hidden rounded-2xl border-border/60 bg-card p-0">
           {open && (
             <>
-              <DialogHeader>
+              <DialogHeader className="shrink-0 p-6 pb-3 pr-12">
                 <div className="flex items-center gap-3">
                   <div className="grid h-12 w-12 place-items-center rounded-xl gradient-primary shadow-glow">
                     <open.icon className="h-5 w-5 text-primary-foreground" />
@@ -231,7 +231,8 @@ export default function PathsPage() {
                 </div>
               </DialogHeader>
 
-              <div className="mt-2 grid gap-4 sm:grid-cols-2">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-xl bg-muted/40 p-4">
                   <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
                     <Target className="h-3.5 w-3.5" /> Outcomes
@@ -294,7 +295,9 @@ export default function PathsPage() {
                 </ol>
               </div>
 
-              <div className="mt-4 flex justify-end gap-2">
+              </div>
+
+              <div className="flex shrink-0 justify-end gap-2 border-t border-border/60 bg-card p-4">
                 <Button variant="ghost" onClick={() => setOpen(null)} className="rounded-xl">
                   Close
                 </Button>
