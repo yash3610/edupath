@@ -31,7 +31,8 @@ const liveConfig = {
 };
 
 export default function RoleManagementPage({ type }) {
-  const { role } = useOutletContext();
+  const outletContext = useOutletContext() || {};
+  const role = outletContext.role || (window.location.pathname.startsWith("/instructor/") ? "instructor" : window.location.pathname.startsWith("/admin/") ? "admin" : "student");
   const toast = useToast();
   const page = rolePageConfig[type] || rolePageConfig.settings;
   const config = liveConfig[type] || liveConfig.settings;

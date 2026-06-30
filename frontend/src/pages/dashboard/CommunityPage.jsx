@@ -7,7 +7,8 @@ import { apiRequest } from "../../services/api.js";
 const emptyPost = { title: "", body: "", course: "", tags: "" };
 
 export default function CommunityPage() {
-  const { student } = useOutletContext();
+  const outletContext = useOutletContext() || {};
+  const { student } = outletContext;
   const toast = useToast();
   const [questions, setQuestions] = useState([]);
   const [courses, setCourses] = useState([]);

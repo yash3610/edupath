@@ -86,7 +86,9 @@ const lumaAdminPages = [
 ];
 
 const lumaInstructorPages = [
-  "notifications", "resources",
+  "analytics", "assignments", "builder", "courses", "doubts", "earnings",
+  "live", "messages", "modules", "notifications", "payouts", "profile",
+  "quizzes", "resources", "reviews", "settings", "students",
 ];
 
 function DashboardSuspense({ children }) {
@@ -184,6 +186,7 @@ export default function AppRoutes() {
         <Route path="achievements" element={<FeaturePage type="achievements" />} />
         <Route path="wishlist" element={<FeaturePage type="wishlist" />} />
         <Route path="community" element={<CommunityPage />} />
+        <Route path="doubts" element={<LumaPage role="student" name="doubts" />} />
         <Route path="notes" element={<FeaturePage type="notes" />} />
         <Route path="downloads" element={<DownloadsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
@@ -212,25 +215,11 @@ export default function AppRoutes() {
         {lumaAdminPages.map((name) => (
           <Route key={`admin-${name}`} path={name} element={<LumaPage role="admin" name={name} />} />
         ))}
-        <Route path="students" element={<RoleManagementPage type="students" />} />
-        <Route path="instructors" element={<RoleManagementPage type="instructors" />} />
-        <Route path="courses" element={<AdminCoursesPage />} />
         <Route path="courses/new" element={<AdminCourseEditorPage />} />
         <Route path="courses/:courseId/edit" element={<AdminCourseEditorPage />} />
-        <Route path="approvals" element={<RoleManagementPage type="approvals" />} />
-        <Route path="categories" element={<RoleManagementPage type="categories" />} />
-        <Route path="orders" element={<RoleManagementPage type="orders" />} />
-        <Route path="payments" element={<RoleManagementPage type="payments" />} />
-        <Route path="refunds" element={<RoleManagementPage type="refunds" />} />
-        <Route path="coupons" element={<RoleManagementPage type="coupons" />} />
-        <Route path="quizzes" element={<AdminQuizManagementPage />} />
         <Route path="live-classes" element={<AdminLiveClassesPage />} />
         <Route path="live-classes/:id" element={<LiveClassDetailPage role="admin" />} />
-        <Route path="assignments" element={<RoleManagementPage type="assignments" />} />
-        <Route path="certificates" element={<RoleManagementPage type="certificates" />} />
-        <Route path="reviews" element={<RoleManagementPage type="reviews" />} />
         <Route path="moderation" element={<RoleManagementPage type="moderation" />} />
-        <Route path="reports" element={<RoleManagementPage type="reports" />} />
         <Route path="account" element={<AccountPage />} />
       </Route>
 
@@ -242,34 +231,19 @@ export default function AppRoutes() {
         {lumaInstructorPages.map((name) => (
           <Route key={`instructor-${name}`} path={name} element={<LumaPage role="instructor" name={name} />} />
         ))}
-        <Route path="courses" element={<InstructorCoursesPage />} />
         <Route path="my-courses" element={<Navigate to="/instructor/dashboard/courses" replace />} />
         <Route path="courses/:courseId/analytics" element={<CourseAnalyticsPage />} />
         <Route path="create" element={<InstructorCourseCreatePage />} />
-        <Route path="builder" element={<InstructorCourseBuilderPage view="builder" />} />
-        <Route path="modules" element={<InstructorCourseBuilderPage view="modules" />} />
         <Route path="course-builder" element={<Navigate to="/instructor/dashboard/builder" replace />} />
-        <Route path="students" element={<RoleManagementPage type="studentsProgress" />} />
-        <Route path="live" element={<Navigate to="/instructor/dashboard/live-classes" replace />} />
         <Route path="live-classes" element={<InstructorLiveClassesPage />} />
         <Route path="live-classes/create" element={<LiveClassFormPage />} />
         <Route path="live-classes/:id/edit" element={<LiveClassFormPage />} />
         <Route path="live-classes/:id/attendance" element={<LiveClassDetailPage role="instructor" />} />
         <Route path="live-classes/:id" element={<LiveClassDetailPage role="instructor" />} />
-        <Route path="quizzes" element={<InstructorQuizManagementPage />} />
         <Route path="quizzes/new" element={<InstructorQuizBuilderPage />} />
         <Route path="quizzes/:quizId/edit" element={<InstructorQuizBuilderPage />} />
         <Route path="quizzes/:quizId/analytics" element={<InstructorQuizAnalyticsPage />} />
-        <Route path="assignments" element={<InstructorAssignmentsPage />} />
-        <Route path="doubts" element={<RoleManagementPage type="doubts" />} />
-        <Route path="reviews" element={<RoleManagementPage type="reviews" />} />
-        <Route path="earnings" element={<RoleManagementPage type="earnings" />} />
-        <Route path="payouts" element={<RoleManagementPage type="payouts" />} />
-        <Route path="analytics" element={<RoleManagementPage type="analytics" />} />
-        <Route path="messages" element={<InstructorMessagesPage />} />
         <Route path="account" element={<AccountPage />} />
-        <Route path="profile" element={<Navigate to="/instructor/dashboard/account" replace />} />
-        <Route path="settings" element={<Navigate to="/instructor/dashboard/account" replace />} />
       </Route>
 
       <Route path="/index" element={<Navigate to="/" replace />} />

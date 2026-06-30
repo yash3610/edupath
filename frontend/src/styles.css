@@ -971,6 +971,57 @@ main > div {
   box-shadow: 0 0 0 3px rgba(255, 114, 58, 0.07);
 }
 
+.card-premium {
+  border: 1px solid color-mix(in oklab, var(--border, #e6e1da) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--card, #fff) 96%, #fff7ec 4%), var(--card, #fff)),
+    var(--card, #fff);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.76) inset,
+    var(--shadow-md, 0 16px 44px rgba(31, 28, 53, 0.08));
+}
+
+.gradient-primary {
+  background: var(--gradient-primary, linear-gradient(135deg, #f7a224, #fec961));
+}
+
+.gradient-accent {
+  background: var(--gradient-accent, linear-gradient(135deg, #8b5cf6, #d946ef));
+}
+
+.gradient-aurora {
+  background: var(--gradient-aurora, conic-gradient(from 180deg at 50% 50%, rgba(247, 162, 36, 0.4), rgba(139, 92, 246, 0.35), rgba(14, 165, 233, 0.35), rgba(247, 162, 36, 0.4)));
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow, 0 0 48px rgba(247, 162, 36, 0.28));
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-sm, 0 8px 24px rgba(31, 28, 53, 0.08));
+}
+
+.shadow-elegant {
+  box-shadow: var(--shadow-lg, 0 24px 48px rgba(31, 28, 53, 0.14));
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg, 0 24px 48px rgba(31, 28, 53, 0.14));
+}
+
+.animate-aurora {
+  animation: aurora 12s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
 .role-dashboard.dark .role-dashboard-shell {
   background:
     radial-gradient(circle at 82% 5%, rgba(255, 114, 58, 0.08), transparent 24rem),
