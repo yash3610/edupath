@@ -1,4 +1,4 @@
-import { apiRequest, assetUrl } from "./api";
+import { apiFormRequest, apiRequest, assetUrl } from "./api";
 
 const fallbackCover = "/assets/images/course/course-1/1.png";
 
@@ -46,6 +46,7 @@ export const courseApi = {
   instructorCourses: () => apiRequest("/api/instructor/my-courses"),
   instructorCourseDetails: (courseId) => apiRequest(`/api/instructor/courses/${courseId}`),
   updateInstructorCourse: (courseId, payload) => apiRequest(`/api/instructor/courses/${courseId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  updateInstructorCourseForm: (courseId, formData) => apiFormRequest(`/api/instructor/courses/${courseId}`, formData, { method: "PATCH" }),
   instructorModules: (courseId) => apiRequest(`/api/instructor/courses/${courseId}/modules`),
   instructorLectures: (moduleId) => apiRequest(`/api/instructor/modules/${moduleId}/lectures`),
   createModule: (courseId, payload) => apiRequest(`/api/instructor/courses/${courseId}/modules`, { method: "POST", body: JSON.stringify(payload) }),

@@ -127,7 +127,7 @@ export default function AdminCourseEditorPage() {
           <Field label="Subcategory"><Input value={form.subcategory} onChange={(e) => update("subcategory", e.target.value)} /></Field>
           <Choice label="Level" value={form.level} onChange={(value) => update("level", value)} items={["beginner", "intermediate", "advanced"].map((value) => [value, value])} />
           <Field label="Language"><Input value={form.language} onChange={(e) => update("language", e.target.value)} /></Field>
-          <ThumbnailField currentUrl={form.thumbnail} previewUrl={thumbnailPreview} onFile={setThumbnailFile} onUrlChange={(value) => update("thumbnail", value)} />
+          <ThumbnailField currentUrl={form.thumbnail} previewUrl={thumbnailPreview} onFile={setThumbnailFile} />
           <Field label="Promo video URL"><Input type="url" value={form.promoVideoUrl} onChange={(e) => update("promoVideoUrl", e.target.value)} /></Field>
           <Field label="Card description"><Textarea rows={4} value={form.shortDescription} onChange={(e) => update("shortDescription", e.target.value)} /></Field>
           <Field label="Full course description"><Textarea rows={4} value={form.description} onChange={(e) => update("description", e.target.value)} /></Field>
@@ -169,14 +169,14 @@ function Choice({ label, value, onChange, items }) {
 function Toggle({ label, checked, onChange }) {
   return <label className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm font-medium">{label}<Switch checked={Boolean(checked)} onCheckedChange={onChange} /></label>;
 }
-function ThumbnailField({ currentUrl, previewUrl, onFile, onUrlChange }) {
+function ThumbnailField({ currentUrl, previewUrl, onFile }) {
   const imageUrl = previewUrl || assetUrl(currentUrl);
   return (
     <div className="space-y-3">
       <Label>Course thumbnail</Label>
       <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => onFile(event.target.files?.[0] || null)} />
       {imageUrl && <img src={imageUrl} alt="Course thumbnail preview" className="h-40 w-full rounded-xl border border-border object-cover" />}
-      <Input type="text" value={currentUrl || ""} onChange={(event) => onUrlChange(event.target.value)} placeholder="Image URL or uploaded /uploads path" />
+      <Input type="text" value={currentUrl || ""} readOnly placeholder="Saved thumbnail id" />
     </div>
   );
 }

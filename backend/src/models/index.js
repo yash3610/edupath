@@ -84,6 +84,23 @@ export const Category = makeModel(
   new Schema({ name: { type: String, required: true, unique: true, trim: true }, slug: { type: String, required: true, unique: true, trim: true }, description: String, active: { type: Boolean, default: true } }, baseOptions)
 );
 
+export const UploadAsset = makeModel(
+  "UploadAsset",
+  new Schema(
+    {
+      originalName: { type: String, required: true, trim: true },
+      filename: { type: String, required: true, trim: true },
+      relativePath: { type: String, required: true },
+      mimeType: { type: String, required: true },
+      size: { type: Number, required: true },
+      folder: { type: String, required: true, index: true },
+      usage: { type: String, required: true, index: true },
+      owner: { type: objectId, ref: "User" },
+    },
+    baseOptions
+  )
+);
+
 export const Course = makeModel(
   "Course",
   new Schema(
@@ -96,7 +113,7 @@ export const Course = makeModel(
       subcategory: String,
       language: { type: String, default: "English" },
       level: { type: String, enum: ["beginner", "intermediate", "advanced"], default: "beginner" },
-      thumbnail: String,
+      thumbnail: Schema.Types.Mixed,
       promoVideoUrl: String,
       shortDescription: String,
       description: String,

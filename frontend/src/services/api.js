@@ -28,6 +28,7 @@ export function assetUrl(value) {
   if (!value) return "";
 
   const source = String(value);
+  if (/^[a-f\d]{24}$/i.test(source)) return `${API_BASE_URL}/api/assets/${source}`;
   if (source.startsWith("/uploads/")) return `${API_BASE_URL}${source}`;
 
   try {

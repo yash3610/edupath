@@ -30,10 +30,22 @@ export default function BuilderPage() {
   const [starterLectureTitle, setStarterLectureTitle] = useState("Welcome to the course");
   const [starterLectureUrl, setStarterLectureUrl] = useState("");
   const [thumbnailDraft, setThumbnailDraft] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [lectureDrafts, setLectureDrafts] = useState({});
   const [loading, setLoading] = useState(true);
   const [savingCourse, setSavingCourse] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview("");
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [thumbnailFile]);
 
   useEffect(() => {
     let mounted = true;
@@ -167,13 +179,20 @@ export default function BuilderPage() {
 
   async function saveThumbnail() {
     if (!courseId) return;
-    if (!thumbnailDraft.trim()) {
-      toast.error("Thumbnail URL is required before review.");
+    if (!thumbnailFile && !thumbnailDraft.trim()) {
+      toast.error("Thumbnail image is required before review.");
       return;
     }
     try {
       setSavingCourse(true);
-      await courseApi.updateInstructorCourse(courseId, { thumbnail: thumbnailDraft.trim() });
+      if (thumbnailFile) {
+        const body = new FormData();
+        body.append("thumbnailFile", thumbnailFile);
+        await courseApi.updateInstructorCourseForm(courseId, body);
+        setThumbnailFile(null);
+      } else {
+        await courseApi.updateInstructorCourse(courseId, { thumbnail: thumbnailDraft.trim() });
+      }
       await loadCourse(courseId);
       toast.success("Thumbnail saved.");
     } catch (error) {
@@ -270,8 +289,8 @@ export default function BuilderPage() {
           </div>
           <div className="mt-5 grid gap-4 rounded-xl border border-border/60 bg-muted/15 p-4 lg:grid-cols-[180px_1fr_auto] lg:items-end">
             <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
-              {thumbnailDraft ? (
-                <img src={assetUrl(thumbnailDraft)} alt="Course thumbnail preview" className="aspect-video w-full object-cover" />
+              {thumbnailPreview || thumbnailDraft ? (
+                <img src={thumbnailPreview || assetUrl(thumbnailDraft)} alt="Course thumbnail preview" className="aspect-video w-full object-cover" />
               ) : (
                 <div className="grid aspect-video place-items-center text-muted-foreground">
                   <ImageIcon className="h-8 w-8" />
@@ -279,14 +298,20 @@ export default function BuilderPage() {
               )}
             </div>
             <div>
-              <div className="mb-1 text-sm font-medium">Course thumbnail URL <span className="text-destructive">*</span></div>
+              <div className="mb-1 text-sm font-medium">Course thumbnail <span className="text-destructive">*</span></div>
               <Input
-                value={thumbnailDraft}
-                onChange={(event) => setThumbnailDraft(event.target.value)}
-                placeholder="https://example.com/course-thumbnail.jpg"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => setThumbnailFile(event.target.files?.[0] || null)}
                 className="rounded-xl"
               />
-              <p className="mt-1 text-xs text-muted-foreground">Admin review sathi thumbnail required aahe. Image URL paste करून save करा.</p>
+              <Input
+                value={thumbnailDraft}
+                readOnly
+                placeholder="Saved thumbnail id"
+                className="mt-2 rounded-xl"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Image upload kara. File uploads folder madhe save hoil ani course madhe fakt id rahil.</p>
             </div>
             <Button variant="outline" className="rounded-xl border-border/60" onClick={saveThumbnail} disabled={savingCourse || !courseId}>
               <Save className="mr-1.5 h-4 w-4" /> {savingCourse ? "Saving..." : "Save thumbnail"}

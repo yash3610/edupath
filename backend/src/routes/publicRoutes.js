@@ -1,5 +1,8 @@
 import express from "express";
 import {
+  uploadedAsset,
+} from "../controllers/assetController.js";
+import {
   contactSubmission,
   newsletterSubscription,
   publicBlogs,
@@ -12,6 +15,7 @@ import {
 
 const router = express.Router();
 
+router.get("/assets/:assetId", uploadedAsset);
 router.get("/courses", publicCourses);
 router.get("/courses/:slug", publicCourseDetails);
 router.get("/blogs", publicBlogs);

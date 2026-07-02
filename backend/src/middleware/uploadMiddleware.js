@@ -21,6 +21,15 @@ export const avatarUpload = multer({
   },
 });
 
+export const courseThumbnailUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!imageTypes.includes(file.mimetype)) return cb(new ApiError(400, "Course thumbnail must be a JPG, PNG or WebP image"));
+    cb(null, true);
+  },
+});
+
 export const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },

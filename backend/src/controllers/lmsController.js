@@ -39,7 +39,7 @@ import { askAI, recommendCourses, summarizeText } from "../services/aiService.js
 import { buildMLAnalytics } from "../services/mlService.js";
 import { createRazorpayOrder, verifyRazorpaySignature } from "../services/paymentService.js";
 import { generateCertificatePdf } from "../services/pdfService.js";
-import { deleteUploadedAsset, uploadBuffer } from "../services/uploadService.js";
+import { deleteLocalAsset, deleteUploadedAsset, uploadBuffer, uploadLocalAsset } from "../services/uploadService.js";
 import {
   PUBLIC_COURSE_STATUSES,
   courseCompletion,
@@ -106,6 +106,12 @@ const normalizeCoursePayload = (body) => {
   if (payload.visibility === "private") payload.disabled = true;
   return payload;
 };
+
+async function attachCourseThumbnailUpload(req, payload) {
+  if (!req.file) return;
+  const thumbnail = await uploadLocalAsset(req.file, { owner: userId(req), usage: "course-thumbnail" });
+  payload.thumbnail = thumbnail._id;
+}
 
 async function issueCertificateIfEligible(student, courseId, progress) {
   const platformSettings = await readPlatformSettings();
@@ -1002,13 +1008,14 @@ export const instructorCreateCourse = asyncHandler(async (req, res) => {
   const payload = normalizeCoursePayload(req.body);
   if (!payload.title?.trim()) throw new ApiError(400, "Course title is required");
   payload.slug = await uniqueCourseSlug(payload.slug || payload.title);
+  await attachCourseThumbnailUpload(req, payload);
   payload.instructor = userId(req);
   payload.status = "assigned";
   const course = await Course.create(payload);
   created(res, course, "Course draft created");
 });
 export const instructorUpdateCourse = asyncHandler(async (req, res) => {
-  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) }).select("_id status title slug").lean();
+  const course = await Course.findOne({ _id: req.params.courseId, instructor: userId(req) }).select("_id status title slug thumbnail").lean();
   if (!course) throw new ApiError(404, "Course not found");
   if (!["assigned", "content_in_progress", "changes_requested"].includes(course.status)) {
     throw new ApiError(409, "This course cannot be edited in its current status");
@@ -1021,9 +1028,11 @@ export const instructorUpdateCourse = asyncHandler(async (req, res) => {
     "couponEnabled", "sequentialLearning", "certificateEnabled", "disabled",
   ];
   const updates = Object.fromEntries(Object.entries(payload).filter(([key]) => allowed.includes(key)));
+  await attachCourseThumbnailUpload(req, updates);
   if (updates.title && !updates.slug) updates.slug = await uniqueCourseSlug(updates.title, course._id);
   if (updates.slug) updates.slug = await uniqueCourseSlug(updates.slug, course._id);
   const updated = await Course.findByIdAndUpdate(course._id, updates, { new: true, runValidators: true }).lean();
+  if (req.file && course.thumbnail) await deleteLocalAsset(course.thumbnail).catch(() => {});
   await markCourseContentInProgress(course._id);
   ok(res, updated, "Course updated");
 });
@@ -1228,10 +1237,7 @@ export const adminCreateCourse = asyncHandler(async (req, res) => {
   const payload = normalizeCoursePayload(req.body);
   if (!payload.title?.trim()) throw new ApiError(400, "Course title is required");
   payload.slug = await uniqueCourseSlug(payload.slug || payload.title);
-  if (req.file) {
-    const thumbnail = await uploadBuffer(req.file, "courses/thumbnails");
-    payload.thumbnail = thumbnail.url;
-  }
+  await attachCourseThumbnailUpload(req, payload);
   if (payload.instructor && !(await User.exists({ _id: payload.instructor, role: "instructor" }))) {
     throw new ApiError(400, "Select a valid instructor");
   }
@@ -1258,15 +1264,12 @@ export const adminCourseDetails = asyncHandler(async (req, res) => {
 });
 export const adminUpdateCourse = asyncHandler(async (req, res) => {
   const payload = normalizeCoursePayload(req.body);
-  if (req.file) {
-    const thumbnail = await uploadBuffer(req.file, "courses/thumbnails");
-    payload.thumbnail = thumbnail.url;
-  }
   if (payload.instructor && !(await User.exists({ _id: payload.instructor, role: "instructor" }))) {
     throw new ApiError(400, "Select a valid instructor");
   }
-  const existing = await Course.findById(req.params.courseId).select("_id status instructor").lean();
+  const existing = await Course.findById(req.params.courseId).select("_id status instructor thumbnail").lean();
   if (!existing) throw new ApiError(404, "Course not found");
+  await attachCourseThumbnailUpload(req, payload);
   if (payload.title && !payload.slug) payload.slug = await uniqueCourseSlug(payload.title, existing._id);
   if (payload.slug) payload.slug = await uniqueCourseSlug(payload.slug, existing._id);
   const previousInstructor = String(existing.instructor || "");
@@ -1274,6 +1277,7 @@ export const adminUpdateCourse = asyncHandler(async (req, res) => {
   if (payload.instructor === null && ["assigned", "content_in_progress", "changes_requested"].includes(existing.status)) payload.status = "draft";
   const course = await Course.findByIdAndUpdate(req.params.courseId, payload, { new: true, runValidators: true }).lean();
   if (!course) throw new ApiError(404, "Course not found");
+  if (req.file && existing.thumbnail) await deleteLocalAsset(existing.thumbnail).catch(() => {});
   if (payload.instructor && String(payload.instructor) !== previousInstructor) {
     await notifyCourseUsers([payload.instructor], {
       title: "New assigned course",
@@ -1283,7 +1287,11 @@ export const adminUpdateCourse = asyncHandler(async (req, res) => {
   }
   ok(res, course, "Course updated");
 });
-export const adminDeleteCourse = asyncHandler(async (req, res) => ok(res, await Course.findByIdAndDelete(req.params.courseId), "Course deleted"));
+export const adminDeleteCourse = asyncHandler(async (req, res) => {
+  const course = await Course.findByIdAndDelete(req.params.courseId).lean();
+  if (course?.thumbnail) await deleteLocalAsset(course.thumbnail).catch(() => {});
+  ok(res, course, "Course deleted");
+});
 export const adminApproveCourse = asyncHandler(async (req, res) => {
   const course = await Course.findOneAndUpdate(
     { _id: req.params.courseId, status: "review_pending" },

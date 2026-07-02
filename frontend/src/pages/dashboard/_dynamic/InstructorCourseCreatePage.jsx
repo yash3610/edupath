@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, ChevronRight, FileText, Image as ImageIcon, Plus, Save, Send, Trash2, Video } from "lucide-react";
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/services/api";
+import { apiFormRequest, apiRequest, assetUrl } from "@/services/api";
 import { toast } from "sonner";
 
 const STEPS = ["Basics", "Pricing", "Curriculum", "Outcomes", "Settings", "Review"];
@@ -45,6 +45,8 @@ export default function CreatePage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [modules, setModules] = useState([emptyModule()]);
   const form = useForm({
     defaultValues: {
@@ -78,12 +80,22 @@ export default function CreatePage() {
     return [
       ["Title", Boolean(values.title.trim())],
       ["Description", Boolean(values.description.trim())],
-      ["Thumbnail URL", Boolean(values.thumbnail.trim())],
+      ["Thumbnail", Boolean(thumbnailFile || values.thumbnail.trim())],
       ["Module", modules.some((module) => module.title.trim())],
       ["Lecture", lectureCount > 0],
       ["Outcomes", Boolean(values.learningOutcomes.trim())],
     ];
-  }, [modules, values]);
+  }, [modules, thumbnailFile, values]);
+
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview("");
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [thumbnailFile]);
 
   const next = async () => {
     const fields = step === 0 ? ["title", "description", "category", "level"] : [];
@@ -131,10 +143,10 @@ export default function CreatePage() {
 
     try {
       setSaving(true);
-      const courseResult = await apiRequest("/api/instructor/courses", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const body = new FormData();
+      Object.entries(payload).forEach(([key, value]) => body.append(key, value ?? ""));
+      if (thumbnailFile) body.append("thumbnailFile", thumbnailFile);
+      const courseResult = await apiFormRequest("/api/instructor/courses", body);
       const course = courseResult.data;
 
       for (const [moduleIndex, module] of modules.entries()) {
@@ -244,7 +256,24 @@ export default function CreatePage() {
             <Field label="Tags">
               <Input {...form.register("tags")} placeholder="react, design-systems, typescript" className="mt-1 rounded-xl" />
             </Field>
-            <UrlField register={form.register} name="thumbnail" label="Thumbnail URL" icon={<ImageIcon className="h-5 w-5" />} hint="Use an image URL. This is required before review." />
+            <Field label="Thumbnail" required>
+              <div className="mt-1 grid gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 sm:grid-cols-[140px_1fr] sm:items-center">
+                <div className="overflow-hidden rounded-lg border border-border bg-background">
+                  {thumbnailPreview || form.watch("thumbnail") ? (
+                    <img src={thumbnailPreview || assetUrl(form.watch("thumbnail"))} alt="Course thumbnail preview" className="aspect-video w-full object-cover" />
+                  ) : (
+                    <div className="grid aspect-video place-items-center text-muted-foreground">
+                      <ImageIcon className="h-7 w-7" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setThumbnailFile(event.target.files?.[0] || null)} className="rounded-xl" />
+                  <Input {...form.register("thumbnail")} readOnly placeholder="Saved thumbnail id" className="mt-2 rounded-xl" />
+                  <p className="mt-1 text-xs text-muted-foreground">Image upload kara. Course madhe fakt uploaded image id save hoil.</p>
+                </div>
+              </div>
+            </Field>
             <UrlField register={form.register} name="promoVideoUrl" label="Promo video URL" icon={<Video className="h-5 w-5" />} hint="YouTube, Vimeo, or hosted MP4 URL." />
           </div>
         )}

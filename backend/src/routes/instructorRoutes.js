@@ -42,7 +42,7 @@ import {
   instructorUploadResources,
 } from "../controllers/liveClassController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
-import { courseUpload } from "../middleware/uploadMiddleware.js";
+import { courseThumbnailUpload, courseUpload } from "../middleware/uploadMiddleware.js";
 import validate from "../middleware/validate.js";
 import { createLiveClassValidators, liveClassIdParam, updateLiveClassValidators } from "../validators/liveClassValidators.js";
 import { createQuizValidators, quizIdParam } from "../validators/quizValidators.js";
@@ -53,8 +53,8 @@ router.use(protect, authorize("instructor"));
 router.get("/dashboard", instructorDashboard);
 router.get("/stats", instructorStats);
 router.get("/my-courses", instructorMyCourses);
-router.post("/courses", instructorCreateCourse);
-router.patch("/courses/:courseId", instructorUpdateCourse);
+router.post("/courses", courseThumbnailUpload.single("thumbnailFile"), instructorCreateCourse);
+router.patch("/courses/:courseId", courseThumbnailUpload.single("thumbnailFile"), instructorUpdateCourse);
 router.get("/course-performance", instructorCoursePerformance);
 router.get("/earnings-analytics", instructorEarningsAnalytics);
 router.get("/student-engagement", instructorStudentEngagement);
