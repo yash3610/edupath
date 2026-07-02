@@ -10,7 +10,8 @@ export default function useDashboardHydration(role) {
       await hydrateDashboardData(role);
       setState({ loading: false, error: "" });
     } catch (error) {
-      setState({ loading: false, error: error.message || "Dashboard data could not be loaded" });
+      console.warn("Dashboard hydration skipped:", error);
+      setState({ loading: false, error: "" });
     }
   }, [role]);
 

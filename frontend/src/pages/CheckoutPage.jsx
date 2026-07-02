@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { loadRazorpayScript, paymentApi } from "../services/paymentApi.js";
+import { assetUrl } from "../services/api.js";
 
 export default function CheckoutPage() {
   const { user } = useAuth();
@@ -136,7 +137,7 @@ export default function CheckoutPage() {
                   <div className="ep-checkout__section ep-checkout__section--order">
                     <h2 className="ep-checkout__section-title">Order Summary</h2>
                     <div className="ep-checkout__summary">
-                      {courseItems.map((course) => <div className="ep-checkout__summary-item" key={course._id}><div className="ep-checkout__summary-item-name"><img src={course.image || course.thumbnail} alt="" /><span>{course.title}</span></div><span>Rs. {Number(course.price || 0).toFixed(2)}</span></div>)}
+                      {courseItems.map((course) => <div className="ep-checkout__summary-item" key={course._id}><div className="ep-checkout__summary-item-name"><img src={assetUrl(course.image || course.thumbnail || course.cover) || "/assets/images/course/course-1/1.png"} alt="" /><span>{course.title}</span></div><span>Rs. {Number(course.price || 0).toFixed(2)}</span></div>)}
                     </div>
                     {productItems.length > 0 && <p className="cart-summary-note">Books stay in your cart. This checkout will process courses only.</p>}
                     <div className="ep-cart__totals-row"><strong>Total</strong><strong>Rs. {courseTotal.toFixed(2)}</strong></div>

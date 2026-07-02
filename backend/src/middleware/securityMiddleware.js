@@ -1,9 +1,37 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import mongoSanitize from "express-mongo-sanitize";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import xss from "xss-clean";
+
+function isPlainObject(value) {
+  return Boolean(value) && Object.prototype.toString.call(value) === "[object Object]";
+}
+
+function stripMongoOperators(value, seen = new WeakSet()) {
+  if (!value || typeof value !== "object") return;
+  if (seen.has(value)) return;
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => stripMongoOperators(item, seen));
+    return;
+  }
+
+  if (!isPlainObject(value)) return;
+
+  Object.keys(value).forEach((key) => {
+    if (key.startsWith("$") || key.includes(".")) {
+      delete value[key];
+      return;
+    }
+    stripMongoOperators(value[key], seen);
+  });
+}
+
+function safeMongoSanitize(req, _res, next) {
+  ["body", "query", "params"].forEach((key) => stripMongoOperators(req[key]));
+  next();
+}
 
 export function applySecurity(app) {
   app.use(helmet({
@@ -11,8 +39,7 @@ export function applySecurity(app) {
   }));
   app.use(cors({ origin: (process.env.CLIENT_URL || "http://localhost:5173").split(","), credentials: true }));
   app.use(cookieParser());
-  app.use(mongoSanitize());
-  app.use(xss());
+  app.use(safeMongoSanitize);
   app.use(
     "/api",
     rateLimit({

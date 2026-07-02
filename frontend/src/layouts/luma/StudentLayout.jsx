@@ -2,10 +2,10 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/features/student/components/AppSidebar";
 import { Topbar } from "@/features/student/components/Topbar";
-import DashboardDataGate from "@/components/dashboard/DashboardDataGate";
+import LumaDataGate from "@/components/luma/LumaDataGate";
 export default function AppLayout() {
   return (
-    <DashboardDataGate role="student">
+    <LumaDataGate role="student">
     <SidebarProvider>
       <div className="relative flex min-h-screen w-full bg-background">
         {/* Ambient aurora background */}
@@ -22,6 +22,6 @@ export default function AppLayout() {
         </SidebarInset>
       </div>
     </SidebarProvider>
-    </DashboardDataGate>
+    </LumaDataGate>
   );
 }

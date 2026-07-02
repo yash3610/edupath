@@ -154,7 +154,7 @@ export const downloadResultPdf = asyncHandler(async (req, res) => {
 });
 
 export const instructorCreateQuiz = asyncHandler(async (req, res) => {
-  const course = await Course.findOne({ _id: req.body.course, instructor: userId(req) });
+  const course = await Course.findOne({ _id: req.body.course, instructor: userId(req) }).select("_id").lean();
   if (!course) throw new ApiError(404, "Course not found");
   const totalMarks = req.body.totalMarks || req.body.questions?.reduce((sum, question) => sum + Number(question.marks || 1), 0) || 0;
   const status = req.body.status === "published" ? "published" : "draft";
@@ -162,7 +162,7 @@ export const instructorCreateQuiz = asyncHandler(async (req, res) => {
   created(res, quiz);
 });
 
-export const instructorQuizzes = asyncHandler(async (req, res) => ok(res, await Quiz.find({ instructor: userId(req) }).populate("course", "title thumbnail").sort({ createdAt: -1 })));
+export const instructorQuizzes = asyncHandler(async (req, res) => ok(res, await Quiz.find({ instructor: userId(req) }).populate("course", "title thumbnail").sort({ createdAt: -1 }).lean()));
 export const instructorQuizDetails = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findOne({ _id: req.params.quizId, instructor: userId(req) }).populate("course module lecture");
   if (!quiz) throw new ApiError(404, "Quiz not found");
@@ -170,7 +170,7 @@ export const instructorQuizDetails = asyncHandler(async (req, res) => {
 });
 export const instructorUpdateQuiz = asyncHandler(async (req, res) => {
   if (req.body.course) {
-    const course = await Course.findOne({ _id: req.body.course, instructor: userId(req) });
+    const course = await Course.findOne({ _id: req.body.course, instructor: userId(req) }).select("_id").lean();
     if (!course) throw new ApiError(404, "Course not found");
   }
   const update = { ...req.body };
@@ -273,4 +273,4 @@ export const adminApproveQuiz = asyncHandler(async (req, res) => ok(res, await Q
 export const adminRejectQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findByIdAndUpdate(req.params.quizId, { isApproved: false, status: "draft" }, { new: true }), "Quiz rejected"));
 export const adminDeleteQuiz = asyncHandler(async (req, res) => ok(res, await Quiz.findByIdAndDelete(req.params.quizId), "Quiz deleted"));
 
-export const quizCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES } }).select("title thumbnail")));
+export const quizCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES } }).select("title thumbnail").lean()));

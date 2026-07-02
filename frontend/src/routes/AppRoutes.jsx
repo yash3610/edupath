@@ -26,51 +26,24 @@ import TeamPage from "../pages/TeamPage.jsx";
 import TestimonialPage from "../pages/TestimonialPage.jsx";
 import WishlistPage from "../pages/WishlistPage.jsx";
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
-import DashboardLayout from "../layouts/DashboardLayout.jsx";
-import RoleDashboardLayout from "../layouts/RoleDashboardLayout.jsx";
 import LumaStudentLayout from "../layouts/luma/StudentLayout.jsx";
 import LumaAdminLayout from "../layouts/luma/AdminLayout.jsx";
 import LumaInstructorLayout from "../layouts/luma/InstructorLayout.jsx";
 import LumaPage from "./LumaPage.jsx";
-import DashboardHome from "../pages/dashboard/DashboardHome.jsx";
-import RoleDashboardHome from "../pages/dashboard/RoleDashboardHome.jsx";
-const AssignmentsPage = React.lazy(() => import("../pages/dashboard/AssignmentsPage.jsx"));
-const AIRecommendationsPage = React.lazy(() => import("../pages/dashboard/AIRecommendationsPage.jsx"));
-const AINotesPage = React.lazy(() => import("../pages/dashboard/AINotesPage.jsx"));
-const AITutorPage = React.lazy(() => import("../pages/dashboard/AITutorPage.jsx"));
-const CalendarPage = React.lazy(() => import("../pages/dashboard/CalendarPage.jsx"));
-const CommunityPage = React.lazy(() => import("../pages/dashboard/CommunityPage.jsx"));
-const DownloadsPage = React.lazy(() => import("../pages/dashboard/DownloadsPage.jsx"));
-const FeaturePage = React.lazy(() => import("../pages/dashboard/FeaturePage.jsx"));
-const AdminQuizManagementPage = React.lazy(() => import("../pages/dashboard/AdminQuizManagementPage.jsx"));
-const InstructorQuizAnalyticsPage = React.lazy(() => import("../pages/dashboard/InstructorQuizAnalyticsPage.jsx"));
-const InstructorQuizBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorQuizBuilderPage.jsx"));
-const InstructorQuizManagementPage = React.lazy(() => import("../pages/dashboard/InstructorQuizManagementPage.jsx"));
-const InstructorCourseCreatePage = React.lazy(() => import("../pages/dashboard/InstructorCourseCreatePage.jsx"));
-const InstructorCourseBuilderPage = React.lazy(() => import("../pages/dashboard/InstructorCourseBuilderPage.jsx"));
-const InstructorCoursesPage = React.lazy(() => import("../pages/dashboard/InstructorCoursesPage.jsx"));
-const CourseAnalyticsPage = React.lazy(() => import("../pages/dashboard/CourseAnalyticsPage.jsx"));
-const StudentAnalyticsPage = React.lazy(() => import("../pages/dashboard/StudentAnalyticsPage.jsx"));
-const AdminCoursesPage = React.lazy(() => import("../pages/dashboard/AdminCoursesPage.jsx"));
-const AdminCourseEditorPage = React.lazy(() => import("../pages/dashboard/AdminCourseEditorPage.jsx"));
-const AdminLiveClassesPage = React.lazy(() => import("../pages/dashboard/AdminLiveClassesPage.jsx"));
-const InstructorLiveClassesPage = React.lazy(() => import("../pages/dashboard/InstructorLiveClassesPage.jsx"));
-const LiveClassFormPage = React.lazy(() => import("../pages/dashboard/LiveClassFormPage.jsx"));
-const LiveClassDetailPage = React.lazy(() => import("../pages/dashboard/LiveClassDetailPage.jsx"));
-const StudentLiveClassesPage = React.lazy(() => import("../pages/dashboard/StudentLiveClassesPage.jsx"));
-const InstructorAssignmentsPage = React.lazy(() => import("../pages/dashboard/InstructorAssignmentsPage.jsx"));
-const InstructorMessagesPage = React.lazy(() => import("../pages/dashboard/InstructorMessagesPage.jsx"));
-const LearningRoomPage = React.lazy(() => import("../pages/dashboard/LearningRoomPage.jsx"));
-const LearningPathsPage = React.lazy(() => import("../pages/dashboard/LearningPathsPage.jsx"));
-const MessagesPage = React.lazy(() => import("../pages/dashboard/MessagesPage.jsx"));
-const MyCoursesPage = React.lazy(() => import("../pages/dashboard/MyCoursesPage.jsx"));
-const AccountPage = React.lazy(() => import("../pages/dashboard/AccountPage.jsx"));
-const QuizAttemptPage = React.lazy(() => import("../pages/dashboard/QuizAttemptPage.jsx"));
-const QuizHistoryPage = React.lazy(() => import("../pages/dashboard/QuizHistoryPage.jsx"));
-const QuizInstructionsPage = React.lazy(() => import("../pages/dashboard/QuizInstructionsPage.jsx"));
-const QuizPage = React.lazy(() => import("../pages/dashboard/QuizPage.jsx"));
-const QuizResultPage = React.lazy(() => import("../pages/dashboard/QuizResultPage.jsx"));
-const RoleManagementPage = React.lazy(() => import("../pages/dashboard/RoleManagementPage.jsx"));
+const AdminCourseEditorPage = React.lazy(() => import("../pages/dashboard/_dynamic/AdminCourseEditorPage.jsx"));
+const CourseAnalyticsPage = React.lazy(() => import("../pages/dashboard/_dynamic/CourseAnalyticsPage.jsx"));
+const InstructorCourseCreatePage = React.lazy(() => import("../pages/dashboard/_dynamic/InstructorCourseCreatePage.jsx"));
+const InstructorQuizAnalyticsPage = React.lazy(() => import("../pages/dashboard/_dynamic/InstructorQuizAnalyticsPage.jsx"));
+const InstructorQuizBuilderPage = React.lazy(() => import("../pages/dashboard/_dynamic/InstructorQuizBuilderPage.jsx"));
+const LearningRoomPage = React.lazy(() => import("../pages/dashboard/_dynamic/LearningRoomPage.jsx"));
+const LiveClassDetailPage = React.lazy(() => import("../pages/dashboard/_dynamic/LiveClassDetailPage.jsx"));
+const LiveClassFormPage = React.lazy(() => import("../pages/dashboard/_dynamic/LiveClassFormPage.jsx"));
+const QuizAttemptPage = React.lazy(() => import("../pages/dashboard/_dynamic/QuizAttemptPage.jsx"));
+const QuizHistoryPage = React.lazy(() => import("../pages/dashboard/_dynamic/QuizHistoryPage.jsx"));
+const QuizInstructionsPage = React.lazy(() => import("../pages/dashboard/_dynamic/QuizInstructionsPage.jsx"));
+const QuizResultPage = React.lazy(() => import("../pages/dashboard/_dynamic/QuizResultPage.jsx"));
+const RoleManagementPage = React.lazy(() => import("../pages/dashboard/_dynamic/RoleManagementPage.jsx"));
+const StudentLiveClassesPage = React.lazy(() => import("../pages/dashboard/_dynamic/StudentLiveClassesPage.jsx"));
 
 const lumaStudentPages = [
   "achievements", "ai", "analytics", "assignments", "calendar", "certificates",
@@ -168,39 +141,23 @@ export default function AppRoutes() {
         {lumaStudentPages.map((name) => (
           <Route key={`student-${name}`} path={name} element={<LumaPage role="student" name={name} />} />
         ))}
-        <Route path="courses" element={<MyCoursesPage />} />
         <Route path="learn" element={<LearningRoomPage />} />
         <Route path="learn/:courseId" element={<LearningRoomPage />} />
         <Route path="learn/:courseId/:lectureId" element={<LearningRoomPage />} />
         <Route path="continue-learning" element={<LearningRoomPage />} />
-        <Route path="assignments" element={<AssignmentsPage />} />
-        <Route path="quizzes" element={<QuizPage />} />
         <Route path="quizzes/:quizId/instructions" element={<QuizInstructionsPage />} />
         <Route path="quizzes/attempt/:attemptId" element={<QuizAttemptPage />} />
         <Route path="quizzes/result/:attemptId" element={<QuizResultPage />} />
         <Route path="quizzes/history/:quizId" element={<QuizHistoryPage />} />
-        <Route path="account" element={<AccountPage />} />
-        <Route path="profile" element={<Navigate to="/dashboard/account" replace />} />
-        <Route path="paths" element={<LearningPathsPage />} />
-        <Route path="certificates" element={<FeaturePage type="certificates" />} />
-        <Route path="achievements" element={<FeaturePage type="achievements" />} />
-        <Route path="wishlist" element={<FeaturePage type="wishlist" />} />
-        <Route path="community" element={<CommunityPage />} />
+        <Route path="account" element={<Navigate to="/dashboard/profile" replace />} />
         <Route path="doubts" element={<LumaPage role="student" name="doubts" />} />
-        <Route path="notes" element={<FeaturePage type="notes" />} />
-        <Route path="downloads" element={<DownloadsPage />} />
-        <Route path="calendar" element={<CalendarPage />} />
         <Route path="live-classes" element={<StudentLiveClassesPage />} />
         <Route path="live-classes/recordings" element={<StudentLiveClassesPage recordingsOnly />} />
         <Route path="live-classes/:id" element={<LiveClassDetailPage role="student" />} />
-        <Route path="messages" element={<MessagesPage />} />
-        <Route path="orders" element={<FeaturePage type="orders" />} />
         <Route path="ai" element={<Navigate to="/dashboard/ai-tutor" replace />} />
-        <Route path="ai-tutor" element={<AITutorPage />} />
-        <Route path="ai-notes" element={<AINotesPage />} />
-        <Route path="ai-recommendations" element={<AIRecommendationsPage />} />
-        <Route path="analytics" element={<StudentAnalyticsPage />} />
-        <Route path="settings" element={<Navigate to="/dashboard/account" replace />} />
+        <Route path="ai-tutor" element={<LumaPage role="student" name="ai" />} />
+        <Route path="ai-notes" element={<LumaPage role="student" name="notes" />} />
+        <Route path="ai-recommendations" element={<LumaPage role="student" name="paths" />} />
       </Route>
 
       <Route path="/dashboard/admin/quizzes" element={<Navigate to="/admin/dashboard/quizzes" replace />} />
@@ -217,10 +174,10 @@ export default function AppRoutes() {
         ))}
         <Route path="courses/new" element={<AdminCourseEditorPage />} />
         <Route path="courses/:courseId/edit" element={<AdminCourseEditorPage />} />
-        <Route path="live-classes" element={<AdminLiveClassesPage />} />
+        <Route path="live-classes" element={<LumaPage role="admin" name="live" />} />
         <Route path="live-classes/:id" element={<LiveClassDetailPage role="admin" />} />
         <Route path="moderation" element={<RoleManagementPage type="moderation" />} />
-        <Route path="account" element={<AccountPage />} />
+        <Route path="account" element={<Navigate to="/admin/dashboard/settings" replace />} />
       </Route>
 
       <Route
@@ -235,7 +192,7 @@ export default function AppRoutes() {
         <Route path="courses/:courseId/analytics" element={<CourseAnalyticsPage />} />
         <Route path="create" element={<InstructorCourseCreatePage />} />
         <Route path="course-builder" element={<Navigate to="/instructor/dashboard/builder" replace />} />
-        <Route path="live-classes" element={<InstructorLiveClassesPage />} />
+        <Route path="live-classes" element={<LumaPage role="instructor" name="live" />} />
         <Route path="live-classes/create" element={<LiveClassFormPage />} />
         <Route path="live-classes/:id/edit" element={<LiveClassFormPage />} />
         <Route path="live-classes/:id/attendance" element={<LiveClassDetailPage role="instructor" />} />
@@ -243,10 +200,16 @@ export default function AppRoutes() {
         <Route path="quizzes/new" element={<InstructorQuizBuilderPage />} />
         <Route path="quizzes/:quizId/edit" element={<InstructorQuizBuilderPage />} />
         <Route path="quizzes/:quizId/analytics" element={<InstructorQuizAnalyticsPage />} />
-        <Route path="account" element={<AccountPage />} />
+        <Route path="account" element={<Navigate to="/instructor/dashboard/profile" replace />} />
       </Route>
 
       <Route path="/index" element={<Navigate to="/" replace />} />
+      <Route path="/luma" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/luma/:page" element={<ParamRedirect to="/dashboard/:page" />} />
+      <Route path="/luma/admin" element={<Navigate to="/admin/dashboard" replace />} />
+      <Route path="/luma/admin/:page" element={<ParamRedirect to="/admin/dashboard/:page" />} />
+      <Route path="/luma/instructor" element={<Navigate to="/instructor/dashboard" replace />} />
+      <Route path="/luma/instructor/:page" element={<ParamRedirect to="/instructor/dashboard/:page" />} />
       <Route path="/admin/live-classes" element={<Navigate to="/admin/dashboard/live-classes" replace />} />
       <Route path="/admin/live-classes/:id" element={<ParamRedirect to="/admin/dashboard/live-classes/:id" />} />
       <Route path="/instructor/live-classes" element={<Navigate to="/instructor/dashboard/live-classes" replace />} />

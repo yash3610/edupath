@@ -38,7 +38,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { student } from "@/features/student/data/mock";
 import { useAuth } from "@/context/AuthContext";
 const main = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -116,11 +115,16 @@ function Group({ label, items, pathname }) {
 }
 export function AppSidebar() {
   const { user } = useAuth();
-  const dashboardStudent = {
-    ...student,
-    name: user?.name || student.name,
-    avatar: user?.avatar || student.avatar,
-  };
+  const displayName = user?.name || "Student";
+  const displayEmail = user?.email || "Learner";
+  const avatar = user?.avatar || user?.profileImage || "";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "S";
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
@@ -157,14 +161,14 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-3">
         <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/40 p-2.5">
           <Avatar className="h-9 w-9 ring-2 ring-primary/40">
-            <AvatarImage src={dashboardStudent.avatar} alt={dashboardStudent.name} />
-            <AvatarFallback>{dashboardStudent.name[0]}</AvatarFallback>
+            <AvatarImage src={avatar} alt={displayName} />
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold">{dashboardStudent.name}</div>
+              <div className="truncate text-sm font-semibold">{displayName}</div>
               <div className="truncate text-[11px] text-muted-foreground">
-                {student.rank} · Lv {student.level}
+                {displayEmail}
               </div>
             </div>
           )}

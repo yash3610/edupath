@@ -832,6 +832,85 @@ main > div {
   margin-top: 18px;
 }
 
+.ep-course .row > [class*="col-"] {
+  display: flex;
+}
+
+.ep-course__card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  border: 1px solid #f1e4dc;
+  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.06);
+}
+
+.ep-course__img {
+  aspect-ratio: 16 / 10;
+  background: #f7f2ef;
+}
+
+.ep-course__img img {
+  display: block;
+  height: 100%;
+}
+
+.ep-course__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 20px 24px 24px;
+}
+
+.ep-course__body > p {
+  display: -webkit-box;
+  min-height: 58px;
+  margin-top: 14px;
+  overflow: hidden;
+  color: #4b4f68;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ep-course__category {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 8px;
+  overflow: hidden;
+  color: var(--ep-primary-color, #ff6636);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ep-course__title {
+  display: -webkit-box;
+  min-height: 60px;
+  overflow: hidden;
+  margin: 0;
+  color: var(--ep-title-color, #111229);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 30px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ep-course__bottom {
+  margin-top: auto;
+  gap: 16px;
+}
+
+.ep-course__bottom span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .course-card-cart-button,
 .shop-cart-button {
   display: inline-flex;

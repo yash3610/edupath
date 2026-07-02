@@ -1,9 +1,13 @@
 import { motion } from "framer-motion";
 import { Clock, PlayCircle, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 export function CourseCard({ course, index = 0 }) {
+  const learnPath = `/dashboard/learn/${course.id}`;
+  const actionLabel = course.status === "completed" ? "Review" : course.status === "not-started" ? "Start" : "Continue";
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 16 }}
@@ -30,14 +34,15 @@ export function CourseCard({ course, index = 0 }) {
         <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-background/80 px-2 py-1 text-xs backdrop-blur-md">
           <Star className="h-3 w-3 fill-primary text-primary" /> {course.rating}
         </div>
-        <button
+        <Link
+          to={learnPath}
           className="absolute inset-0 grid place-items-center opacity-0 transition-opacity group-hover:opacity-100"
           aria-label="Play"
         >
           <span className="grid h-14 w-14 place-items-center rounded-full gradient-primary shadow-glow">
             <PlayCircle className="h-7 w-7 text-primary-foreground" />
           </span>
-        </button>
+        </Link>
       </div>
 
       <div className="p-5">
@@ -61,12 +66,8 @@ export function CourseCard({ course, index = 0 }) {
           <Progress value={course.progress} className="h-1.5" />
         </div>
 
-        <Button className="mt-4 w-full rounded-xl gradient-primary text-primary-foreground border-0 hover:opacity-90">
-          {course.status === "completed"
-            ? "Review"
-            : course.status === "not-started"
-              ? "Start"
-              : "Continue"}
+        <Button asChild className="mt-4 w-full rounded-xl gradient-primary text-primary-foreground border-0 hover:opacity-90">
+          <Link to={learnPath}>{actionLabel}</Link>
         </Button>
       </div>
     </motion.article>

@@ -119,11 +119,7 @@ export const Course = makeModel(
         requireQuizzes: { type: Boolean, default: false },
         requireAssignments: { type: Boolean, default: false },
       },
-      landingPage: {
-        heroBanner: String,
-        faqs: [{ question: String, answer: String }],
-        instructorBio: String,
-      },
+      landingPage: { type: Schema.Types.Mixed, default: {} },
       status: {
         type: String,
         enum: ["draft", "assigned", "content_in_progress", "review_pending", "changes_requested", "ready_to_publish", "published", "unpublished", "archived", "pending", "approved", "rejected"],

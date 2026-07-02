@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
-import { api, apiRequest } from "../services/api.js";
+import { api, apiRequest, assetUrl } from "../services/api.js";
 
 export default function CourseDetailsPage() {
   const { slug } = useParams();
@@ -41,10 +41,12 @@ export default function CourseDetailsPage() {
   const inCart = items.some((item) => item._id === course._id);
   const price = Number(course.discountPrice ?? course.price ?? 0);
   const isFree = course.pricingType === "free" || price <= 0;
-  const outcomes = list(course.learningOutcomes).length ? list(course.learningOutcomes) : ["Practical, project-focused lessons", "Lifetime access to learning resources", `Guidance from ${course.instructor}`];
   const requirements = list(course.requirements);
   const modules = course.modules || [];
-  const image = course.image || course.thumbnail || "/assets/images/course/course-1/1.png";
+  const image = assetUrl(course.image || course.thumbnail || course.cover) || "/assets/images/course/course-1/1.png";
+  const category = typeof course.category === "object" ? course.category?.name : course.category;
+  const instructor = typeof course.instructor === "object" ? course.instructor?.name : course.instructor;
+  const outcomes = list(course.learningOutcomes).length ? list(course.learningOutcomes) : ["Practical, project-focused lessons", "Lifetime access to learning resources", `Guidance from ${instructor || "EduPath Instructor"}`];
 
   function addToCart() {
     if (!inCart) addCourse(course);
@@ -90,7 +92,7 @@ export default function CourseDetailsPage() {
               <div className="ep-course__details">
                 <div className="ep-course__details-img"><img src={image} alt={course.title} /></div>
                 <div className="ep-course__overview mg-top-30">
-                  <span className="ep-course__tag ep1-bg">{course.category}</span>
+                  <span className="ep-course__tag ep1-bg">{category || "Course"}</span>
                   <h2 className="mg-top-20">{course.title}</h2>
                   <p className="ep-course__overview-text mg-top-20">{course.description || course.shortDescription}</p>
                   <div className="ep-course__overview-widget mg-top-30">
@@ -134,7 +136,7 @@ export default function CourseDetailsPage() {
                   <h4 className="ep-course__sidebar-title">Course Includes</h4>
                   <ul className="ep-course__sidebar-data-list">
                     <li><span>Price:</span><strong className="price">{isFree ? "Free" : `Rs. ${price.toFixed(2)}`}</strong></li>
-                    <li><span>Instructor:</span><strong>{course.instructor}</strong></li>
+                    <li><span>Instructor:</span><strong>{instructor || "EduPath Instructor"}</strong></li>
                     <li><span>Rating:</span><strong>{course.rating || 5}/5</strong></li>
                     <li><span>Lessons:</span><strong>{course.lectureCount || modules.reduce((sum, module) => sum + (module.lectures?.length || 0), 0)}</strong></li>
                     <li><span>Level:</span><strong>{course.level || "beginner"}</strong></li>

@@ -1,9 +1,10 @@
 ﻿import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
-export function LmsPageHeader({ eyebrow, title, description, actions }) {
+export function LmsPageHeader({ eyebrow, title, description, actions, breadcrumbs }) {
   const { pathname } = useLocation();
   const parts = pathname.split("/").filter(Boolean);
+  const breadcrumbItems = breadcrumbs || parts.map((part) => ({ label: part.replace(/-/g, " ") }));
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -15,10 +16,14 @@ export function LmsPageHeader({ eyebrow, title, description, actions }) {
         <Link to="/" className="flex items-center gap-1 hover:text-foreground">
           <Home className="h-3 w-3" /> Home
         </Link>
-        {parts.map((p) => (
-          <span key={p} className="flex items-center gap-1.5">
+        {breadcrumbItems.map((item, index) => (
+          <span key={`${item.label}-${index}`} className="flex items-center gap-1.5">
             <ChevronRight className="h-3 w-3 opacity-50" />
-            <span className="capitalize">{p.replace(/-/g, " ")}</span>
+            {item.to ? (
+              <Link to={item.to} className="capitalize hover:text-foreground">{item.label}</Link>
+            ) : (
+              <span className="capitalize">{item.label}</span>
+            )}
           </span>
         ))}
       </nav>

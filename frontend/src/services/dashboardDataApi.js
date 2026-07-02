@@ -17,13 +17,7 @@ export async function hydrateDashboardData(role) {
   const datasets = result.data?.datasets || {};
 
   Object.entries(datasets).forEach(([key, value]) => {
-    const target = module[key];
-    if (Array.isArray(target) && Array.isArray(value)) {
-      target.splice(0, target.length, ...value);
-    } else if (isPlainObject(target) && isPlainObject(value)) {
-      Object.keys(target).forEach((field) => delete target[field]);
-      Object.assign(target, value);
-    }
+    applyDashboardDataset(module[key], value, `${role}.${key}`);
   });
 
   return datasets;
@@ -47,7 +41,23 @@ export async function appendDashboardDatasetItem(role, key, item) {
 }
 
 function isPlainObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  return Boolean(value) && Object.prototype.toString.call(value) === "[object Object]";
+}
+
+function applyDashboardDataset(target, value, label) {
+  if (Array.isArray(target) && Array.isArray(value)) {
+    target.splice(0, target.length, ...value);
+    return;
+  }
+
+  if (!isPlainObject(target) || !isPlainObject(value)) return;
+
+  try {
+    Object.keys(target).forEach((field) => delete target[field]);
+    Object.assign(target, value);
+  } catch (error) {
+    console.warn(`Skipped incompatible dashboard dataset ${label}:`, error);
+  }
 }
 
 async function updateDashboardCache(role, key, value) {
@@ -55,10 +65,5 @@ async function updateDashboardCache(role, key, value) {
   if (!loader) return;
   const module = await loader();
   const target = module[key];
-  if (Array.isArray(target) && Array.isArray(value)) {
-    target.splice(0, target.length, ...value);
-  } else if (isPlainObject(target) && isPlainObject(value)) {
-    Object.keys(target).forEach((field) => delete target[field]);
-    Object.assign(target, value);
-  }
+  applyDashboardDataset(target, value, `${role}.${key}`);
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import { useCart } from "../context/CartContext.jsx";
+import { assetUrl } from "../services/api.js";
 
 function itemPath(item) {
   if ((item.type || "course") === "course") return `/course/${item.slug}`;
@@ -46,7 +47,7 @@ export default function CartPage() {
                     {items.map((item) => (
                       <article className="cart-item-card" key={item._id}>
                         <Link to={itemPath(item)} className="cart-item-image">
-                          <img src={item.image || item.thumbnail || "/assets/images/product/book-cover.jpg"} alt={item.title} />
+                          <img src={assetUrl(item.image || item.thumbnail || item.cover) || "/assets/images/product/book-cover.jpg"} alt={item.title} />
                         </Link>
                         <div className="cart-item-body">
                           <div className="cart-item-main">

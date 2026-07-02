@@ -5,7 +5,7 @@ import { LmsTopbar } from "@/features/shared/components/Topbar";
 import { ADMIN_NAV } from "@/features/shared/config/navigation";
 import { adminUser } from "@/features/admin/data/admin";
 import { useAuth } from "@/context/AuthContext";
-import DashboardDataGate from "@/components/dashboard/DashboardDataGate";
+import LumaDataGate from "@/components/luma/LumaDataGate";
 export default function AdminLayout() {
   const { user } = useAuth();
   const dashboardUser = {
@@ -15,7 +15,7 @@ export default function AdminLayout() {
     avatar: user?.avatar || adminUser.avatar,
   };
   return (
-    <DashboardDataGate role="admin">
+    <LumaDataGate role="admin">
     <SidebarProvider>
       <div className="relative flex min-h-screen w-full bg-background">
         <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -35,7 +35,7 @@ export default function AdminLayout() {
         </SidebarInset>
       </div>
     </SidebarProvider>
-    </DashboardDataGate>
+    </LumaDataGate>
   );
 }
 

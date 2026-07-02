@@ -1,21 +1,34 @@
 import { useEffect, useState } from "react";
-import { Command as CmdIcon, Moon, Search, Sun } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Command as CmdIcon, LogOut, Moon, Search, Settings, Sun, UserRound } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import NotificationBell from "@/components/notifications/NotificationBell";
-import { student } from "@/features/student/data/mock";
 import { useAuth } from "@/context/AuthContext";
 
 export function Topbar() {
-  const { user } = useAuth();
-  const dashboardStudent = {
-    ...student,
-    name: user?.name || student.name,
-    avatar: user?.avatar || student.avatar,
-  };
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const displayName = user?.name || "Student";
+  const displayEmail = user?.email || "";
+  const avatar = user?.avatar || user?.profileImage || "";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "S";
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
@@ -32,6 +45,11 @@ export function Topbar() {
     localStorage.setItem("luma-theme", next ? "dark" : "light");
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl md:px-6">
       <SidebarTrigger className="-ml-1" />
@@ -46,26 +64,46 @@ export function Topbar() {
         </kbd>
       </div>
       <div className="flex-1 md:hidden" />
-      <Link to="/admin/dashboard" className="ml-auto hidden md:inline-flex">
-        <Button variant="outline" size="sm" className="h-9 rounded-xl border-border/60">
-          Admin
-        </Button>
-      </Link>
-      <Link to="/instructor/dashboard" className="hidden md:inline-flex">
-        <Button size="sm" className="h-9 rounded-xl gradient-primary border-0 text-primary-foreground">
-          Instructor
-        </Button>
-      </Link>
-      <Button variant="ghost" size="icon" onClick={toggle} className="rounded-xl">
+      <Button variant="ghost" size="icon" onClick={toggle} className="ml-auto rounded-xl">
         {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       </Button>
       <NotificationBell notifPath="/dashboard/notifications" />
-      <Link to="/dashboard/profile" className="ml-1">
-        <Avatar className="h-9 w-9 ring-2 ring-primary/40 transition-all hover:ring-primary">
-          <AvatarImage src={dashboardStudent.avatar} alt={dashboardStudent.name} />
-          <AvatarFallback>{dashboardStudent.name[0]}</AvatarFallback>
-        </Avatar>
-      </Link>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+            <Avatar className="h-9 w-9 ring-2 ring-primary/40 transition-all hover:ring-primary">
+              <AvatarImage src={avatar} alt={displayName} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64 rounded-2xl">
+          <DropdownMenuLabel className="space-y-1">
+            <div className="truncate font-semibold">{displayName}</div>
+            <div className="truncate text-xs font-normal text-muted-foreground">
+              {displayEmail || "Email not available"}
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to="/dashboard/profile" className="cursor-pointer">
+              <UserRound className="mr-2 h-4 w-4" />
+              Profile
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/dashboard/settings" className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   );
 }
