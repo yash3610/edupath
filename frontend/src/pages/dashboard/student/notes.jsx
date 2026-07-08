@@ -30,7 +30,7 @@ export default function NotesPage() {
   useEffect(() => {
     apiRequest("/api/notes")
       .then((result) => setList((result.data || []).map(mapNote)))
-      .catch((error) => toast.error(error.message || "Notes load zale nahit."))
+      .catch((error) => toast.error(error.message || "Unable to load your notes."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -65,7 +65,7 @@ export default function NotesPage() {
       }
       setOpen(false);
     } catch (error) {
-      toast.error(error.message || "Note save zali nahi.");
+      toast.error(error.message || "Unable to save the note.");
     }
   };
 
@@ -75,7 +75,7 @@ export default function NotesPage() {
       setList((items) => items.filter((item) => item.id !== id));
       toast("Note deleted");
     } catch (error) {
-      toast.error(error.message || "Note delete zali nahi.");
+      toast.error(error.message || "Unable to delete the note.");
     }
   };
 

@@ -144,8 +144,8 @@ export default function MessagesPage() {
       setDemoMode(true);
       setActiveId((current) => keepValidActiveId(current, demoList));
       if (!silent) {
-        toast.error("Messages demo mode madhe load zale", {
-          description: error.message || "Backend conversation API reachable nahi.",
+        toast.error("Unable to load live conversations", {
+          description: error.message || "The conversation API is unavailable. Demo conversations are shown instead.",
         });
       }
     } finally {
@@ -202,7 +202,7 @@ export default function MessagesPage() {
         threads.map((thread) => (thread.id === conversationId ? { ...thread, unread: false } : thread)),
       );
     } catch (error) {
-      toast.error("Conversation load zali nahi", {
+      toast.error("Unable to load conversation", {
         description: error.message || "Please refresh and try again.",
       });
     } finally {
@@ -242,8 +242,8 @@ export default function MessagesPage() {
       setRemoteMessages([]);
       await loadMessages(conversation.id);
     } catch (error) {
-      toast.error("Chat start zala nahi", {
-        description: error.message || "Try again.",
+      toast.error("Unable to start chat", {
+        description: error.message || "Please try again.",
       });
     } finally {
       setMessagesLoading(false);
@@ -321,7 +321,7 @@ export default function MessagesPage() {
       );
     } catch (error) {
       setRemoteMessages((items) => items.filter((item) => item.id !== temporaryId));
-      toast.error("Message send zala nahi", {
+      toast.error("Unable to send message", {
         description: error.message || "Please try again.",
       });
     } finally {
@@ -347,7 +347,7 @@ export default function MessagesPage() {
         attachmentType: file.type,
       });
     } catch (error) {
-      toast.error("Attachment upload zala nahi", {
+      toast.error("Unable to upload attachment", {
         description: error.message || "Please choose another file.",
       });
     } finally {

@@ -34,7 +34,7 @@ export default function WishlistPage() {
   useEffect(() => {
     apiRequest("/api/wishlist")
       .then((result) => setList((result.data || []).map(mapWishlistItem).filter((item) => item.id)))
-      .catch((error) => toast.error(error.message || "Wishlist load zale nahi."))
+      .catch((error) => toast.error(error.message || "Unable to load your wishlist."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -44,7 +44,7 @@ export default function WishlistPage() {
       setList((items) => items.filter((item) => item.id !== id));
       toast("Removed from wishlist");
     } catch (error) {
-      toast.error(error.message || "Wishlist madhun remove zala nahi.");
+      toast.error(error.message || "Unable to remove this item from your wishlist.");
     }
   };
 

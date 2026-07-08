@@ -111,7 +111,7 @@ export default function BuilderPage() {
 
   async function createStarterCurriculum() {
     if (!starterModuleTitle.trim() || !starterLectureTitle.trim()) {
-      toast.error("Module title ani lecture title required aahe.");
+      toast.error("Module title and lecture title are required.");
       return;
     }
     try {
@@ -131,9 +131,9 @@ export default function BuilderPage() {
       setStarterLectureTitle("Welcome to the course");
       setStarterLectureUrl("");
       await loadCourse();
-      toast.success("Starter module ani lecture added.");
+      toast.success("Starter module and lecture added.");
     } catch (error) {
-      toast.error(error.message || "Curriculum create zala nahi.");
+      toast.error(error.message || "Unable to create curriculum.");
     }
   }
 
@@ -311,7 +311,7 @@ export default function BuilderPage() {
                 placeholder="Saved thumbnail id"
                 className="mt-2 rounded-xl"
               />
-              <p className="mt-1 text-xs text-muted-foreground">Image upload kara. File uploads folder madhe save hoil ani course madhe fakt id rahil.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Upload an image. The file will be stored in uploads, and only its ID will be saved with the course.</p>
             </div>
             <Button variant="outline" className="rounded-xl border-border/60" onClick={saveThumbnail} disabled={savingCourse || !courseId}>
               <Save className="mr-1.5 h-4 w-4" /> {savingCourse ? "Saving..." : "Save thumbnail"}
@@ -327,7 +327,7 @@ export default function BuilderPage() {
               <div className="flex-1">
                 <div className="text-sm font-semibold">Add required curriculum</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  Admin review sathi at least one module ani one lecture required aahe.
+                  At least one module and one lecture are required before admin review.
                 </div>
                 <div className="mt-4 grid gap-2 md:grid-cols-3">
                   <Input

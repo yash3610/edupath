@@ -270,7 +270,7 @@ export default function CreatePage() {
                 <div>
                   <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setThumbnailFile(event.target.files?.[0] || null)} className="rounded-xl" />
                   <Input {...form.register("thumbnail")} readOnly placeholder="Saved thumbnail id" className="mt-2 rounded-xl" />
-                  <p className="mt-1 text-xs text-muted-foreground">Image upload kara. Course madhe fakt uploaded image id save hoil.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Upload an image. Only the uploaded image ID will be saved with the course.</p>
                 </div>
               </div>
             </Field>

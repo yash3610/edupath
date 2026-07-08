@@ -25,13 +25,13 @@ export default function CertificatesPage() {
   useEffect(() => {
     apiRequest("/api/certificates/my")
       .then((result) => setCertificates((result.data || []).map(mapCertificate)))
-      .catch((error) => toast.error(error.message || "Certificates load zale nahit."))
+      .catch((error) => toast.error(error.message || "Unable to load your certificates."))
       .finally(() => setLoading(false));
   }, []);
 
   const share = (certificate) => {
     if (!certificate.verificationUrl) {
-      toast.error("Verification link available nahi.");
+      toast.error("Verification link is not available.");
       return;
     }
     navigator.clipboard?.writeText(certificate.verificationUrl);
@@ -49,7 +49,7 @@ export default function CertificatesPage() {
       URL.revokeObjectURL(url);
       toast.success("Certificate downloaded");
     } catch (error) {
-      toast.error(error.message || "Certificate download zala nahi.");
+      toast.error(error.message || "Unable to download the certificate.");
     }
   };
 

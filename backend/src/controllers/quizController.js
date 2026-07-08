@@ -169,7 +169,21 @@ export const getQuizHistory = asyncHandler(async (req, res) => ok(res, await Qui
 export const downloadResultPdf = asyncHandler(async (req, res) => {
   const attempt = await QuizAttempt.findOne({ _id: req.params.attemptId, student: userId(req) }).populate("quiz").populate("student", "name");
   if (!attempt || attempt.status === "in-progress") throw new ApiError(404, "Submitted result not found");
-  const pdf = await generateQuizResultPdf({ studentName: attempt.student?.name, quizTitle: attempt.quiz?.title, score: attempt.score, percentage: attempt.percentage, status: attempt.status, attemptNumber: attempt.attemptNumber });
+  const pdf = await generateQuizResultPdf({
+    studentName: attempt.student?.name,
+    quizTitle: attempt.quiz?.title,
+    score: attempt.score,
+    percentage: attempt.percentage,
+    status: attempt.status,
+    attemptNumber: attempt.attemptNumber,
+    totalMarks: attempt.totalMarks,
+    passingMarks: attempt.passingMarks,
+    correctCount: attempt.correctCount,
+    wrongCount: attempt.wrongCount,
+    unansweredCount: attempt.unansweredCount,
+    timeTaken: attempt.timeTaken,
+    submittedAt: attempt.submittedAt,
+  });
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="quiz-result-${attempt._id}.pdf"`);
   res.send(pdf);

@@ -32,7 +32,7 @@ export default function InstructorsPage() {
   useEffect(() => {
     apiRequest("/api/admin/instructors")
       .then((result) => setList((result.data || []).map(mapInstructor)))
-      .catch((error) => toast.error(error.message || "Instructors load झाले नाहीत."))
+      .catch((error) => toast.error(error.message || "Unable to load instructors."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -47,7 +47,7 @@ export default function InstructorsPage() {
       setList((items) => items.map((item) => item.id === instructor.id ? { ...item, ...updated } : item));
       toast(`${status === "approved" ? "Approved" : "Updated"} ${instructor.name}`);
     } catch (error) {
-      toast.error(error.message || "Instructor status update झाला नाही.");
+      toast.error(error.message || "Unable to update instructor status.");
     }
   };
   const columns = [

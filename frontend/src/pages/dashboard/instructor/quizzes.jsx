@@ -150,8 +150,8 @@ export default function QuizzesPage() {
       setList((quizResult.value.data || []).map(normalizeQuiz));
     } else {
       setList([]);
-      toast.error("Quiz data load zala nahi", {
-        description: quizResult.reason?.message || "Backend/API check kara.",
+      toast.error("Unable to load quizzes", {
+        description: quizResult.reason?.message || "Please check the backend API and try again.",
       });
     }
 
@@ -159,8 +159,8 @@ export default function QuizzesPage() {
       setCourses(courseResult.value.data || []);
     } else {
       setCourses([]);
-      toast.error("Course list load zali nahi", {
-        description: courseResult.reason?.message || "Backend/API check kara.",
+      toast.error("Unable to load courses", {
+        description: courseResult.reason?.message || "Please check the backend API and try again.",
       });
     }
 
@@ -275,7 +275,7 @@ export default function QuizzesPage() {
       setEditingQuiz(null);
       await load();
     } catch (error) {
-      toast.error("Quiz save zala nahi", {
+      toast.error("Unable to save quiz", {
         description: error.message || "Please try again.",
       });
     } finally {
@@ -289,7 +289,7 @@ export default function QuizzesPage() {
       toast.success(`${quiz.title} published`);
       await load();
     } catch (error) {
-      toast.error("Publish zala nahi", { description: error.message });
+      toast.error("Unable to publish quiz", { description: error.message || "Please try again." });
     }
   };
 
@@ -299,7 +299,7 @@ export default function QuizzesPage() {
       toast.success(`${quiz.title} deleted`);
       await load();
     } catch (error) {
-      toast.error("Delete zala nahi", { description: error.message });
+      toast.error("Unable to delete quiz", { description: error.message || "Please try again." });
     }
   };
 
@@ -311,7 +311,7 @@ export default function QuizzesPage() {
       const result = await quizApi.getInstructorQuizAnalytics(getQuizId(quiz));
       setAnalytics(result.data);
     } catch (error) {
-      toast.error("Analytics load zale nahi", { description: error.message });
+      toast.error("Unable to load analytics", { description: error.message || "Please try again." });
     } finally {
       setAnalyticsLoading(false);
     }

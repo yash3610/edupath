@@ -29,7 +29,7 @@ export default function OrdersPage() {
   useEffect(() => {
     apiRequest("/api/orders/my")
       .then((result) => setOrders((result.data || []).map(mapOrder)))
-      .catch((error) => toast.error(error.message || "Orders load zale nahit."))
+      .catch((error) => toast.error(error.message || "Unable to load your orders."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -44,7 +44,7 @@ export default function OrdersPage() {
       URL.revokeObjectURL(url);
       toast.success("Invoice downloaded");
     } catch (error) {
-      toast.error(error.message || "Invoice download zala nahi.");
+      toast.error(error.message || "Unable to download the invoice.");
     }
   };
 

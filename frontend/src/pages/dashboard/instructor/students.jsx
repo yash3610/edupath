@@ -31,7 +31,7 @@ export default function Page() {
   useEffect(() => {
     apiRequest("/api/instructor/students-progress")
       .then((result) => setStudents((result.data || []).map(mapProgressRow)))
-      .catch((error) => toast.error(error.message || "Students load zale nahit."))
+      .catch((error) => toast.error(error.message || "Unable to load students."))
       .finally(() => setLoading(false));
   }, []);
 

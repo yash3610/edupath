@@ -39,7 +39,7 @@ export default function StudentsPage() {
   useEffect(() => {
     apiRequest("/api/admin/students")
       .then((result) => setList((result.data || []).map(mapStudent)))
-      .catch((error) => toast.error(error.message || "Students load झाले नाहीत."))
+      .catch((error) => toast.error(error.message || "Unable to load students."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -56,7 +56,7 @@ export default function StudentsPage() {
       setOpen((current) => current?.id === student.id ? { ...current, ...updated } : current);
       toast(`${status === "blocked" ? "Blocked" : "Unblocked"} ${student.name}`);
     } catch (error) {
-      toast.error(error.message || "Status update झाला नाही.");
+      toast.error(error.message || "Unable to update student status.");
     }
   };
   const removeStudent = async (student) => {
@@ -66,7 +66,7 @@ export default function StudentsPage() {
       setOpen((current) => current?.id === student.id ? null : current);
       toast.error(`Deleted ${student.name}`);
     } catch (error) {
-      toast.error(error.message || "Student delete झाला नाही.");
+      toast.error(error.message || "Unable to delete student.");
     }
   };
   const columns = [
