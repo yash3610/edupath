@@ -114,7 +114,7 @@ export default function QuizResultPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={downloadPdf} disabled={downloading}><Download className="mr-2 h-4 w-4" />{downloading ? "Downloading..." : "PDF"}</Button>
             <Button variant="outline" onClick={shareResult}><Share2 className="mr-2 h-4 w-4" />Share</Button>
-            <Button asChild><Link to="/dashboard/quizzes"><RotateCcw className="mr-2 h-4 w-4" />Retake</Link></Button>
+            <Button asChild><Link to="/dashboard/quizzes"><RotateCcw className="mr-2 h-4 w-4" />Back to quizzes</Link></Button>
           </div>
         </div>
         {downloadError && <div className="mt-4 rounded-xl bg-destructive/10 p-4 text-sm font-medium text-destructive">{downloadError}</div>}

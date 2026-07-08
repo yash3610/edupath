@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, Clock3, ListChecks, Medal, Play } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Eye, ListChecks, Medal, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ export default function QuizInstructionsPage() {
   }, [quizId]);
 
   async function start() {
+    if (shouldViewResult) {
+      navigate(`/dashboard/quizzes/result/${quiz.latestSubmittedAttemptId}`);
+      return;
+    }
     setStarting(true);
     try {
       const result = unwrap(await quizApi.startQuiz(quizId));
@@ -33,6 +37,10 @@ export default function QuizInstructionsPage() {
   }
 
   if (!quiz) return <PageLoader label="Loading quiz instructions" />;
+  const isInProgress = quiz.latestAttemptStatus === "in-progress" || quiz.status === "In Progress";
+  const shouldViewResult = quiz.latestSubmittedAttemptId && !quiz.canAttempt;
+  const actionText = shouldViewResult ? "View result" : isInProgress ? "Resume quiz" : "Start quiz";
+  const ActionIcon = shouldViewResult ? Eye : Play;
 
   return (
     <div>
@@ -40,7 +48,7 @@ export default function QuizInstructionsPage() {
         eyebrow="Secure Quiz"
         title={quiz.title || "Quiz instructions"}
         description={quiz.description || "Read the rules carefully before starting this timed assessment."}
-        actions={<Button onClick={start} disabled={starting}><Play className="mr-2 h-4 w-4" />{starting ? "Starting..." : "Start quiz"}</Button>}
+        actions={<Button onClick={start} disabled={starting}><ActionIcon className="mr-2 h-4 w-4" />{starting ? "Starting..." : actionText}</Button>}
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <MetricCard icon={Clock3} label="Duration" value={`${quiz.duration || 0} min`} />
@@ -60,8 +68,8 @@ export default function QuizInstructionsPage() {
           ))}
         </div>
         <Button onClick={start} disabled={starting} className="mt-6">
-          <Play className="mr-2 h-4 w-4" />
-          I understand, start quiz
+          <ActionIcon className="mr-2 h-4 w-4" />
+          {shouldViewResult ? "View submitted result" : isInProgress ? "Resume quiz" : "I understand, start quiz"}
         </Button>
       </div>
     </div>

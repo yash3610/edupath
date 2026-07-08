@@ -1,10 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Clock,
+  Eye,
   HelpCircle,
   Play,
   RefreshCcw,
@@ -29,24 +31,63 @@ const normalizeQuiz = (quiz) => ({
   durationMinutes: quiz.duration || quiz.durationMinutes || 15,
   best: quiz.bestScore || quiz.best || 0,
   attemptsUsed: quiz.attemptsUsed || 0,
+  attemptsAllowed: quiz.attemptsAllowed || 1,
+  attemptsRemaining: quiz.attemptsRemaining ?? Math.max(0, (quiz.attemptsAllowed || 1) - (quiz.attemptsUsed || 0)),
+  canAttempt: quiz.canAttempt ?? true,
 });
 
 export default function QuizzesPage() {
+  const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(null);
+  const [activeDirty, setActiveDirty] = useState(false);
 
   const load = async () => {
     try {
       setLoading(true);
       const result = await quizApi.getStudentQuizzes();
-      setQuizzes((result.data || []).map(normalizeQuiz));
+      const nextQuizzes = (result.data || []).map(normalizeQuiz);
+      setQuizzes(nextQuizzes);
+      return nextQuizzes;
     } catch (error) {
-      toast.error("Quizzes load zale nahi", {
+      toast.error("Unable to load quizzes", {
         description: error.message || "Please refresh and try again.",
       });
+      return [];
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markSubmitted = (quiz, attemptResult) => {
+    const nextAttemptsUsed = (quiz.attemptsUsed || 0) + 1;
+    const nextAttemptsRemaining = Math.max(0, (quiz.attemptsAllowed || 1) - nextAttemptsUsed);
+    const passed = attemptResult?.isPassed || attemptResult?.status === "passed";
+    setActiveDirty(true);
+    setQuizzes((current) =>
+      current.map((item) =>
+        item.id === quiz.id
+          ? {
+              ...item,
+              attemptsUsed: nextAttemptsUsed,
+              attemptsRemaining: nextAttemptsRemaining,
+              canAttempt: nextAttemptsRemaining > 0,
+              latestAttemptId: attemptResult?._id || item.latestAttemptId,
+              latestAttemptStatus: attemptResult?.status || item.latestAttemptStatus,
+              latestSubmittedAttemptId: attemptResult?._id || item.latestSubmittedAttemptId,
+              status: nextAttemptsRemaining > 0 ? (passed ? "Passed" : "Failed") : passed ? "Passed" : "Attempted",
+            }
+          : item
+      )
+    );
+  };
+
+  const closeActive = async (shouldReload = activeDirty) => {
+    setActive(null);
+    if (shouldReload) {
+      setActiveDirty(false);
+      await load();
     }
   };
 
@@ -69,50 +110,65 @@ export default function QuizzesPage() {
 
       {quizzes.length ? (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {quizzes.map((quiz, index) => (
-            <motion.div
-              key={quiz.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ y: -4 }}
-              className="relative overflow-hidden rounded-2xl card-premium p-6"
-            >
-              <Badge className="border-0 bg-primary/15 text-primary">{quiz.courseTitle}</Badge>
-              <h3 className="mt-3 font-display text-xl font-semibold">{quiz.title}</h3>
-              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{quiz.description || "Ready when you are."}</p>
-
-              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-xl bg-muted/40 p-3">
-                  <div className="text-xs text-muted-foreground">Questions</div>
-                  <div className="mt-1 font-display text-xl font-semibold">{quiz.totalQuestions}</div>
-                </div>
-                <div className="rounded-xl bg-muted/40 p-3">
-                  <div className="text-xs text-muted-foreground">
-                    <Clock className="inline h-3 w-3" /> Time
-                  </div>
-                  <div className="mt-1 font-display text-xl font-semibold">{quiz.durationMinutes}m</div>
-                </div>
-                <div className="rounded-xl bg-muted/40 p-3">
-                  <div className="text-xs text-muted-foreground">
-                    <Trophy className="inline h-3 w-3" /> Status
-                  </div>
-                  <div className="mt-1 truncate font-display text-sm font-semibold">{quiz.status || "New"}</div>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => setActive(quiz)}
-                className="mt-5 w-full rounded-xl gradient-primary border-0 text-primary-foreground"
-                disabled={quiz.status === "Locked"}
+          {quizzes.map((quiz, index) => {
+            const isInProgress = quiz.latestAttemptStatus === "in-progress" || quiz.status === "In Progress";
+            const hasSubmitted = quiz.attemptsUsed > 0 && quiz.latestSubmittedAttemptId;
+            const canStart = quiz.canAttempt && (isInProgress || quiz.attemptsRemaining > 0);
+            const shouldViewResult = hasSubmitted && !canStart;
+            const actionLabel = shouldViewResult ? "View result" : isInProgress ? "Resume quiz" : quiz.attemptsUsed ? "Retake quiz" : "Start quiz";
+            const ActionIcon = shouldViewResult ? Eye : Play;
+            return (
+              <motion.div
+                key={quiz.id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -4 }}
+                className="relative overflow-hidden rounded-2xl card-premium p-6"
               >
-                <Play className="mr-2 h-4 w-4" /> {quiz.attemptsUsed ? "Retake quiz" : "Start quiz"}
-              </Button>
-              <div className="mt-2 text-center text-xs text-muted-foreground">
-                {quiz.attemptsUsed} attempt{quiz.attemptsUsed === 1 ? "" : "s"} used
-              </div>
-            </motion.div>
-          ))}
+                <Badge className="border-0 bg-primary/15 text-primary">{quiz.courseTitle}</Badge>
+                <h3 className="mt-3 font-display text-xl font-semibold">{quiz.title}</h3>
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{quiz.description || "Ready when you are."}</p>
+
+                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground">Questions</div>
+                    <div className="mt-1 font-display text-xl font-semibold">{quiz.totalQuestions}</div>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground">
+                      <Clock className="inline h-3 w-3" /> Time
+                    </div>
+                    <div className="mt-1 font-display text-xl font-semibold">{quiz.durationMinutes}m</div>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground">
+                      <Trophy className="inline h-3 w-3" /> Status
+                    </div>
+                    <div className="mt-1 truncate font-display text-sm font-semibold">{quiz.status || "New"}</div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => {
+                    if (loading) return;
+                    if (shouldViewResult) navigate(`/dashboard/quizzes/result/${quiz.latestSubmittedAttemptId}`);
+                    else if (canStart) {
+                      setActiveDirty(false);
+                      setActive(quiz);
+                    }
+                  }}
+                  className="mt-5 w-full rounded-xl gradient-primary border-0 text-primary-foreground"
+                  disabled={loading || (!shouldViewResult && !canStart)}
+                >
+                  <ActionIcon className="mr-2 h-4 w-4" /> {actionLabel}
+                </Button>
+                <div className="mt-2 text-center text-xs text-muted-foreground">
+                  {quiz.attemptsUsed} of {quiz.attemptsAllowed} attempt{quiz.attemptsAllowed === 1 ? "" : "s"} used
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-2xl card-premium p-10 text-center text-sm text-muted-foreground">
@@ -120,15 +176,13 @@ export default function QuizzesPage() {
         </div>
       )}
 
-      <Dialog open={!!active} onOpenChange={(open) => !open && setActive(null)}>
+      <Dialog open={!!active} onOpenChange={(open) => !open && closeActive()}>
         <DialogContent className="top-4 max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-2xl translate-y-0 overflow-y-auto rounded-2xl border-border/60 bg-card p-0">
           {active && (
             <QuizRunner
               quiz={active}
-              onClose={() => {
-                setActive(null);
-                load();
-              }}
+              onSubmitted={(attemptResult) => markSubmitted(active, attemptResult)}
+              onClose={() => closeActive(true)}
             />
           )}
         </DialogContent>
@@ -137,7 +191,7 @@ export default function QuizzesPage() {
   );
 }
 
-function QuizRunner({ quiz, onClose }) {
+function QuizRunner({ quiz, onClose, onSubmitted }) {
   const [attempt, setAttempt] = useState(null);
   const [runnerQuiz, setRunnerQuiz] = useState(null);
   const [idx, setIdx] = useState(0);
@@ -145,6 +199,8 @@ function QuizRunner({ quiz, onClose }) {
   const [done, setDone] = useState(false);
   const [result, setResult] = useState(null);
   const [secs, setSecs] = useState((quiz.durationMinutes || 15) * 60);
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -158,7 +214,7 @@ function QuizRunner({ quiz, onClose }) {
         setSecs((data.quiz?.duration || quiz.durationMinutes || 15) * 60);
       })
       .catch((error) => {
-        toast.error("Quiz start zala nahi", { description: error.message });
+        toast.error("Unable to start quiz", { description: error.message || "Please try again." });
         onClose();
       });
     return () => {
@@ -196,19 +252,25 @@ function QuizRunner({ quiz, onClose }) {
         selectedOption: label,
       });
     } catch (error) {
-      toast.error("Answer save zala nahi", { description: error.message });
+      toast.error("Unable to save answer", { description: error.message || "Please try again." });
     }
   };
 
   const submit = async () => {
-    if (!attempt?._id) return;
+    if (!attempt?._id || submittingRef.current || done) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
       const submitResult = await quizApi.submitQuiz(attempt._id);
-      setResult(submitResult.data || submitResult);
+      const attemptResult = submitResult.data || submitResult;
+      setResult(attemptResult);
+      onSubmitted?.(attemptResult);
       setDone(true);
       toast.success("Quiz submitted");
     } catch (error) {
-      toast.error("Submit zala nahi", { description: error.message });
+      submittingRef.current = false;
+      setSubmitting(false);
+      toast.error("Unable to submit quiz", { description: error.message || "Please try again." });
     }
   };
 
@@ -302,10 +364,10 @@ function QuizRunner({ quiz, onClose }) {
         </Button>
         <Button
           onClick={idx === total - 1 ? submit : () => setIdx((value) => Math.min(total - 1, value + 1))}
-          disabled={pick === null}
+          disabled={pick === null || submitting}
           className="rounded-xl gradient-primary border-0 text-primary-foreground"
         >
-          {idx === total - 1 ? "Submit" : "Next"} <ArrowRight className="ml-2 h-4 w-4" />
+          {idx === total - 1 ? (submitting ? "Submitting..." : "Submit") : "Next"} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

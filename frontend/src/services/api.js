@@ -2,6 +2,9 @@ const configuredApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VI
 const API_BASE_URL = resolveApiBaseUrl(configuredApiUrl);
 let accessToken = "";
 let refreshPromise = null;
+let accessTokenExpiresAt = 0;
+let sessionExpiredDispatched = false;
+const TOKEN_REFRESH_WINDOW_MS = 60 * 1000;
 
 function resolveApiBaseUrl(value) {
   const source = String(value || "").replace(/\/+$/, "");
@@ -50,9 +53,20 @@ export function apiUrl(path) {
 
 export function setAccessToken(token) {
   accessToken = token;
+  accessTokenExpiresAt = getTokenExpiryMs(token);
+  if (token) sessionExpiredDispatched = false;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("edupath:token-updated", { detail: { accessToken: token || "" } }));
+  }
 }
 
-async function refreshAccessToken() {
+function notifySessionExpired() {
+  if (sessionExpiredDispatched) return;
+  sessionExpiredDispatched = true;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("edupath:session-expired"));
+}
+
+async function refreshAccessToken({ broadcastOnFailure = true } = {}) {
   if (!refreshPromise) {
     refreshPromise = fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
       method: "POST",
@@ -66,7 +80,7 @@ async function refreshAccessToken() {
       })
       .catch((error) => {
         setAccessToken("");
-        if (typeof window !== "undefined") window.dispatchEvent(new Event("edupath:session-expired"));
+        if (broadcastOnFailure) notifySessionExpired();
         throw error;
       })
       .finally(() => {
@@ -76,7 +90,28 @@ async function refreshAccessToken() {
   return refreshPromise;
 }
 
+function getTokenExpiryMs(token) {
+  if (!token) return 0;
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) return 0;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
+    return decoded.exp ? decoded.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function ensureFreshAccessToken(endpoint) {
+  if (endpoint.startsWith("/api/auth/")) return;
+  if (accessToken && accessTokenExpiresAt && Date.now() >= accessTokenExpiresAt - TOKEN_REFRESH_WINDOW_MS) {
+    await refreshAccessToken();
+  }
+}
+
 async function authorizedFetch(endpoint, options = {}, retry = true) {
+  if (retry) await ensureFreshAccessToken(endpoint);
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     credentials: "include",
@@ -87,7 +122,7 @@ async function authorizedFetch(endpoint, options = {}, retry = true) {
   });
 
   if (response.status === 401 && retry && !endpoint.startsWith("/api/auth/")) {
-    await refreshAccessToken();
+    await refreshAccessToken({ broadcastOnFailure: true });
     return authorizedFetch(endpoint, options, false);
   }
   return response;
@@ -167,7 +202,7 @@ export const api = {
   newsletter: (payload) => apiRequest("/api/newsletter", { method: "POST", body: JSON.stringify(payload) }),
   login: (payload) => apiRequest("/api/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   register: (payload) => apiRequest("/api/auth/register", { method: "POST", body: JSON.stringify(payload) }),
-  refresh: () => refreshAccessToken(),
+  refresh: () => refreshAccessToken({ broadcastOnFailure: false }),
   logout: () => apiRequest("/api/auth/logout", { method: "POST" }),
   me: () => apiRequest("/api/auth/me"),
   notifications: (options = 5) => {

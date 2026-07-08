@@ -40,8 +40,19 @@ export function AuthProvider({ children }) {
       setLoading(false);
       setAccessToken("");
     };
+    const syncAccessToken = (event) => {
+      const nextAccessToken = event.detail?.accessToken || "";
+      setSession((current) => {
+        if (!current || current.accessToken === nextAccessToken) return current;
+        return { ...current, accessToken: nextAccessToken };
+      });
+    };
     window.addEventListener("edupath:session-expired", expireSession);
-    return () => window.removeEventListener("edupath:session-expired", expireSession);
+    window.addEventListener("edupath:token-updated", syncAccessToken);
+    return () => {
+      window.removeEventListener("edupath:session-expired", expireSession);
+      window.removeEventListener("edupath:token-updated", syncAccessToken);
+    };
   }, []);
 
   function saveSession(nextSession) {

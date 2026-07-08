@@ -9,7 +9,13 @@ export const protect = asyncHandler(async (req, _res, next) => {
 
   if (!token) throw new ApiError(401, "Authentication required");
 
-  const payload = jwt.verify(token, process.env.JWT_SECRET);
+  let payload;
+  try {
+    payload = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    if (error.name === "TokenExpiredError") throw new ApiError(401, "Access token expired");
+    throw new ApiError(401, "Invalid access token");
+  }
   if (payload.type === "refresh") throw new ApiError(401, "Invalid access token");
   const user = await User.findById(payload.sub).select("-passwordHash");
   if (!user || user.status !== "active") throw new ApiError(401, "Invalid or inactive account");

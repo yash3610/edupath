@@ -20,13 +20,24 @@ const slugify = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+
 const attemptMeta = async (quiz, studentId) => {
   const attempts = await QuizAttempt.find({ quiz: quiz._id, student: studentId }).sort({ createdAt: -1 });
   const latest = attempts[0];
+  const latestSubmitted = attempts.find((attempt) => attempt.status !== "in-progress");
   const used = attempts.filter((attempt) => attempt.status !== "in-progress").length;
+  const allowed = Number(quiz.attemptsAllowed || 1);
   let status = "Not Started";
   if (latest?.status === "in-progress") status = "In Progress";
   else if (latest?.isPassed) status = "Passed";
   else if (latest && !latest.isPassed) status = "Failed";
-  if (used >= quiz.attemptsAllowed && !latest?.isPassed) status = "Locked";
-  return { attemptsUsed: used, latestAttemptId: latest?._id, status };
+  if (used >= allowed && !latest?.isPassed) status = "Attempted";
+  return {
+    attemptsAllowed: allowed,
+    attemptsRemaining: Math.max(0, allowed - used),
+    attemptsUsed: used,
+    canAttempt: Boolean(latest?.status === "in-progress" || used < allowed),
+    latestAttemptId: latest?._id,
+    latestAttemptStatus: latest?.status,
+    latestSubmittedAttemptId: latestSubmitted?._id,
+    status,
+  };
 };
 
 export const getStudentQuizzes = asyncHandler(async (req, res) => {
@@ -50,6 +61,7 @@ export const getStudentCourseQuizzes = asyncHandler(async (req, res) => {
 export const getQuizInstructions = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findById(req.params.quizId).populate("course", "title thumbnail");
   if (!quiz) throw new ApiError(404, "Quiz not found");
+  const meta = await attemptMeta(quiz, userId(req));
   ok(res, {
     _id: quiz._id,
     title: quiz.title,
@@ -62,6 +74,7 @@ export const getQuizInstructions = asyncHandler(async (req, res) => {
     negativeMarking: quiz.negativeMarking,
     negativeMarksPerQuestion: quiz.negativeMarksPerQuestion,
     attemptsAllowed: quiz.attemptsAllowed,
+    ...meta,
     difficulty: quiz.difficulty,
     rules: [
       "Do not refresh or close the page during the attempt.",
@@ -74,9 +87,10 @@ export const getQuizInstructions = asyncHandler(async (req, res) => {
 
 export const startQuizAttempt = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findById(req.params.quizId).populate("course", "title thumbnail");
-  const attemptNumber = await ensureCanAttemptQuiz({ quiz, studentId: userId(req) });
+  if (!quiz) throw new ApiError(404, "Quiz not found");
   const existing = await QuizAttempt.findOne({ quiz: quiz._id, student: userId(req), status: "in-progress" });
   if (existing) return ok(res, { attempt: existing, quiz: sanitizeQuizForAttempt(quiz) }, "Existing attempt resumed");
+  const attemptNumber = await ensureCanAttemptQuiz({ quiz, studentId: userId(req) });
 
   const attempt = await QuizAttempt.create({
     quiz: quiz._id,
@@ -121,9 +135,17 @@ export const clearAnswer = asyncHandler(async (req, res) => {
 });
 
 export const submitAttempt = (autoSubmitted = false) => asyncHandler(async (req, res) => {
-  const attempt = await QuizAttempt.findOne({ _id: req.params.attemptId, student: userId(req) }).populate("quiz");
+  let attempt = await QuizAttempt.findOneAndUpdate(
+    { _id: req.params.attemptId, student: userId(req), status: "in-progress" },
+    { $set: { status: "submitted", submittedAt: new Date() } },
+    { new: true }
+  ).populate("quiz");
+  if (!attempt) {
+    attempt = await QuizAttempt.findOne({ _id: req.params.attemptId, student: userId(req) }).populate("quiz");
+    if (!attempt) throw new ApiError(404, "Attempt not found");
+    if (attempt.status !== "in-progress") return ok(res, attempt, "This attempt is already submitted");
+  }
   if (!attempt) throw new ApiError(404, "Attempt not found");
-  if (attempt.status !== "in-progress") throw new ApiError(409, "This attempt is already submitted");
   calculateAttempt({ quiz: attempt.quiz, attempt, autoSubmitted });
   await attempt.save();
   ok(res, attempt, autoSubmitted ? "Quiz auto-submitted" : "Quiz submitted");

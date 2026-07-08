@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Bookmark, Check, ChevronLeft, ChevronRight, Eraser, Menu, Timer, X } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,8 @@ export default function QuizAttemptPage() {
   const [confirm, setConfirm] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [seconds, setSeconds] = useState(18 * 60);
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!data) quizApi.getAttempt(attemptId).then((result) => setData(unwrap(result))).catch((error) => toast.error(error.message || "Unable to load attempt"));
@@ -79,11 +81,16 @@ export default function QuizAttemptPage() {
     }
   }
   async function submit(auto = false) {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
       await quizApi.submitQuiz(attemptId);
       toast.success(auto ? "Timer ended, quiz auto-submitted." : "Quiz submitted successfully.");
       navigate(`/dashboard/quizzes/result/${attemptId}`, { replace: true });
     } catch (error) {
+      submittingRef.current = false;
+      setSubmitting(false);
       toast.error(error.message || "Submit failed");
     }
   }
@@ -103,7 +110,7 @@ export default function QuizAttemptPage() {
               <Timer className="mr-2 h-4 w-4" /> {timeText}
             </Badge>
             <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setDrawer(true)}><Menu className="h-5 w-5" /></Button>
-            <Button onClick={() => setConfirm(true)}>Submit</Button>
+            <Button onClick={() => setConfirm(true)} disabled={submitting}>{submitting ? "Submitting..." : "Submit"}</Button>
           </div>
         </div>
         <Progress value={progress} className="mt-4" />
@@ -138,7 +145,7 @@ export default function QuizAttemptPage() {
           </div>
         </div>
       )}
-      {confirm && <ConfirmModal onCancel={() => setConfirm(false)} onSubmit={() => submit(false)} />}
+      {confirm && <ConfirmModal submitting={submitting} onCancel={() => setConfirm(false)} onSubmit={() => submit(false)} />}
     </div>
   );
 }
@@ -176,7 +183,7 @@ function Navigator({ questions, answers, review, current, setCurrent, progress, 
   );
 }
 
-function ConfirmModal({ onCancel, onSubmit }) {
+function ConfirmModal({ onCancel, onSubmit, submitting = false }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur">
       <div className="w-full max-w-md rounded-2xl card-premium p-6">
@@ -184,8 +191,8 @@ function ConfirmModal({ onCancel, onSubmit }) {
         <h2 className="mt-4 text-2xl font-semibold">Submit quiz?</h2>
         <p className="mt-2 text-sm text-muted-foreground">Once submitted, answers cannot be edited.</p>
         <div className="mt-6 flex gap-2">
-          <Button variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>
-          <Button onClick={onSubmit} className="flex-1">Submit</Button>
+          <Button variant="outline" onClick={onCancel} disabled={submitting} className="flex-1">Cancel</Button>
+          <Button onClick={onSubmit} disabled={submitting} className="flex-1">{submitting ? "Submitting..." : "Submit"}</Button>
         </div>
       </div>
     </div>
