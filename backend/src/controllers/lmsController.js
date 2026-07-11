@@ -1195,7 +1195,17 @@ export const instructorStudentsProgress = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
   ok(res, await Enrollment.find({ course: { $in: courseIds } }).populate("student", "name email").populate("course", "title"));
 });
-export const instructorGradeAssignment = asyncHandler(async (req, res) => ok(res, await AssignmentSubmission.findByIdAndUpdate(req.params.submissionId, { grade: req.body.grade, feedback: req.body.feedback, status: "graded" }, { new: true })));
+export const instructorGradeAssignment = asyncHandler(async (req, res) => {
+  const submission = await AssignmentSubmission.findById(req.params.submissionId).populate("assignment");
+  if (!submission?.assignment) throw new ApiError(404, "Submission not found");
+  const ownsCourse = await Course.exists({ _id: submission.assignment.course, instructor: userId(req) });
+  if (!ownsCourse) throw new ApiError(404, "Submission not found");
+  submission.grade = req.body.grade;
+  submission.feedback = req.body.feedback;
+  submission.status = "graded";
+  await submission.save();
+  ok(res, await AssignmentSubmission.findById(submission._id).populate("student", "name email"));
+});
 export const instructorDoubts = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
   ok(res, await DiscussionQuestion.find({ course: { $in: courseIds } }).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 }));
