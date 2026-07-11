@@ -11,11 +11,11 @@ export default function Page() {
       <LmsPageHeader
         eyebrow="Account"
         title="Settings"
-        description="Account, notifications, privacy and payouts."
+        description="Account, notifications, privacy and preferences."
       />
       <Tabs defaultValue="account">
         <TabsList className="rounded-xl bg-muted/60 p-1 flex-wrap h-auto">
-          {["account", "notifications", "privacy", "payouts", "theme", "password"].map((t) => (
+          {["account", "notifications", "privacy", "theme", "password"].map((t) => (
             <TabsTrigger key={t} value={t} className="rounded-lg capitalize">
               {t}
             </TabsTrigger>
@@ -74,7 +74,7 @@ export default function Page() {
           </div>
         </TabsContent>
 
-        {["privacy", "payouts", "theme"].map((t) => (
+        {["privacy", "theme"].map((t) => (
           <TabsContent
             key={t}
             value={t}

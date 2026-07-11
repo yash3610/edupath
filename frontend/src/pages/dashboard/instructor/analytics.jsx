@@ -14,8 +14,7 @@ import { ChartCard } from "@/features/shared/components/ChartCard";
 import { StatCard } from "@/features/shared/components/StatCard";
 import {
   engagementSeries,
-  earningsMonthly,
-  courseRevenue,
+  instructorCourses,
   ratingDistribution,
 } from "@/features/instructor/data/instructor";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +26,7 @@ export default function Page() {
       <LmsPageHeader
         eyebrow="Overview"
         title="Analytics"
-        description="Course, revenue and engagement insights."
+        description="Course progress and engagement insights."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -69,10 +68,16 @@ export default function Page() {
             </ResponsiveContainer>
           </div>
         </ChartCard>
-        <ChartCard title="Revenue per course">
+        <ChartCard title="Completion by course">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={courseRevenue} layout="vertical">
+              <BarChart
+                data={instructorCourses.slice(0, 6).map((course) => ({
+                  name: course.title.split(" ").slice(0, 2).join(" "),
+                  value: course.completion,
+                }))}
+                layout="vertical"
+              >
                 <CartesianGrid stroke={GRID} horizontal={false} />
                 <XAxis
                   type="number"
@@ -105,10 +110,10 @@ export default function Page() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <ChartCard title="Earnings trend" className="lg:col-span-2">
+        <ChartCard title="Watch time trend" className="lg:col-span-2">
           <div className="h-60">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={earningsMonthly}>
+              <AreaChart data={engagementSeries}>
                 <defs>
                   <linearGradient id="a2" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="oklch(0.78 0.16 70)" stopOpacity={0.55} />
@@ -116,13 +121,12 @@ export default function Page() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke={GRID} vertical={false} />
-                <XAxis dataKey="m" stroke={AXIS} fontSize={11} tickLine={false} axisLine={false} />
+                <XAxis dataKey="d" stroke={AXIS} fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis
                   stroke={AXIS}
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => `${v / 1000}k`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -133,7 +137,7 @@ export default function Page() {
                 />
                 <Area
                   type="monotone"
-                  dataKey="earn"
+                  dataKey="watch"
                   stroke="oklch(0.78 0.16 70)"
                   strokeWidth={3}
                   fill="url(#a2)"

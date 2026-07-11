@@ -53,15 +53,15 @@ const lumaStudentPages = [
 
 const lumaAdminPages = [
   "approvals", "assignments", "categories", "certificates", "cms", "community",
-  "coupons", "courses", "instructors", "live", "modules", "notifications",
-  "orders", "payments", "quizzes", "refunds", "reports", "reviews", "settings",
-  "students", "support",
+  "coupons", "courses", "earnings", "instructors", "live", "modules",
+  "notifications", "orders", "payments", "payouts", "quizzes", "refunds",
+  "reports", "reviews", "settings", "students", "support",
 ];
 
 const lumaInstructorPages = [
-  "analytics", "assignments", "builder", "courses", "doubts", "earnings",
-  "live", "messages", "modules", "notifications", "payouts", "profile",
-  "quizzes", "resources", "reviews", "settings", "students",
+  "analytics", "assignments", "builder", "courses", "doubts", "live",
+  "messages", "modules", "notifications", "profile", "quizzes", "resources",
+  "reviews", "settings", "students",
 ];
 
 function DashboardSuspense({ children }) {

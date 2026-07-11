@@ -3,14 +3,11 @@ import { motion } from "framer-motion";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  Cell,
 } from "recharts";
 import { ArrowRight, ClipboardList, MessageCircleQuestion, Plus, Star, Video } from "lucide-react";
 import { StatCard } from "@/features/shared/components/StatCard";
@@ -24,15 +21,12 @@ import {
   instructor,
   instructorKpis,
   instructorCourses,
-  earningsMonthly,
-  courseRevenue,
   engagementSeries,
   upcomingLive,
   doubts,
   instructorReviews,
   ratingDistribution,
 } from "@/features/instructor/data/instructor";
-import { inr } from "@/features/shared/utils/format";
 const AXIS = "oklch(0.7 0.02 270)";
 const GRID = "oklch(1 0 0 / 0.06)";
 export default function InstructorHome() {
@@ -98,95 +92,9 @@ export default function InstructorHome() {
 
       {/* KPIs */}
       <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-        {instructorKpis.map((k, i) => (
+        {instructorKpis.filter((k) => !["earn", "month"].includes(k.id)).map((k, i) => (
           <StatCard key={k.id} {...k} index={i} />
         ))}
-      </div>
-
-      {/* Earnings */}
-      <div className="mb-8 grid gap-5 lg:grid-cols-3">
-        <ChartCard title="Monthly earnings" subtitle="Last 7 months" className="lg:col-span-2">
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={earningsMonthly}>
-                <defs>
-                  <linearGradient id="em" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.78 0.16 70)" stopOpacity={0.55} />
-                    <stop offset="100%" stopColor="oklch(0.78 0.16 70)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke={GRID} vertical={false} />
-                <XAxis dataKey="m" stroke={AXIS} fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis
-                  stroke={AXIS}
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `${v / 1000}k`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "oklch(0.18 0.02 270)",
-                    border: "1px solid oklch(1 0 0 / 0.08)",
-                    borderRadius: 12,
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="earn"
-                  stroke="oklch(0.78 0.16 70)"
-                  strokeWidth={3}
-                  fill="url(#em)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="payout"
-                  stroke="oklch(0.72 0.16 195)"
-                  strokeWidth={2}
-                  fill="none"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        <ChartCard title="Course revenue" subtitle="In thousands">
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={courseRevenue} layout="vertical">
-                <CartesianGrid stroke={GRID} horizontal={false} />
-                <XAxis
-                  type="number"
-                  stroke={AXIS}
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  stroke={AXIS}
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  width={90}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "oklch(0.18 0.02 270)",
-                    border: "1px solid oklch(1 0 0 / 0.08)",
-                    borderRadius: 12,
-                  }}
-                />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                  {courseRevenue.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? "oklch(0.78 0.16 70)" : "oklch(0.7 0.18 295)"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
       </div>
 
       {/* Engagement */}
@@ -285,7 +193,7 @@ export default function InstructorHome() {
                       </span>
                     </span>
                     <span>
-                      Rev · <span className="text-foreground font-medium">{inr(c.revenue)}</span>
+                      Complete · <span className="text-foreground font-medium">{c.completion}%</span>
                     </span>
                     <span>
                       ★{" "}

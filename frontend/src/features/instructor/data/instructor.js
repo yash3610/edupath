@@ -72,23 +72,21 @@ export const instructorKpis = [
     spark: [44, 48, 52, 58, 64, 68, 72, 78],
   },
   {
-    id: "earn",
-    label: "Total Earnings",
-    value: 2840000,
-    prefix: "₹",
+    id: "views",
+    label: "Course Views",
+    value: 284000,
     delta: 17.4,
     trend: "up",
-    icon: "IndianRupee",
+    icon: "Eye",
     spark: [22, 28, 34, 40, 46, 52, 60, 68],
   },
   {
-    id: "month",
-    label: "This Month",
-    value: 412000,
-    prefix: "₹",
+    id: "watch",
+    label: "Watch Hours",
+    value: 4120,
     delta: 11.6,
     trend: "up",
-    icon: "TrendingUp",
+    icon: "Clock",
     spark: [18, 20, 22, 26, 30, 34, 38, 42],
   },
   {
@@ -158,7 +156,6 @@ export const instructorCourses = Array.from({ length: 9 }, (_, i) => ({
   enrollments: 320 + i * 187,
   completion: 42 + ((i * 7) % 50),
   rating: 4.5 + (i % 5) * 0.1,
-  revenue: 240000 + i * 71890,
   status: [
     "published",
     "published",
@@ -171,19 +168,6 @@ export const instructorCourses = Array.from({ length: 9 }, (_, i) => ({
     "published",
   ][i],
   updated: `Jun ${(i % 27) + 1}, 2026`,
-}));
-export const earningsMonthly = [
-  { m: "Jan", earn: 240000, payout: 220000 },
-  { m: "Feb", earn: 268000, payout: 248000 },
-  { m: "Mar", earn: 312000, payout: 290000 },
-  { m: "Apr", earn: 348000, payout: 320000 },
-  { m: "May", earn: 386000, payout: 360000 },
-  { m: "Jun", earn: 412000, payout: 380000 },
-  { m: "Jul", earn: 446000, payout: 410000 },
-];
-export const courseRevenue = instructorCourses.slice(0, 6).map((c) => ({
-  name: c.title.split(" ").slice(0, 2).join(" "),
-  value: Math.round(c.revenue / 1000),
 }));
 export const engagementSeries = Array.from({ length: 7 }, (_, i) => ({
   d: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
@@ -325,14 +309,6 @@ export const upcomingLive = Array.from({ length: 4 }, (_, i) => ({
   attendees: 84 + i * 23,
   status: ["live", "upcoming", "upcoming", "upcoming"][i],
 }));
-export const payoutHistory = Array.from({ length: 8 }, (_, i) => ({
-  id: `PO-${100 + i}`,
-  amount: 280000 + i * 47000,
-  status: ["paid", "paid", "paid", "processing", "paid", "paid", "failed", "paid"][i],
-  requested: `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"][i]} 02, 2026`,
-  paid: `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "—", "Aug"][i]} 05, 2026`,
-  method: "Bank Transfer",
-}));
 export const resources = Array.from({ length: 10 }, (_, i) => ({
   id: `R-${i + 1}`,
   name: [
@@ -392,14 +368,14 @@ export const messages = Array.from({ length: 6 }, (_, i) => ({
 }));
 export const instructorNotifications = Array.from({ length: 8 }, (_, i) => ({
   id: `N-${i + 1}`,
-  type: ["course", "payment", "review", "doubt", "assignment", "payment", "course", "review"][i],
+  type: ["course", "live", "review", "doubt", "assignment", "student", "course", "review"][i],
   title: [
     "Your course was approved — Advanced React",
-    "Payout of ₹380,000 sent to your bank",
+    "Live class reminder for Design Systems Crit",
     "New 5★ review on Modern Product Design",
     "New doubt from Priya Sharma",
     "12 new assignment submissions ready to grade",
-    "Razorpay payout TXN-50219 successful",
+    "42 new learners joined TypeScript Mastery",
     "Course 'Tailwind v4' moved to Pending Approval",
     "Review reported by 2 users on TypeScript Mastery",
   ][i],

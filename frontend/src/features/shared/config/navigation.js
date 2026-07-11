@@ -45,6 +45,8 @@
     items: [
       { title: "Orders", url: "/admin/dashboard/orders", icon: "ShoppingBag" },
       { title: "Payments", url: "/admin/dashboard/payments", icon: "CreditCard" },
+      { title: "Earnings", url: "/admin/dashboard/earnings", icon: "IndianRupee" },
+      { title: "Payouts", url: "/admin/dashboard/payouts", icon: "Wallet" },
       { title: "Refunds", url: "/admin/dashboard/refunds", icon: "Undo2" },
       { title: "Coupons", url: "/admin/dashboard/coupons", icon: "Ticket" },
     ],
@@ -106,13 +108,6 @@ export const INSTRUCTOR_NAV = [
       },
       { title: "Reviews", url: "/instructor/dashboard/reviews", icon: "Star" },
       { title: "Live Classes", url: "/instructor/dashboard/live", icon: "Video" },
-    ],
-  },
-  {
-    label: "Money",
-    items: [
-      { title: "Earnings", url: "/instructor/dashboard/earnings", icon: "IndianRupee" },
-      { title: "Payouts", url: "/instructor/dashboard/payouts", icon: "Wallet" },
     ],
   },
   {
