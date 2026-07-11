@@ -22,8 +22,9 @@ import {
   instructorModules, instructorMyCourses, instructorPayouts, instructorPendingTasks, instructorRecentActivity,
   instructorDuplicateLecture, instructorReorderLectures, instructorReorderModules, instructorReviews, instructorStats, instructorStudentEngagement, instructorStudentsProgress,
   instructorSubmissions, instructorUpcomingClasses, instructorUpdateLecture,
-  instructorUpdateModule, instructorSubmitCourseForReview,
-  instructorCreateCourse, instructorUpdateCourse,
+  instructorUpdateModule, instructorSubmitCourseForReview, instructorResources,
+  instructorCreateCourse, instructorUpdateCourse, instructorUploadLectureResource,
+  instructorReplaceLectureResource, instructorDeleteLectureResource,
 } from "../controllers/lmsController.js";
 import {
   instructorAttendance,
@@ -61,6 +62,7 @@ router.get("/student-engagement", instructorStudentEngagement);
 router.get("/pending-tasks", instructorPendingTasks);
 router.get("/recent-activity", instructorRecentActivity);
 router.get("/upcoming-classes", instructorUpcomingClasses);
+router.get("/resources", instructorResources);
 router.get("/courses/:courseId", instructorCourseDetails);
 router.get("/courses/:courseId/analytics", instructorCourseAnalytics);
 router.patch("/courses/:courseId/submit-review", instructorSubmitCourseForReview);
@@ -73,6 +75,9 @@ router.post("/modules/:moduleId/lectures", instructorCreateLecture);
 router.get("/modules/:moduleId/lectures", instructorLectures);
 router.patch("/modules/:moduleId/lectures/reorder", instructorReorderLectures);
 router.patch("/lectures/:lectureId", instructorUpdateLecture);
+router.post("/lectures/:lectureId/resources", courseUpload.single("file"), instructorUploadLectureResource);
+router.patch("/lectures/:lectureId/resources/:resourceIndex", courseUpload.single("file"), instructorReplaceLectureResource);
+router.delete("/lectures/:lectureId/resources/:resourceIndex", instructorDeleteLectureResource);
 router.post("/lectures/:lectureId/duplicate", instructorDuplicateLecture);
 router.delete("/lectures/:lectureId", instructorDeleteLecture);
 router.post("/courses/:courseId/quizzes", instructorCreateQuiz);

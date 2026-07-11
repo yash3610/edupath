@@ -1096,6 +1096,139 @@ export const instructorLectures = asyncHandler(async (req, res) => {
   if (!module || !(await Course.exists({ _id: module.course, instructor: userId(req) }))) throw new ApiError(404, "Module not found");
   ok(res, await Lecture.find({ module: module._id }).sort({ order: 1 }));
 });
+export const instructorResources = asyncHandler(async (req, res) => {
+  const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
+  const lectures = await Lecture.find({ course: { $in: courseIds } })
+    .select("title course module notesPdfUrl resources externalLinks updatedAt createdAt")
+    .populate("course", "title")
+    .populate("module", "title")
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const rows = lectures.flatMap((lecture) => {
+    const base = {
+      course: lecture.course?.title || "Course",
+      courseId: lecture.course?._id || lecture.course,
+      lecture: lecture.title || "Lecture",
+      lectureId: lecture._id,
+      module: lecture.module?.title || "Module",
+      uploaded: lecture.updatedAt || lecture.createdAt,
+    };
+    const lectureResources = (lecture.resources || []).map((resource, index) => {
+      const item = typeof resource === "string" ? { title: `Resource ${index + 1}`, url: resource, type: "resource" } : resource;
+      return {
+        ...base,
+        id: `${lecture._id}-resource-${item._id || index}`,
+        resourceIndex: index,
+        editableResource: true,
+        name: item.title || `Resource ${index + 1}`,
+        url: item.url || item,
+        type: item.type || "resource",
+        source: "Lecture resource",
+      };
+    });
+    const notes = lecture.notesPdfUrl
+      ? [{
+          ...base,
+          id: `${lecture._id}-notes`,
+          name: `${lecture.title || "Lecture"} notes`,
+          url: lecture.notesPdfUrl,
+          type: "pdf",
+          source: "Notes PDF",
+        }]
+      : [];
+    const links = (lecture.externalLinks || []).map((link, index) => ({
+      ...base,
+      id: `${lecture._id}-link-${link._id || index}`,
+      name: link.title || `External link ${index + 1}`,
+      url: link.url,
+      type: "link",
+      source: "External link",
+    }));
+    return [...lectureResources, ...notes, ...links];
+  });
+
+  ok(res, rows);
+});
+export const instructorUploadLectureResource = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId);
+  if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
+  if (!req.file) throw new ApiError(400, "Resource file is required");
+
+  const upload = await uploadBuffer(req.file, `courses/${lecture.course}/resources`);
+  const title = String(req.body.title || req.file.originalname || "Resource").trim();
+  const resource = {
+    title: title || "Resource",
+    url: upload.url,
+    type: req.body.type || req.file.mimetype || "resource",
+  };
+
+  await Lecture.collection.updateOne(
+    { _id: lecture._id },
+    {
+      $push: { resources: resource },
+      $set: { updatedAt: new Date() },
+    },
+  );
+  await markCourseContentInProgress(lecture.course);
+
+  ok(res, resource, "Resource uploaded successfully");
+});
+export const instructorReplaceLectureResource = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId).lean();
+  if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
+  if (!req.file) throw new ApiError(400, "Replacement file is required");
+
+  const index = Number(req.params.resourceIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= (lecture.resources || []).length) {
+    throw new ApiError(404, "Resource not found");
+  }
+
+  const current = lecture.resources[index];
+  const currentTitle = typeof current === "string" ? "" : current?.title;
+  const currentType = typeof current === "string" ? "" : current?.type;
+  const upload = await uploadBuffer(req.file, `courses/${lecture.course}/resources`);
+  const title = String(req.body.title || currentTitle || req.file.originalname || "Resource").trim();
+  const resource = {
+    title: title || "Resource",
+    url: upload.url,
+    type: req.body.type || currentType || req.file.mimetype || "resource",
+  };
+
+  await Lecture.collection.updateOne(
+    { _id: lecture._id },
+    {
+      $set: {
+        [`resources.${index}`]: resource,
+        updatedAt: new Date(),
+      },
+    },
+  );
+  await markCourseContentInProgress(lecture.course);
+
+  ok(res, resource, "Resource replaced successfully");
+});
+export const instructorDeleteLectureResource = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId).lean();
+  if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
+
+  const index = Number(req.params.resourceIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= (lecture.resources || []).length) {
+    throw new ApiError(404, "Resource not found");
+  }
+
+  await Lecture.collection.updateOne(
+    { _id: lecture._id },
+    {
+      $unset: { [`resources.${index}`]: 1 },
+      $set: { updatedAt: new Date() },
+    },
+  );
+  await Lecture.collection.updateOne({ _id: lecture._id }, { $pull: { resources: null } });
+  await markCourseContentInProgress(lecture.course);
+
+  ok(res, { deleted: true }, "Resource deleted successfully");
+});
 export const instructorUpdateLecture = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId);
   if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
