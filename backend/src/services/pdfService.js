@@ -1,19 +1,67 @@
 import PDFDocument from "pdfkit";
 
-export function generateCertificatePdf({ studentName, courseTitle, certificateCode }) {
-  const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 48 });
+export function generateCertificatePdf({ studentName, courseTitle, certificateCode, issuedAt }) {
+  const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 0 });
   const chunks = [];
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const cardX = 72;
+  const cardY = 58;
+  const cardWidth = pageWidth - 144;
+  const cardHeight = pageHeight - 116;
+  const footerHeight = 74;
+  const accent = "#f59e0b";
 
   doc.on("data", (chunk) => chunks.push(chunk));
-  doc.fontSize(34).text("EduPath Certificate", { align: "center" });
-  doc.moveDown(1.5);
-  doc.fontSize(18).text("This certifies that", { align: "center" });
-  doc.moveDown();
-  doc.fontSize(30).text(studentName || "Student", { align: "center" });
-  doc.moveDown();
-  doc.fontSize(18).text(`successfully completed ${courseTitle || "Course"}`, { align: "center" });
-  doc.moveDown(2);
-  doc.fontSize(12).text(`Certificate ID: ${certificateCode}`, { align: "center" });
+
+  doc.rect(0, 0, pageWidth, pageHeight).fill("#fbfaf6");
+  doc.circle(cardX + 86, cardY + 66, 150).fillOpacity(0.16).fill(accent).fillOpacity(1);
+  doc.circle(cardX + cardWidth - 90, cardY + cardHeight - 96, 170).fillOpacity(0.14).fill("#8b5cf6").fillOpacity(1);
+  doc.circle(cardX + cardWidth - 10, cardY + 10, 110).fillOpacity(0.12).fill("#60a5fa").fillOpacity(1);
+
+  doc.save().roundedRect(cardX + 10, cardY + 12, cardWidth, cardHeight, 24).fillOpacity(0.08).fill("#111827").restore();
+  doc.save().roundedRect(cardX, cardY, cardWidth, cardHeight, 24).fillAndStroke("#ffffff", "#e5e7eb").restore();
+
+  const bodyHeight = cardHeight - footerHeight;
+  doc.save();
+  doc.roundedRect(cardX, cardY, cardWidth, bodyHeight, 24).clip();
+  const certificateGradient = doc.linearGradient(cardX, cardY, cardX + cardWidth, cardY + bodyHeight)
+    .stop(0, "#fff7ed")
+    .stop(0.45, "#ffffff")
+    .stop(1, "#f3e8ff");
+  doc.rect(cardX, cardY, cardWidth, bodyHeight).fill(certificateGradient);
+  doc.restore();
+
+  doc.moveTo(cardX, cardY + bodyHeight).lineTo(cardX + cardWidth, cardY + bodyHeight).lineWidth(1).stroke("#e5e7eb");
+
+  const contentX = cardX + 56;
+  const contentY = cardY + 48;
+  doc.fillColor(accent).font("Helvetica-Bold").fontSize(13).text("E D U P A T H   A C A D E M Y", contentX, contentY);
+
+  const awardX = cardX + cardWidth - 92;
+  const awardY = contentY - 5;
+  doc.save().lineWidth(2).strokeColor(accent).circle(awardX, awardY + 12, 8).stroke().restore();
+  doc.save().fillColor(accent).moveTo(awardX - 5, awardY + 20).lineTo(awardX - 9, awardY + 34).lineTo(awardX, awardY + 28).lineTo(awardX + 9, awardY + 34).lineTo(awardX + 5, awardY + 20).fill().restore();
+
+  doc.fillColor("#334155").font("Helvetica").fontSize(11).text("C E R T I F I C A T E   O F   C O M P L E T I O N", contentX, contentY + 72);
+  doc.fillColor("#020617").font("Helvetica-Bold").fontSize(34).text(courseTitle || "Course", contentX, contentY + 98, { width: cardWidth - 112, lineGap: 2 });
+  doc.fillColor("#475569").font("Helvetica").fontSize(13).text("awarded to", contentX, contentY + 158);
+  doc.fillColor(accent).font("Helvetica-Bold").fontSize(27).text(studentName || "Student", contentX, contentY + 178, { width: cardWidth - 112 });
+
+  const detailY = cardY + bodyHeight - 76;
+  doc.fillColor("#64748b").font("Helvetica-Bold").fontSize(9).text("ISSUED", contentX, detailY);
+  doc.fillColor("#020617").font("Helvetica").fontSize(12).text(formatCertificateDate(issuedAt), contentX, detailY + 16);
+  doc.fillColor("#64748b").font("Helvetica-Bold").fontSize(9).text("CREDENTIAL ID", cardX + cardWidth - 210, detailY, { width: 154, align: "right" });
+  doc.fillColor("#020617").font("Courier-Bold").fontSize(11).text(certificateCode || "-", cardX + cardWidth - 210, detailY + 16, { width: 154, align: "right" });
+
+  const footerY = cardY + bodyHeight;
+  doc.fillColor("#ffffff").roundedRect(cardX, footerY, cardWidth, footerHeight, 24).fill();
+  doc.rect(cardX, footerY, cardWidth, 24).fill("#ffffff");
+  doc.moveTo(cardX, footerY).lineTo(cardX + cardWidth, footerY).lineWidth(1).stroke("#e5e7eb");
+  doc.save().strokeColor("#10b981").lineWidth(1.6).circle(contentX + 6, footerY + 37, 7).stroke().restore();
+  doc.fillColor("#10b981").font("Helvetica-Bold").fontSize(11).text("Verified", contentX + 22, footerY + 31);
+  doc.fillColor("#64748b").font("Helvetica").fontSize(10).text("This certificate is digitally issued by EduPath LMS.", cardX + cardWidth - 334, footerY + 31, { width: 278, align: "right" });
+
   doc.end();
 
   return new Promise((resolve) => {
@@ -47,6 +95,15 @@ function formatDate(value) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatCertificateDate(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   }).format(new Date(value));
 }
 

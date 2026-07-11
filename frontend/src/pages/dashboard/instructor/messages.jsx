@@ -1,534 +1,559 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import EmojiPicker from "emoji-picker-react";
 import { motion } from "framer-motion";
-import {
-  Loader2,
-  MessageSquarePlus,
-  Paperclip,
-  Search,
-  Send,
-} from "lucide-react";
+import { FileText, Paperclip, Send, Smile } from "lucide-react";
 import { toast } from "sonner";
 import { LmsPageHeader } from "@/features/shared/components/PageHeader";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { messages as demoThreads } from "@/features/instructor/data/instructor";
-import usePersistedDashboardState from "@/hooks/usePersistedDashboardState";
 import { assetUrl } from "@/services/api";
 import { messageApi } from "@/services/messageApi";
+import { getSocket } from "@/services/realtime";
 
-const demoSeed = Object.fromEntries(
-  demoThreads.map((thread) => [thread.id, [{ id: `${thread.id}-seed`, who: "them", text: thread.preview }]]),
-);
+const idOf = (value) => String(value?._id || value?.id || value || "");
+const initialOf = (value = "User") => value.trim().slice(0, 1).toUpperCase() || "U";
+const EMOJIS = ["😀", "😂", "😊", "😍", "😎", "🥳", "👍", "👏", "🙏", "🔥", "✅", "💯", "📚", "🎯", "✨", "❤️"];
 
-function sameId(left, right) {
-  return String(left || "") === String(right || "");
-}
-
-function initials(name = "U") {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase() || "U";
-}
-
-function relativeTime(value) {
+function formatTime(value) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const diff = Date.now() - date.getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (diff < minute) return "now";
-  if (diff < hour) return `${Math.floor(diff / minute)}m`;
-  if (diff < day) return `${Math.floor(diff / hour)}h`;
-  if (diff < 2 * day) return "Yesterday";
-  if (diff < 7 * day) return `${Math.floor(diff / day)}d`;
-  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  if (date.toDateString() === new Date().toDateString()) {
+    return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  }
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 }
 
-function normalizeConversation(conversation, currentUserId) {
-  const participants = Array.isArray(conversation?.participants) ? conversation.participants : [];
-  const peer = participants.find((item) => !sameId(item?._id, currentUserId)) || participants[0] || {};
+function dateKey(value) {
+  const date = new Date(value || Date.now());
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDayLabel(value) {
+  const date = new Date(value || Date.now());
+  if (Number.isNaN(date.getTime())) return "";
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  const diff = today.setHours(0, 0, 0, 0) - new Date(date).setHours(0, 0, 0, 0);
+  if (diff > 0 && diff < 7 * 24 * 60 * 60 * 1000) {
+    return date.toLocaleDateString("en-IN", { weekday: "long" });
+  }
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function participantFor(conversation, currentUserId) {
+  return conversation?.participants?.find((user) => idOf(user) !== currentUserId) || conversation?.participants?.[0] || {};
+}
+
+function mapConversation(conversation, currentUserId) {
+  const participant = participantFor(conversation, currentUserId);
   return {
-    id: String(conversation?._id || conversation?.id || ""),
-    participantId: String(peer?._id || ""),
-    from: peer?.name || "Student",
-    email: peer?.email || "",
-    role: peer?.role || "student",
-    avatar: assetUrl(peer?.avatar),
-    preview: conversation?.lastMessage || "No messages yet",
-    time: relativeTime(conversation?.lastMessageAt || conversation?.updatedAt || conversation?.createdAt),
-    unread: Number(conversation?.unreadCount || 0) > 0,
-    rawTime: conversation?.lastMessageAt || conversation?.updatedAt || conversation?.createdAt,
-    type: "conversation",
+    id: idOf(conversation),
+    from: participant.name || "Student",
+    avatar: assetUrl(participant.avatar),
+    preview: conversation.lastMessage || "No messages yet",
+    time: formatTime(conversation.lastMessageAt || conversation.updatedAt),
+    unread: Number(conversation.unreadCount || 0) > 0,
+    conversation,
   };
 }
 
-function normalizeContact(contact) {
+function mapContact(contact) {
   return {
-    id: `contact-${contact?._id || contact?.id}`,
-    participantId: String(contact?._id || contact?.id || ""),
-    from: contact?.name || "Student",
-    email: contact?.email || "",
-    role: contact?.role || "student",
-    avatar: assetUrl(contact?.avatar),
-    preview: "Start a new conversation",
-    time: "",
+    id: `contact-${idOf(contact)}`,
+    from: contact.name || "Student",
+    avatar: assetUrl(contact.avatar),
+    preview: contact.role || contact.email || "Start conversation",
+    time: "new",
     unread: false,
-    type: "contact",
+    contact,
   };
 }
 
-function normalizeMessage(message, currentUserId) {
-  const senderId = message?.sender?._id || message?.sender || "";
+function mapMessage(message, currentUserId) {
+  const attachmentUrl = assetUrl(message.attachmentUrl);
+  const attachmentType = message.attachmentType || "";
+  const isImage = Boolean(attachmentUrl && (attachmentType.startsWith("image/") || /\.(png|jpe?g|gif|webp|avif)$/i.test(attachmentUrl)));
   return {
-    id: String(message?._id || message?.id || `message-${Date.now()}`),
-    who: sameId(senderId, currentUserId) ? "me" : "them",
-    text: message?.body || "",
-    attachmentUrl: assetUrl(message?.attachmentUrl),
-    attachmentName: message?.attachmentName || "",
-    attachmentType: message?.attachmentType || "",
-    createdAt: message?.createdAt,
-    pending: false,
+    id: idOf(message),
+    who: idOf(message.sender) === currentUserId ? "me" : "them",
+    text: message.body || (isImage ? "" : message.attachmentName || "Attachment"),
+    attachmentUrl,
+    attachmentName: message.attachmentName || "Attachment",
+    attachmentType,
+    isImage,
+    createdAt: message.createdAt || new Date().toISOString(),
   };
 }
 
-function keepValidActiveId(current, items) {
-  if (items.some((item) => item.id === current)) return current;
-  return items[0]?.id || "";
+function appendUnique(messages, message) {
+  if (!message?.id || messages.some((item) => item.id === message.id)) return messages;
+  return [...messages, message];
+}
+
+function DateSeparator({ value }) {
+  return (
+    <div className="flex justify-center">
+      <span className="rounded-lg bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm ring-1 ring-border/70">
+        {formatDayLabel(value)}
+      </span>
+    </div>
+  );
 }
 
 export default function MessagesPage() {
   const { user } = useAuth();
-  const currentUserId = user?._id || user?.id;
-  const [demoList, setDemoList] = usePersistedDashboardState("instructor", "messages", demoThreads);
-  const [demoConvos, setDemoConvos] = useState(demoSeed);
-  const [remoteThreads, setRemoteThreads] = useState([]);
-  const [contacts, setContacts] = useState([]);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
+  const currentUserId = idOf(user);
+  const [threads, setThreads] = useState([]);
   const [activeId, setActiveId] = useState("");
-  const [remoteMessages, setRemoteMessages] = useState([]);
+  const [convos, setConvos] = useState({});
   const [input, setInput] = useState("");
-  const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
-  const fileRef = useRef(null);
-  const bottomRef = useRef(null);
-  const messagesPaneRef = useRef(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [emojiPosition, setEmojiPosition] = useState({ top: 0, left: 0, width: 320, height: 360 });
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimer = useRef(null);
+  const chatScrollRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const emojiButtonRef = useRef(null);
+  const emojiPickerRef = useRef(null);
 
-  const loadConversations = useCallback(async ({ silent = false } = {}) => {
-    if (!silent) setLoading(true);
-    try {
-      const [conversationResult, contactResult] = await Promise.all([
-        messageApi.conversations(),
-        messageApi.contacts(),
-      ]);
-      const normalizedThreads = (conversationResult.data || [])
-        .map((item) => normalizeConversation(item, currentUserId))
-        .filter((item) => item.id);
-      const normalizedContacts = (contactResult.data || []).map(normalizeContact).filter((item) => item.participantId);
+  const active = threads.find((thread) => thread.id === activeId) || threads[0];
+  const msgs = convos[active?.id] ?? [];
+  const latestMessageId = msgs[msgs.length - 1]?.id || "";
+  const layoutHeight = isDesktop ? Math.max(420, Math.min(660, window.innerHeight - 220)) : null;
 
-      setDemoMode(false);
-      setRemoteThreads(normalizedThreads);
-      setContacts(normalizedContacts);
-      setActiveId((current) => keepValidActiveId(current, [...normalizedThreads, ...normalizedContacts]));
-    } catch (error) {
-      setDemoMode(true);
-      setActiveId((current) => keepValidActiveId(current, demoList));
-      if (!silent) {
-        toast.error("Unable to load live conversations", {
-          description: error.message || "The conversation API is unavailable. Demo conversations are shown instead.",
-        });
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [currentUserId, demoList]);
+  const scrollChatToLatest = () => {
+    const container = chatScrollRef.current;
+    if (!container) return;
+    window.requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
+  };
 
-  useEffect(() => {
-    loadConversations();
-    const timer = window.setInterval(() => loadConversations({ silent: true }), 20000);
-    return () => window.clearInterval(timer);
-  }, [loadConversations]);
-
-  const listItems = useMemo(() => {
-    if (demoMode) return demoList;
-    const existingParticipants = new Set(remoteThreads.map((thread) => thread.participantId));
-    return [
-      ...remoteThreads,
-      ...contacts.filter((contact) => !existingParticipants.has(contact.participantId)),
-    ];
-  }, [contacts, demoList, demoMode, remoteThreads]);
-
-  const filtered = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return listItems;
-    return listItems.filter((item) =>
-      [item.from, item.email, item.preview].some((value) => String(value || "").toLowerCase().includes(query)),
-    );
-  }, [listItems, q]);
-
-  const active = listItems.find((thread) => thread.id === activeId) || listItems[0];
-  const demoMsgs = demoConvos[activeId] || [];
-  const visibleMessages = demoMode ? demoMsgs : remoteMessages;
+  const openEmojiPicker = () => {
+    const button = emojiButtonRef.current;
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(340, window.innerWidth - 24);
+    const height = Math.min(390, window.innerHeight - 24);
+    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+    const top = rect.top - height - 10 >= 12 ? rect.top - height - 10 : rect.bottom + 10;
+    setEmojiPosition({ top: Math.max(12, top), left, width, height });
+    setEmojiOpen(true);
+  };
 
   useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    window.scrollTo({ top: 0, left: 0 });
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
+    const updateLayoutMode = () => setIsDesktop(window.innerWidth >= 1024);
+    updateLayoutMode();
+    window.addEventListener("resize", updateLayoutMode);
+    return () => window.removeEventListener("resize", updateLayoutMode);
   }, []);
 
-  const loadMessages = useCallback(async (conversationId) => {
-    if (!conversationId || demoMode) return;
-    setMessagesLoading(true);
-    try {
-      const result = await messageApi.messages(conversationId);
-      setRemoteMessages((result.data || []).map((item) => normalizeMessage(item, currentUserId)));
-      setRemoteThreads((threads) =>
-        threads.map((thread) => (thread.id === conversationId ? { ...thread, unread: false } : thread)),
-      );
-    } catch (error) {
-      toast.error("Unable to load conversation", {
-        description: error.message || "Please refresh and try again.",
-      });
-    } finally {
-      setMessagesLoading(false);
-    }
-  }, [currentUserId, demoMode]);
-
   useEffect(() => {
-    if (!demoMode && active?.type === "conversation") loadMessages(active.id);
-    if (demoMode && active?.id) {
-      setDemoList((threads) => threads.map((thread) => (thread.id === active.id ? { ...thread, unread: false } : thread)));
+    let ignore = false;
+    async function load() {
+      try {
+        const [conversationResult, contactResult] = await Promise.all([
+          messageApi.conversations(),
+          messageApi.contacts(),
+        ]);
+        if (ignore) return;
+        const conversationThreads = (conversationResult.data || []).map((item) => mapConversation(item, currentUserId)).filter((item) => item.id);
+        const existingParticipants = new Set(conversationThreads.map((thread) => idOf(participantFor(thread.conversation, currentUserId))));
+        const contactThreads = (contactResult.data || [])
+          .filter((contact) => !existingParticipants.has(idOf(contact)))
+          .map(mapContact);
+        setThreads([...conversationThreads, ...contactThreads]);
+        setActiveId((current) => current || conversationThreads[0]?.id || "");
+      } catch (error) {
+        if (!ignore) toast.error(error.message || "Unable to load messages.");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
-  }, [active?.id, active?.type, demoMode, loadMessages, setDemoList]);
-
-  useEffect(() => {
-    const pane = messagesPaneRef.current;
-    if (pane) pane.scrollTop = pane.scrollHeight;
-  }, [visibleMessages.length, activeId]);
-
-  async function openThread(thread) {
-    if (!thread) return;
-    if (demoMode || thread.type === "conversation") {
-      setActiveId(thread.id);
-      if (!demoMode) setRemoteMessages([]);
-      return;
-    }
-
-    setMessagesLoading(true);
-    try {
-      const result = await messageApi.startConversation(thread.participantId);
-      const conversation = normalizeConversation(result.data, currentUserId);
-      setRemoteThreads((threads) => {
-        const exists = threads.some((item) => item.id === conversation.id);
-        return exists ? threads : [conversation, ...threads];
-      });
-      setActiveId(conversation.id);
-      setRemoteMessages([]);
-      await loadMessages(conversation.id);
-    } catch (error) {
-      toast.error("Unable to start chat", {
-        description: error.message || "Please try again.",
-      });
-    } finally {
-      setMessagesLoading(false);
-    }
-  }
-
-  async function ensureConversation() {
-    if (!active) return "";
-    if (demoMode || active.type === "conversation") return active.id;
-    const result = await messageApi.startConversation(active.participantId);
-    const conversation = normalizeConversation(result.data, currentUserId);
-    setRemoteThreads((threads) => {
-      const withoutContact = threads.filter((item) => item.id !== conversation.id);
-      return [conversation, ...withoutContact];
-    });
-    setActiveId(conversation.id);
-    return conversation.id;
-  }
-
-  async function sendMessage(extra = {}) {
-    const text = input.trim();
-    if (!text && !extra.attachmentUrl) return;
-
-    if (demoMode) {
-      const nextMessage = { id: `demo-${Date.now()}`, who: "me", text: text || `Attachment: ${extra.attachmentName}` };
-      setDemoConvos((current) => ({
-        ...current,
-        [activeId]: [...(current[activeId] || []), nextMessage],
-      }));
-      setDemoList((threads) =>
-        threads.map((thread) =>
-          thread.id === activeId ? { ...thread, preview: nextMessage.text, time: "now", unread: false } : thread,
-        ),
-      );
-      setInput("");
-      return;
-    }
-
-    setSending(true);
-    const temporaryId = `pending-${Date.now()}`;
-    const optimistic = {
-      id: temporaryId,
-      who: "me",
-      text,
-      attachmentUrl: extra.attachmentUrl || "",
-      attachmentName: extra.attachmentName || "",
-      attachmentType: extra.attachmentType || "",
-      pending: true,
+    load();
+    return () => {
+      ignore = true;
     };
+  }, [currentUserId]);
 
-    try {
-      const conversationId = await ensureConversation();
-      setInput("");
-      setRemoteMessages((items) => [...items, optimistic]);
-      const result = await messageApi.send({
-        conversation: conversationId,
-        body: text,
-        attachmentUrl: extra.attachmentUrl,
-        attachmentName: extra.attachmentName,
-        attachmentType: extra.attachmentType,
-      });
-      const saved = normalizeMessage(result.data, currentUserId);
-      setRemoteMessages((items) => items.map((item) => (item.id === temporaryId ? saved : item)));
-      setRemoteThreads((threads) =>
-        threads.map((thread) =>
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const onMessage = ({ conversationId, conversation, message }) => {
+      const mapped = mapMessage(message, currentUserId);
+      setConvos((items) => ({
+        ...items,
+        [conversationId]: appendUnique(items[conversationId] ?? [], mapped),
+      }));
+      setThreads((items) => {
+        const next = items.map((thread) => (
           thread.id === conversationId
-            ? {
-                ...thread,
-                preview: saved.text || `Attachment: ${saved.attachmentName || "file"}`,
-                time: "now",
-                unread: false,
-              }
-            : thread,
-        ),
-      );
-    } catch (error) {
-      setRemoteMessages((items) => items.filter((item) => item.id !== temporaryId));
-      toast.error("Unable to send message", {
-        description: error.message || "Please try again.",
+            ? { ...thread, preview: mapped.text || mapped.attachmentName || "Attachment", time: formatTime(mapped.createdAt), unread: thread.id !== activeId }
+            : thread
+        ));
+        if (next.some((thread) => thread.id === conversationId) || !conversation) return next;
+        return [{ ...mapConversation(conversation, currentUserId), preview: mapped.text || mapped.attachmentName || "Attachment", time: formatTime(mapped.createdAt), unread: true }, ...next];
       });
+    };
+    const onTypingStart = ({ conversationId, user }) => {
+      if (idOf(user) === currentUserId) return;
+      setTypingUsers((items) => ({ ...items, [conversationId]: user?.name || "User" }));
+    };
+    const onTypingStop = ({ conversationId, user }) => {
+      if (idOf(user) === currentUserId) return;
+      setTypingUsers((items) => {
+        const next = { ...items };
+        delete next[conversationId];
+        return next;
+      });
+    };
+    socket.on("message:new", onMessage);
+    socket.on("typing:start", onTypingStart);
+    socket.on("typing:stop", onTypingStop);
+    return () => {
+      socket.off("message:new", onMessage);
+      socket.off("typing:start", onTypingStart);
+      socket.off("typing:stop", onTypingStop);
+    };
+  }, [activeId, currentUserId]);
+
+  useEffect(() => {
+    if (!active?.conversation || convos[active.id]) return;
+    let ignore = false;
+    async function loadMessages() {
+      setLoadingMessages(true);
+      try {
+        const result = await messageApi.messages(active.id);
+        if (ignore) return;
+        setConvos((items) => ({ ...items, [active.id]: (result.data || []).map((message) => mapMessage(message, currentUserId)) }));
+        setThreads((items) => items.map((thread) => (thread.id === active.id ? { ...thread, unread: false } : thread)));
+      } catch (error) {
+        if (!ignore) toast.error(error.message || "Unable to load this conversation.");
+      } finally {
+        if (!ignore) setLoadingMessages(false);
+      }
+    }
+    loadMessages();
+    return () => {
+      ignore = true;
+    };
+  }, [active, convos, currentUserId]);
+
+  useEffect(() => {
+    if (!active?.conversation) return;
+    getSocket()?.emit("conversation:join", { conversationId: active.id });
+  }, [active?.id, active?.conversation]);
+
+  useEffect(() => {
+    if (!active?.id || loadingMessages) return;
+    scrollChatToLatest();
+  }, [active?.id, latestMessageId, loadingMessages]);
+
+  useEffect(() => {
+    if (!emojiOpen) return;
+    const handlePointerDown = (event) => {
+      if (emojiPickerRef.current?.contains(event.target) || emojiButtonRef.current?.contains(event.target)) return;
+      setEmojiOpen(false);
+    };
+    const handleResize = () => setEmojiOpen(false);
+    document.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [emojiOpen]);
+
+  async function openThread(id) {
+    const selected = threads.find((thread) => thread.id === id);
+    if (!selected) return;
+    if (selected.contact) {
+      try {
+        const result = await messageApi.startConversation(idOf(selected.contact));
+        const thread = mapConversation(result.data, currentUserId);
+        setThreads((items) => {
+          const withoutContact = items.filter((item) => item.id !== id);
+          return [thread, ...withoutContact.filter((item) => item.id !== thread.id)];
+        });
+        setActiveId(thread.id);
+      } catch (error) {
+        toast.error(error.message || "Unable to start the conversation.");
+      }
+      return;
+    }
+    setActiveId(id);
+    setThreads((items) => items.map((thread) => (thread.id === id ? { ...thread, unread: false } : thread)));
+  }
+
+  async function send() {
+    const text = input.trim();
+    if (!text || !active?.conversation || sending || uploading) return;
+    getSocket()?.emit("typing:stop", { conversationId: active.id });
+    setSending(true);
+    try {
+      const result = await messageApi.send({ conversation: active.id, body: text });
+      const message = mapMessage(result.data, currentUserId);
+      setConvos((items) => ({
+        ...items,
+        [active.id]: appendUnique(items[active.id] ?? [], message),
+      }));
+      setInput("");
+      setThreads((items) => items.map((thread) => (
+        thread.id === active.id ? { ...thread, preview: text, time: "now", unread: false } : thread
+      )));
+    } catch (error) {
+      toast.error(error.message || "Unable to send the message.");
     } finally {
       setSending(false);
     }
   }
 
-  async function uploadAttachment(event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (demoMode) {
-      sendMessage({ attachmentName: file.name, attachmentUrl: "demo" });
-      return;
-    }
-
+  async function sendAttachment(file) {
+    if (!file || !active?.conversation || sending || uploading) return;
+    getSocket()?.emit("typing:stop", { conversationId: active.id });
+    setEmojiOpen(false);
     setUploading(true);
     try {
-      const result = await messageApi.uploadAttachment(file);
-      await sendMessage({
-        attachmentUrl: result.data?.url,
+      const uploadResult = await messageApi.uploadAttachment(file);
+      const attachmentUrl = uploadResult.data?.url;
+      if (!attachmentUrl) throw new Error("Unable to upload the attachment.");
+      const caption = input.trim();
+      const result = await messageApi.send({
+        conversation: active.id,
+        body: caption,
+        attachmentUrl,
         attachmentName: file.name,
         attachmentType: file.type,
       });
+      const message = mapMessage(result.data, currentUserId);
+      setConvos((items) => ({
+        ...items,
+        [active.id]: appendUnique(items[active.id] ?? [], message),
+      }));
+      setInput("");
+      setThreads((items) => items.map((thread) => (
+        thread.id === active.id
+          ? { ...thread, preview: caption || file.name || "Attachment", time: "now", unread: false }
+          : thread
+      )));
     } catch (error) {
-      toast.error("Unable to upload attachment", {
-        description: error.message || "Please choose another file.",
-      });
+      toast.error(error.message || "Unable to send the attachment.");
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
+  const handleInputChange = (event) => {
+    const value = event.target.value;
+    setInput(value);
+    if (!active?.conversation) return;
+    const socket = getSocket();
+    socket?.emit("typing:start", { conversationId: active.id });
+    window.clearTimeout(typingTimer.current);
+    typingTimer.current = window.setTimeout(() => {
+      socket?.emit("typing:stop", { conversationId: active.id });
+    }, 900);
+  };
+
+  const addEmoji = (emojiData) => {
+    setInput((value) => `${value}${emojiData?.emoji || ""}`);
+  };
+
   return (
-    <div className="mx-auto flex h-[calc(100vh-6rem)] min-h-0 max-w-[1300px] flex-col overflow-hidden">
-      <div className="shrink-0">
-        <LmsPageHeader
-          eyebrow="Account"
-          title="Messages"
-          description="Conversations with your students."
-        />
-      </div>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden rounded-2xl card-premium md:grid-cols-[320px_1fr]">
-        <aside className="flex h-full min-h-0 flex-col overflow-hidden border-r border-border/60 bg-muted/10">
-          <div className="shrink-0 border-b border-border/60 p-3">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={q}
-                onChange={(event) => setQ(event.target.value)}
-                placeholder="Search..."
-                className="h-9 rounded-xl bg-muted/40 pl-9"
-              />
-            </div>
-          </div>
-
-          <div className="h-0 min-h-0 flex-1 overflow-y-scroll overscroll-contain">
-            {loading ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading chats...
-              </div>
-            ) : filtered.length ? (
-              filtered.map((thread) => (
-                <button
-                  key={thread.id}
-                  type="button"
-                  onClick={() => openThread(thread)}
-                  className={`flex w-full items-start gap-3 border-b border-border/40 px-3 py-3 text-left transition hover:bg-muted/30 ${
-                    active?.id === thread.id ? "bg-muted/30" : ""
-                  }`}
-                >
-                  <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarImage src={thread.avatar} />
-                    <AvatarFallback>{initials(thread.from)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="truncate text-sm font-medium">{thread.from}</div>
-                      <div className="shrink-0 text-[10px] text-muted-foreground">{thread.time}</div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {thread.type === "contact" ? <MessageSquarePlus className="h-3.5 w-3.5 text-primary" /> : null}
-                      <div
-                        className={`truncate text-xs ${
-                          thread.unread ? "font-medium text-foreground" : "text-muted-foreground"
-                        }`}
-                      >
-                        {thread.preview}
-                      </div>
-                    </div>
+    <div className="mx-auto max-w-[1300px]">
+      {emojiOpen && (
+        <div
+          ref={emojiPickerRef}
+          className="fixed z-[1000] overflow-hidden rounded-2xl border border-border/70 bg-background shadow-lg"
+          style={{ top: emojiPosition.top, left: emojiPosition.left }}
+        >
+          <EmojiPicker
+            width={emojiPosition.width}
+            height={emojiPosition.height}
+            lazyLoadEmojis
+            onEmojiClick={addEmoji}
+            previewConfig={{ showPreview: false }}
+          />
+        </div>
+      )}
+      <LmsPageHeader eyebrow="Account" title="Messages" description="Conversations with your students." />
+      <div
+        className="grid gap-4 lg:grid-cols-[320px_1fr] lg:overflow-hidden"
+        style={isDesktop ? { height: layoutHeight } : undefined}
+      >
+        <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl card-premium lg:h-full lg:min-h-0">
+          <ul className="chat-scroll min-h-0 flex-1 divide-y divide-border/60 overflow-y-auto overscroll-contain">
+            {loading && <li className="p-4 text-sm text-muted-foreground">Loading conversations...</li>}
+            {!loading && threads.length === 0 && <li className="p-4 text-sm text-muted-foreground">No conversations yet.</li>}
+            {threads.map((thread, index) => (
+              <motion.li
+                key={thread.id}
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.04 }}
+                onClick={() => openThread(thread.id)}
+                className={`flex cursor-pointer gap-3 p-4 ${thread.id === activeId ? "bg-muted/50" : "hover:bg-muted/30"}`}
+              >
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={thread.avatar} alt={thread.from} />
+                  <AvatarFallback>{initialOf(thread.from)}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate text-sm font-medium">{thread.from}</span>
+                    <span className="text-xs text-muted-foreground">{thread.time}</span>
                   </div>
-                  {thread.unread ? <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" /> : null}
-                </button>
-              ))
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                No chats found
-              </div>
-            )}
-          </div>
-        </aside>
+                  <div className="truncate text-xs text-muted-foreground">{thread.preview}</div>
+                </div>
+                {thread.unread && (
+                  <Badge className="h-5 self-start border-0 gradient-primary text-[10px] text-primary-foreground">
+                    new
+                  </Badge>
+                )}
+              </motion.li>
+            ))}
+          </ul>
+        </div>
 
-        <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
+        <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl card-premium lg:h-full lg:min-h-0">
           {active ? (
             <>
-              <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarImage src={active.avatar} />
-                    <AvatarFallback>{initials(active.from)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{active.from}</div>
-                    <div className="truncate text-xs text-success">
-                      {active.type === "contact" ? "Start conversation" : "● Online"}
-                    </div>
-                  </div>
+              <div className="flex shrink-0 items-center gap-3 border-b border-border/60 p-4">
+                <Avatar className="h-10 w-10 ring-2 ring-primary/30">
+                  <AvatarImage src={active.avatar} alt={active.from} />
+                  <AvatarFallback>{initialOf(active.from)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-medium">{active.from}</div>
+                  <div className="text-xs text-success">{active.contact ? "Start conversation" : "Online"}</div>
                 </div>
-              </header>
-
-              <div ref={messagesPaneRef} className="h-0 min-h-0 flex-1 overflow-y-scroll overscroll-contain p-4">
-                {messagesLoading ? (
-                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading messages...
-                  </div>
-                ) : visibleMessages.length ? (
-                  <div className="space-y-3">
-                    {visibleMessages.map((message) => (
-                      <motion.div
-                        key={message.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={
-                          message.who === "me"
-                            ? "ml-auto max-w-md rounded-2xl rounded-br-sm gradient-primary p-3 text-sm text-primary-foreground shadow-glow"
-                            : "max-w-md rounded-2xl rounded-bl-sm bg-muted/30 p-3 text-sm"
-                        }
-                      >
-                        {message.text ? <div className="whitespace-pre-wrap break-words">{message.text}</div> : null}
-                        {message.attachmentUrl ? (
-                          <a
-                            href={message.attachmentUrl === "demo" ? undefined : message.attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-2 flex items-center gap-2 rounded-lg bg-background/20 px-2 py-1.5 text-xs underline-offset-2 hover:underline"
-                          >
-                            <Paperclip className="h-3.5 w-3.5" />
-                            <span className="truncate">{message.attachmentName || "Attachment"}</span>
-                          </a>
-                        ) : null}
-                        {message.pending ? <div className="mt-1 text-[10px] opacity-70">Sending...</div> : null}
-                      </motion.div>
-                    ))}
-                    <div ref={bottomRef} />
-                  </div>
-                ) : (
-                  <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground">
-                    <MessageSquarePlus className="mb-3 h-9 w-9" />
-                    {active.type === "contact" ? "Send a message to start this chat." : "No messages yet."}
+              </div>
+              <div ref={chatScrollRef} className="chat-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
+                {loadingMessages && <div className="text-sm text-muted-foreground">Loading messages...</div>}
+                {!loadingMessages && msgs.length === 0 && <div className="text-sm text-muted-foreground">No messages yet.</div>}
+                {!loadingMessages && msgs.length > 0 && (
+                  <div className="sticky top-0 z-10 pb-1">
+                    <DateSeparator value={msgs[msgs.length - 1]?.createdAt} />
                   </div>
                 )}
+                {msgs.map((message, index) => {
+                  const showDate = dateKey(message.createdAt) !== dateKey(msgs[index - 1]?.createdAt);
+                  return (
+                    <div key={message.id} className="space-y-3">
+                      {showDate && (
+                        <DateSeparator value={message.createdAt} />
+                      )}
+                      <Bubble who={message.who} time={formatTime(message.createdAt)}>
+                        {message.isImage ? (
+                          <img src={message.attachmentUrl} alt={message.attachmentName} className="max-h-56 w-auto max-w-full rounded-xl object-contain" loading="lazy" onLoad={scrollChatToLatest} />
+                        ) : null}
+                        {!message.isImage && message.attachmentUrl ? (
+                          <a
+                            href={message.attachmentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium ${message.who === "me" ? "bg-white/20 text-primary-foreground" : "bg-background text-foreground ring-1 ring-border/70"}`}
+                          >
+                            <FileText className="h-4 w-4 shrink-0" />
+                            <span className="min-w-0 truncate">{message.attachmentName}</span>
+                          </a>
+                        ) : null}
+                        {message.text && <span className="break-words">{message.text}</span>}
+                      </Bubble>
+                    </div>
+                  );
+                })}
+                {typingUsers[active?.id] && <div className="text-xs font-medium text-muted-foreground">{typingUsers[active.id]} is typing...</div>}
               </div>
-
               <form
-                className="flex shrink-0 items-center gap-2 border-t border-border/60 p-3"
+                className="relative flex shrink-0 gap-2 border-t border-border/60 p-3"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  sendMessage();
+                  send();
                 }}
               >
-                <input ref={fileRef} type="file" className="hidden" onChange={uploadAttachment} />
+                <Button
+                  ref={emojiButtonRef}
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-11 shrink-0 rounded-xl p-0"
+                  disabled={!active.conversation || sending || uploading}
+                  onClick={() => (emojiOpen ? setEmojiOpen(false) : openEmojiPicker())}
+                >
+                  <Smile className="h-4 w-4" />
+                </Button>
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={sending || uploading}
+                  variant="outline"
+                  className="h-11 w-11 shrink-0 rounded-xl p-0"
+                  disabled={!active.conversation || sending || uploading}
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                  <Paperclip className="h-4 w-4" />
                 </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(event) => sendAttachment(event.target.files?.[0])}
+                />
                 <Input
                   value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  placeholder="Type a message..."
-                  className="h-11 rounded-xl bg-muted/30"
-                  disabled={sending}
+                  onChange={handleInputChange}
+                  placeholder={uploading ? "Uploading attachment..." : "Type a message..."}
+                  className="h-11 rounded-xl"
+                  disabled={!active.conversation || uploading}
                 />
                 <Button
                   type="submit"
-                  className="h-11 shrink-0 rounded-xl gradient-primary border-0 text-primary-foreground"
-                  disabled={sending || uploading || !input.trim()}
+                  className="h-11 rounded-xl gradient-primary border-0 px-4 text-primary-foreground"
+                  disabled={!input.trim() || !active.conversation || sending || uploading}
                 >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  <Send className="h-4 w-4" />
                 </Button>
               </form>
             </>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground">
-              Select a student to open messages.
-            </div>
+            <div className="flex-1 p-4 text-sm text-muted-foreground">No conversations yet.</div>
           )}
-        </section>
+        </div>
       </div>
     </div>
+  );
+}
+
+function Bubble({ who, time, children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex ${who === "me" ? "justify-end" : "justify-start"}`}
+    >
+      <div
+        className={`max-w-md overflow-hidden rounded-2xl px-4 py-2.5 text-sm ${who === "me" ? "gradient-primary text-primary-foreground rounded-br-sm" : "bg-muted rounded-bl-sm"}`}
+      >
+        <div className="flex flex-col gap-1">
+          {children}
+          {time && <span className={`self-end text-[10px] ${who === "me" ? "text-primary-foreground/75" : "text-muted-foreground"}`}>{time}</span>}
+        </div>
+      </div>
+    </motion.div>
   );
 }

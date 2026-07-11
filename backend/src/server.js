@@ -1,8 +1,10 @@
 import dotenv from "dotenv";
+import { createServer } from "node:http";
 import app from "./app.js";
 import connectDB from "./config/db.js";
 import { startReminderJob } from "./jobs/reminderJob.js";
 import seedDatabase from "./seed/seed.js";
+import { setupSocket } from "./services/socketService.js";
 
 dotenv.config();
 
@@ -17,6 +19,7 @@ if (process.env.JWT_REFRESH_SECRET === process.env.JWT_SECRET) {
 }
 
 const port = process.env.PORT || 5000;
+const server = createServer(app);
 const connected = await connectDB();
 if (connected && process.env.SEED_DATABASE !== "false") {
   await seedDatabase();
@@ -25,6 +28,8 @@ if (connected) {
   startReminderJob();
 }
 
-app.listen(port, () => {
+setupSocket(server);
+
+server.listen(port, () => {
   console.log(`EduPath LMS API running on port ${port}`);
 });

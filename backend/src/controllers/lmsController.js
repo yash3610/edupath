@@ -39,6 +39,7 @@ import { askAI, recommendCourses, summarizeText } from "../services/aiService.js
 import { buildMLAnalytics } from "../services/mlService.js";
 import { createRazorpayOrder, verifyRazorpaySignature } from "../services/paymentService.js";
 import { generateCertificatePdf } from "../services/pdfService.js";
+import { emitMessageToConversation } from "../services/socketService.js";
 import { deleteLocalAsset, deleteUploadedAsset, uploadBuffer, uploadLocalAsset } from "../services/uploadService.js";
 import {
   PUBLIC_COURSE_STATUSES,
@@ -438,7 +439,12 @@ export const certificateDetails = asyncHandler(async (req, res) => {
 export const downloadCertificate = asyncHandler(async (req, res) => {
   const cert = await Certificate.findOne({ _id: req.params.certificateId, student: userId(req) }).populate("course student");
   if (!cert) throw new ApiError(404, "Certificate not found");
-  const pdf = await generateCertificatePdf({ studentName: cert.student?.name, courseTitle: cert.course?.title, certificateCode: cert.certificateCode });
+  const pdf = await generateCertificatePdf({
+    studentName: cert.student?.name,
+    courseTitle: cert.course?.title,
+    certificateCode: cert.certificateCode,
+    issuedAt: cert.issuedAt,
+  });
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="${cert.certificateCode}.pdf"`);
   res.send(pdf);
@@ -569,7 +575,12 @@ export const sendMessage = asyncHandler(async (req, res) => {
   conversation.lastMessage = message.body || `Attachment: ${message.attachmentName || "file"}`;
   conversation.lastMessageAt = new Date();
   await conversation.save();
-  created(res, await message.populate("sender", "name role avatar"));
+  const [populatedMessage, populatedConversation] = await Promise.all([
+    message.populate("sender", "name role avatar"),
+    conversation.populate("participants", "name email role avatar"),
+  ]);
+  emitMessageToConversation(populatedConversation, populatedMessage);
+  created(res, populatedMessage);
 });
 export const uploadAttachment = asyncHandler(async (req, res) => created(res, await uploadBuffer(req.file, "messages")));
 

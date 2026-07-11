@@ -1,5 +1,5 @@
 const configuredApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-const API_BASE_URL = resolveApiBaseUrl(configuredApiUrl);
+export const API_BASE_URL = resolveApiBaseUrl(configuredApiUrl);
 let accessToken = "";
 let refreshPromise = null;
 let accessTokenExpiresAt = 0;
@@ -58,6 +58,10 @@ export function setAccessToken(token) {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("edupath:token-updated", { detail: { accessToken: token || "" } }));
   }
+}
+
+export function getAccessToken() {
+  return accessToken;
 }
 
 function notifySessionExpired() {
