@@ -8,6 +8,7 @@ import {
   Route as RouteIcon,
   ClipboardList,
   HelpCircle,
+  MessageCircleQuestion,
   Award,
   Trophy,
   Heart,
@@ -48,6 +49,7 @@ const main = [
 const study = [
   { title: "Assignments", url: "/dashboard/assignments", icon: ClipboardList },
   { title: "Quizzes", url: "/dashboard/quizzes", icon: HelpCircle },
+  { title: "Doubts / Q&A", url: "/dashboard/doubts", icon: MessageCircleQuestion },
   { title: "Certificates", url: "/dashboard/certificates", icon: Award },
   { title: "Achievements", url: "/dashboard/achievements", icon: Trophy },
   { title: "Notes", url: "/dashboard/notes", icon: StickyNote },

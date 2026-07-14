@@ -1,29 +1,15 @@
 import React, { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes.jsx";
+import DashboardSkeleton from "./components/luma/DashboardSkeleton.jsx";
 
 function AppLoadingScreen() {
   const dashboardLoading = document.documentElement.dataset.appSurface === "dashboard";
 
   if (dashboardLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#11111a", color: "#f7f2e8" }}>
-        <div style={{ textAlign: "center" }}>
-          <div
-            aria-hidden="true"
-            style={{
-              width: 38,
-              height: 38,
-              margin: "0 auto",
-              borderRadius: "50%",
-              border: "4px solid rgba(255,255,255,.12)",
-              borderTopColor: "#f5b942",
-              animation: "edupath-dashboard-spin .75s linear infinite",
-            }}
-          />
-          <p style={{ margin: "14px 0 0", font: "600 14px Inter, system-ui, sans-serif" }}>Opening dashboard...</p>
-          <style>{`@keyframes edupath-dashboard-spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+      <div className="min-h-screen bg-background px-4 py-6 md:px-8 md:py-10">
+        <DashboardSkeleton />
       </div>
     );
   }

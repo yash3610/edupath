@@ -30,6 +30,7 @@ import LumaStudentLayout from "../layouts/luma/StudentLayout.jsx";
 import LumaAdminLayout from "../layouts/luma/AdminLayout.jsx";
 import LumaInstructorLayout from "../layouts/luma/InstructorLayout.jsx";
 import LumaPage from "./LumaPage.jsx";
+import DashboardSkeleton from "../components/luma/DashboardSkeleton.jsx";
 const AdminCourseEditorPage = React.lazy(() => import("../pages/dashboard/_dynamic/AdminCourseEditorPage.jsx"));
 const CourseAnalyticsPage = React.lazy(() => import("../pages/dashboard/_dynamic/CourseAnalyticsPage.jsx"));
 const InstructorCourseCreatePage = React.lazy(() => import("../pages/dashboard/_dynamic/InstructorCourseCreatePage.jsx"));
@@ -68,23 +69,8 @@ function DashboardSuspense({ children }) {
   return (
     <React.Suspense
       fallback={
-        <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--background)", color: "var(--foreground)" }}>
-          <div style={{ textAlign: "center" }}>
-            <div
-              aria-hidden="true"
-              style={{
-                width: 36,
-                height: 36,
-                margin: "0 auto",
-                borderRadius: "50%",
-                border: "4px solid color-mix(in oklab, currentColor 12%, transparent)",
-                borderTopColor: "var(--primary)",
-                animation: "edupath-dashboard-spin .75s linear infinite",
-              }}
-            />
-            <p style={{ marginTop: 14, fontSize: 14, fontWeight: 600 }}>Loading dashboard...</p>
-            <style>{`@keyframes edupath-dashboard-spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
+        <div className="min-h-screen bg-background px-4 py-6 md:px-8 md:py-10">
+          <DashboardSkeleton />
         </div>
       }
     >

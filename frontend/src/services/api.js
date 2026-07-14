@@ -226,4 +226,6 @@ export const api = {
   deleteNotification: (notificationId) => apiRequest(`/api/notifications/${encodeURIComponent(notificationId)}`, { method: "DELETE" }),
   order: (payload) => apiRequest("/api/orders", { method: "POST", body: JSON.stringify(payload) }),
   myOrders: () => apiRequest("/api/orders/my"),
+  dashboardStats: () => apiRequest("/api/student/dashboard-stats"),
+  instructorStats: () => apiRequest("/api/instructor/stats"),
 };

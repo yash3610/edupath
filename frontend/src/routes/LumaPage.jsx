@@ -1,4 +1,5 @@
 import React from "react";
+import DashboardSkeleton from "../components/luma/DashboardSkeleton.jsx";
 
 const pageModules = import.meta.glob("../pages/dashboard/**/*.jsx");
 const pageComponents = Object.fromEntries(
@@ -13,5 +14,9 @@ export default function LumaPage({ role, name = "index" }) {
     throw new Error(`Dashboard page not found: ${path}`);
   }
 
-  return <Component />;
+  return (
+    <React.Suspense fallback={<DashboardSkeleton variant={name === "messages" ? "messages" : "dashboard"} />}>
+      <Component />
+    </React.Suspense>
+  );
 }

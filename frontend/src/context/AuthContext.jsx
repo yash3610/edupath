@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { api, setAccessToken } from "../services/api.js";
+import { api, assetUrl, setAccessToken } from "../services/api.js";
 
 const AuthContext = createContext(null);
 
@@ -7,6 +7,14 @@ export function dashboardPathForRole(role) {
   if (role === "admin") return "/admin/dashboard";
   if (role === "instructor") return "/instructor/dashboard";
   return "/dashboard";
+}
+
+function normalizeAuthUser(user) {
+  if (!user) return user;
+  return {
+    ...user,
+    avatar: assetUrl(user.avatar || user.profileImage) || user.avatar || user.profileImage || "",
+  };
 }
 
 export function AuthProvider({ children }) {
@@ -21,7 +29,7 @@ export function AuthProvider({ children }) {
       .then((result) => {
         if (sessionVersion.current !== version) return;
         setAccessToken(result.data.accessToken || "");
-        setSession({ user: result.data.user, accessToken: result.data.accessToken });
+        setSession({ user: normalizeAuthUser(result.data.user), accessToken: result.data.accessToken });
       })
       .catch(() => {
         if (sessionVersion.current !== version) return;
@@ -57,7 +65,7 @@ export function AuthProvider({ children }) {
 
   function saveSession(nextSession) {
     const normalizedSession = {
-      user: nextSession.user,
+      user: normalizeAuthUser(nextSession.user),
       accessToken: nextSession.accessToken,
     };
     sessionVersion.current += 1;
@@ -96,7 +104,7 @@ export function AuthProvider({ children }) {
     updateUser: (user) => {
       setSession((current) => {
         if (!current) return current;
-        const nextSession = { ...current, user: { ...current.user, ...user } };
+        const nextSession = { ...current, user: normalizeAuthUser({ ...current.user, ...user }) };
         return nextSession;
       });
     },

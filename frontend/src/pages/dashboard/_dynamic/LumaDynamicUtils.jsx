@@ -1,7 +1,7 @@
-import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import DashboardSkeleton from "@/components/luma/DashboardSkeleton";
 
 export const unwrap = (result, fallback = null) => result?.data ?? result ?? fallback;
 
@@ -12,14 +12,8 @@ export const formatDateTime = (value) =>
   value ? new Date(value).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Not scheduled";
 
 export function PageLoader({ label = "Loading data" }) {
-  return (
-    <div className="grid min-h-[360px] place-items-center rounded-2xl card-premium">
-      <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        {label}
-      </div>
-    </div>
-  );
+  const variant = /message|chat/i.test(label) ? "messages" : "dashboard";
+  return <DashboardSkeleton variant={variant} />;
 }
 
 export function MetricCard({ icon: Icon, label, value, helper }) {
@@ -50,7 +44,7 @@ export function EmptyPanel({ title = "Nothing here yet", description = "Data wil
 export function ActionButton({ loading, children, ...props }) {
   return (
     <Button {...props} disabled={loading || props.disabled}>
-      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {loading && <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current/20 border-t-current" />}
       {children}
     </Button>
   );

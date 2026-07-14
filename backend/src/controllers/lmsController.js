@@ -675,7 +675,7 @@ export const profileMe = asyncHandler(async (req, res) => {
   ok(res, { user: req.user, profile });
 });
 export const updateProfile = asyncHandler(async (req, res) => {
-  const commonFields = ["name", "phone", "bio"];
+  const commonFields = ["name", "email", "phone", "bio"];
   const userUpdate = Object.fromEntries(commonFields.filter((field) => req.body[field] !== undefined).map((field) => [field, req.body[field]]));
   const user = await User.findByIdAndUpdate(userId(req), userUpdate, { new: true, runValidators: true }).select("-passwordHash");
 
@@ -683,10 +683,14 @@ export const updateProfile = asyncHandler(async (req, res) => {
   let profile = null;
   if (ProfileModel) {
     const roleFields = req.user.role === "instructor"
-      ? ["headline", "expertise"]
+      ? ["headline", "expertise", "socialLinks"]
       : ["skills", "learningGoalMinutes"];
     const profileUpdate = Object.fromEntries(roleFields.filter((field) => req.body[field] !== undefined).map((field) => [field, req.body[field]]));
-    profile = await ProfileModel.findOneAndUpdate({ user: userId(req) }, profileUpdate, { new: true, upsert: true, runValidators: true });
+    profile = await ProfileModel.findOneAndUpdate(
+      { user: userId(req) },
+      { $set: profileUpdate, $setOnInsert: { user: userId(req) } },
+      { new: true, upsert: true, runValidators: true },
+    );
   }
   ok(res, { user, profile }, "Account updated");
 });
@@ -899,7 +903,11 @@ export const questionDetails = asyncHandler(async (req, res) => ok(res, {
   question: await DiscussionQuestion.findById(req.params.questionId).populate("user", "name avatar role").populate("course", "title"),
   answers: await DiscussionAnswer.find({ question: req.params.questionId }).populate("user", "name avatar role").sort({ accepted: -1, createdAt: 1 }),
 }));
-export const createAnswer = asyncHandler(async (req, res) => created(res, await DiscussionAnswer.create({ question: req.params.questionId, user: userId(req), body: req.body.body })));
+export const createAnswer = asyncHandler(async (req, res) => {
+  if (!req.body.body?.trim()) throw new ApiError(400, "Answer is required");
+  const answer = await DiscussionAnswer.create({ question: req.params.questionId, user: userId(req), body: req.body.body.trim() });
+  created(res, await answer.populate("user", "name avatar role"));
+});
 export const upvoteAnswer = asyncHandler(async (req, res) => ok(res, await DiscussionAnswer.findByIdAndUpdate(req.params.answerId, { $addToSet: { upvotes: userId(req) } }, { new: true })));
 export const acceptAnswer = asyncHandler(async (req, res) => {
   const answer = await DiscussionAnswer.findById(req.params.answerId);
@@ -1400,7 +1408,17 @@ export const instructorGradeAssignment = asyncHandler(async (req, res) => {
 });
 export const instructorDoubts = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
-  ok(res, await DiscussionQuestion.find({ course: { $in: courseIds } }).populate("user", "name email").populate("course", "title").sort({ createdAt: -1 }));
+  const questions = await DiscussionQuestion.find({ course: { $in: courseIds } })
+    .populate("user", "name email avatar")
+    .populate("course", "title")
+    .sort({ createdAt: -1 })
+    .lean();
+  const counts = await DiscussionAnswer.aggregate([
+    { $match: { question: { $in: questions.map((question) => question._id) } } },
+    { $group: { _id: "$question", count: { $sum: 1 } } },
+  ]);
+  const answerCounts = new Map(counts.map((item) => [String(item._id), item.count]));
+  ok(res, questions.map((question) => ({ ...question, answerCount: answerCounts.get(String(question._id)) || 0 })));
 });
 export const instructorReviews = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");

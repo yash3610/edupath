@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/context/AuthContext";
 import {
   instructor,
   instructorKpis,
@@ -30,6 +31,10 @@ import {
 const AXIS = "oklch(0.7 0.02 270)";
 const GRID = "oklch(1 0 0 / 0.06)";
 export default function InstructorHome() {
+  const { user } = useAuth();
+  const instructorName = user?.name || instructor.name;
+  const instructorAvatar = user?.avatar || instructor.avatar;
+  const instructorBio = user?.bio || instructor.bio;
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
@@ -52,17 +57,17 @@ export default function InstructorHome() {
         <div className="relative -mt-16 flex flex-col gap-6 px-6 pb-6 md:flex-row md:items-end md:justify-between md:px-8">
           <div className="flex items-end gap-4">
             <Avatar className="h-20 w-20 ring-4 ring-card">
-              <AvatarImage src={instructor.avatar} />
-              <AvatarFallback>{instructor.name[0]}</AvatarFallback>
+              <AvatarImage src={instructorAvatar} />
+              <AvatarFallback>{instructorName[0]}</AvatarFallback>
             </Avatar>
             <div className="pb-1">
               <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 {today}
               </div>
               <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight md:text-4xl">
-                Good to see you, {instructor.name.split(" ")[0]}
+                Good to see you, {instructorName.split(" ")[0]}
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">{instructor.bio}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{instructorBio}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">

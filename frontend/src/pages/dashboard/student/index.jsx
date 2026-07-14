@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/context/AuthContext";
 import {
   student,
   stats,
@@ -43,6 +44,8 @@ import {
   courses,
 } from "@/features/student/data/mock";
 export default function DashboardHome() {
+  const { user } = useAuth();
+  const studentName = user?.name || student.name;
   const goalPct = Math.round((student.xp / student.xpToNext) * 100);
   return (
     <div className="mx-auto max-w-[1400px] space-y-8">
@@ -66,7 +69,7 @@ export default function DashboardHome() {
               </Badge>
             </div>
             <h1 className="font-display text-3xl font-semibold tracking-tight md:text-5xl">
-              Welcome back, <span className="text-gradient">{student.name.split(" ")[0]}</span>
+              Welcome back, <span className="text-gradient">{studentName.split(" ")[0]}</span>
             </h1>
             <p className="mt-3 max-w-xl text-sm text-muted-foreground md:text-base">
               “The expert in anything was once a beginner.” Keep the momentum —
@@ -334,7 +337,7 @@ export default function DashboardHome() {
             {leaderboard.map((l) => (
               <li
                 key={l.rank}
-                className={`flex items-center gap-3 rounded-xl p-2 ${l.name === student.name ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+                className={`flex items-center gap-3 rounded-xl p-2 ${l.name === studentName ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
               >
                 <div
                   className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xs font-bold ${l.rank === 1 ? "gradient-primary text-primary-foreground" : "bg-muted text-foreground"}`}
