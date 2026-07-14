@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/context/AuthContext";
+import { applyDashboardTheme, onDashboardThemeChange, readStoredDashboardTheme } from "@/utils/themePreferences";
 
 export function Topbar() {
   const { user, logout } = useAuth();
@@ -32,17 +33,19 @@ export function Topbar() {
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("luma-theme");
-    const isDark = stored ? stored === "dark" : true;
-    setDark(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
+    const current = applyDashboardTheme(readStoredDashboardTheme());
+    setDark(current.dark);
+    return onDashboardThemeChange((theme) => setDark(theme.dark));
   }, []);
 
   const toggle = () => {
     const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("luma-theme", next ? "dark" : "light");
+    const current = readStoredDashboardTheme();
+    const applied = applyDashboardTheme({
+      theme: next ? "dark" : "light",
+      accent: current.accent,
+    });
+    setDark(applied.dark);
   };
 
   const handleLogout = async () => {

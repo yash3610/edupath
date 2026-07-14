@@ -72,6 +72,8 @@ export const InstructorProfile = makeModel(
       headline: String,
       bio: String,
       expertise: [String],
+      socialLinks: { type: Map, of: String },
+      preferences: { type: Schema.Types.Mixed, default: {} },
       payoutAccount: Schema.Types.Mixed,
       rating: { type: Number, default: 0 },
     },
