@@ -371,6 +371,65 @@ export const courseResources = asyncHandler(async (req, res) => {
   if (!enrolled) throw new ApiError(403, "Enroll in this course to access its resources");
   ok(res, await Lecture.find({ course: req.params.courseId }).select("resources title updatedAt").sort({ order: 1 }));
 });
+export const studentDownloads = asyncHandler(async (req, res) => {
+  const courseIds = await Enrollment.find({
+    student: userId(req),
+    status: { $in: ["active", "completed"] },
+  }).distinct("course");
+
+  const lectures = await Lecture.find({ course: { $in: courseIds }, published: { $ne: false } })
+    .select("title course module videoUrl notesPdfUrl captionsUrl resources downloadable updatedAt createdAt")
+    .populate("course", "title")
+    .populate("module", "title")
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const directVideo = (url = "") => /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(String(url));
+  const rows = lectures.flatMap((lecture) => {
+    const base = {
+      course: lecture.course?.title || "Course",
+      courseId: lecture.course?._id || lecture.course,
+      module: lecture.module?.title || "Module",
+      lecture: lecture.title || "Lecture",
+      lectureId: lecture._id,
+      updatedAt: lecture.updatedAt || lecture.createdAt,
+    };
+    const resources = (lecture.resources || []).map((resource, index) => {
+      const item = typeof resource === "string" ? { title: `Resource ${index + 1}`, url: resource, type: "resource" } : resource;
+      return {
+        ...base,
+        id: `${lecture._id}-resource-${item._id || index}`,
+        name: item.title || `Resource ${index + 1}`,
+        url: item.url || item,
+        type: item.type || "resource",
+      };
+    }).filter((item) => item.url);
+    const notes = lecture.notesPdfUrl ? [{
+      ...base,
+      id: `${lecture._id}-notes`,
+      name: `${lecture.title || "Lecture"} notes`,
+      url: lecture.notesPdfUrl,
+      type: "pdf",
+    }] : [];
+    const captions = lecture.captionsUrl ? [{
+      ...base,
+      id: `${lecture._id}-captions`,
+      name: `${lecture.title || "Lecture"} captions`,
+      url: lecture.captionsUrl,
+      type: "vtt",
+    }] : [];
+    const videos = lecture.downloadable !== false && directVideo(lecture.videoUrl) ? [{
+      ...base,
+      id: `${lecture._id}-video`,
+      name: `${lecture.title || "Lecture"} video`,
+      url: lecture.videoUrl,
+      type: "video",
+    }] : [];
+    return [...resources, ...notes, ...captions, ...videos];
+  });
+
+  ok(res, rows);
+});
 
 export const getNotes = asyncHandler(async (req, res) => ok(res, await Note.find({ student: userId(req) }).sort({ pinned: -1, updatedAt: -1 })));
 export const getCourseNotes = asyncHandler(async (req, res) => ok(res, await Note.find({ student: userId(req), course: req.params.courseId })));

@@ -13,6 +13,7 @@ export const learningApi = {
   getContinueLearning: () => unwrap(() => apiRequest("/api/student/continue-learning")),
   getCourse: (courseId) => unwrap(() => apiRequest(`/api/learning/course/${courseId}`)),
   getCourseModules: (courseId) => unwrap(() => apiRequest(`/api/learning/course/${courseId}/modules`)),
+  getDownloads: () => unwrap(() => apiRequest("/api/learning/downloads")),
   getLecture: (lectureId) => unwrap(() => apiRequest(`/api/learning/lecture/${lectureId}`)),
   getProgress: (courseId) => unwrap(() => apiRequest(`/api/student/course-progress/${courseId}`)),
   completeLecture: (lectureId) => unwrap(() => apiRequest(`/api/learning/lecture/${lectureId}/complete`, { method: "PATCH", body: JSON.stringify({ completed: true }) })),

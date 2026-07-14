@@ -1,5 +1,5 @@
 import express from "express";
-import { bookmarkLecture, completeLecture, courseModules, courseResources, learningCourse, lectureDetails, patchLectureProgress, watchTime } from "../controllers/lmsController.js";
+import { bookmarkLecture, completeLecture, courseModules, courseResources, learningCourse, lectureDetails, patchLectureProgress, studentDownloads, watchTime } from "../controllers/lmsController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -13,5 +13,6 @@ router.patch("/lecture/:lectureId/complete", completeLecture);
 router.post("/lecture/:lectureId/bookmark", bookmarkLecture);
 router.post("/lecture/:lectureId/watch-time", watchTime);
 router.get("/course/:courseId/resources", courseResources);
+router.get("/downloads", studentDownloads);
 
 export default router;
