@@ -155,7 +155,7 @@ export default function BuilderPage() {
         title: draft.title.trim(),
         type: draft.type || "video",
         videoUrl: draft.videoUrl || "",
-        durationSeconds: Number(draft.durationSeconds || 0),
+        durationSeconds: 0,
         isPreview: Boolean(draft.isPreview),
         order: (lectures[moduleId]?.length || 0) + 1,
       });
@@ -287,8 +287,8 @@ export default function BuilderPage() {
               </div>
             ))}
           </div>
-          <div className="mt-5 grid gap-4 rounded-xl border border-border/60 bg-muted/15 p-4 lg:grid-cols-[180px_1fr_auto] lg:items-end">
-            <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
+          <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border/60 bg-muted/15 p-4 md:flex-row md:items-center">
+            <div className="w-full max-w-[220px] shrink-0 self-center overflow-hidden rounded-xl border border-border/60 bg-background shadow-sm md:self-auto">
               {thumbnailPreview || thumbnailDraft ? (
                 <img src={thumbnailPreview || assetUrl(thumbnailDraft)} alt="Course thumbnail preview" className="aspect-video w-full object-cover" />
               ) : (
@@ -297,7 +297,7 @@ export default function BuilderPage() {
                 </div>
               )}
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="mb-1 text-sm font-medium">Course thumbnail <span className="text-destructive">*</span></div>
               <Input
                 type="file"
@@ -305,15 +305,9 @@ export default function BuilderPage() {
                 onChange={(event) => setThumbnailFile(event.target.files?.[0] || null)}
                 className="rounded-xl"
               />
-              <Input
-                value={thumbnailDraft}
-                readOnly
-                placeholder="Saved thumbnail id"
-                className="mt-2 rounded-xl"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">Upload an image. The file will be stored in uploads, and only its ID will be saved with the course.</p>
+              <p className="mt-2 text-xs text-muted-foreground">Choose a JPG, PNG, or WebP image, then save the thumbnail.</p>
             </div>
-            <Button variant="outline" className="rounded-xl border-border/60" onClick={saveThumbnail} disabled={savingCourse || !courseId}>
+            <Button variant="outline" className="w-full rounded-xl border-border/60 md:w-auto" onClick={saveThumbnail} disabled={savingCourse || !courseId}>
               <Save className="mr-1.5 h-4 w-4" /> {savingCourse ? "Saving..." : "Save thumbnail"}
             </Button>
           </div>
@@ -394,13 +388,12 @@ export default function BuilderPage() {
                   </div>
                 );
               })}
-              <div className="grid gap-2 rounded-xl border border-dashed border-border/60 p-3 md:grid-cols-[1fr_130px_120px_auto]">
+              <div className="grid gap-2 rounded-xl border border-dashed border-border/60 p-3 md:grid-cols-[1fr_130px_auto]">
                 <Input value={lectureDrafts[m._id]?.title || ""} onChange={(event) => setLectureDrafts((current) => ({ ...current, [m._id]: { ...current[m._id], title: event.target.value } }))} placeholder="New lecture title" className="rounded-lg" />
                 <Select value={lectureDrafts[m._id]?.type || "video"} onValueChange={(value) => setLectureDrafts((current) => ({ ...current, [m._id]: { ...current[m._id], type: value } }))}>
                   <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                   <SelectContent>{LECTURE_TYPES.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
                 </Select>
-                <Input type="number" value={lectureDrafts[m._id]?.durationSeconds || ""} onChange={(event) => setLectureDrafts((current) => ({ ...current, [m._id]: { ...current[m._id], durationSeconds: event.target.value } }))} placeholder="Seconds" className="rounded-lg" />
                 <Button className="rounded-lg gradient-primary border-0 text-primary-foreground" onClick={() => addLecture(m._id)} disabled={!lectureDrafts[m._id]?.title?.trim()}>
                   <Plus className="h-4 w-4" />
                 </Button>

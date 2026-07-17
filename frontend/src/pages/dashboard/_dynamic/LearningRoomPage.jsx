@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Bookmark, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, Lock, PlayCircle, RotateCcw, StickyNote } from "lucide-react";
+import { Bookmark, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, Lock, MessageCircle, PlayCircle, RotateCcw, StickyNote } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,6 +20,7 @@ export default function LearningRoomPage() {
   const [modules, setModules] = useState([]);
   const [selectedLectureId, setSelectedLectureId] = useState(lectureId || "");
   const [completed, setCompleted] = useState(new Set());
+  const [bookmarked, setBookmarked] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -30,10 +31,12 @@ export default function LearningRoomPage() {
       try {
         const firstEnrollment = courseId ? null : await learningApi.getContinueLearning();
         const activeCourseId = courseId || firstEnrollment?.course?._id || firstEnrollment?.course?.id || firstEnrollment?.course;
+        const resumeLectureId = !courseId ? firstEnrollment?.lastLecture?._id || firstEnrollment?.lastLecture : "";
         if (!activeCourseId) {
           setCourse(null);
           setModules([]);
           setCompleted(new Set());
+          setBookmarked(new Set());
           return;
         }
         const [courseData, moduleData, progressData] = await Promise.all([
@@ -47,7 +50,9 @@ export default function LearningRoomPage() {
         setCourse(courseData?.course || courseData);
         setModules(normalizedModules);
         setCompleted(new Set((progressData || []).filter((item) => item.completed).map((item) => String(item.lecture?._id || item.lecture))));
-        setSelectedLectureId(lectureId || firstLecture?._id || "");
+        setBookmarked(new Set((progressData || []).filter((item) => item.bookmarked).map((item) => String(item.lecture?._id || item.lecture))));
+        const resumeLectureExists = normalizedModules.some((module) => module.lectures.some((lecture) => String(lecture._id) === String(resumeLectureId)));
+        setSelectedLectureId(lectureId || (resumeLectureExists ? String(resumeLectureId) : "") || firstLecture?._id || "");
       } catch (error) {
         toast.error(error.message || "Unable to load learning room");
       } finally {
@@ -65,6 +70,8 @@ export default function LearningRoomPage() {
   const previousLecture = findPlayable(lectures, currentIndex, -1);
   const nextLecture = findPlayable(lectures, currentIndex, 1);
   const instructorName = course?.instructor?.name || course?.instructor || "EduPath Instructor";
+  const instructorId = course?.instructor?._id || course?.instructor?.id || "";
+  const instructorAvatar = assetUrl(course?.instructor?.avatar || "");
 
   function selectLecture(id) {
     const selected = lectures.find((lecture) => String(lecture._id) === String(id));
@@ -99,12 +106,36 @@ export default function LearningRoomPage() {
       watchTimeSeconds: Math.round(video.currentTime),
     });
   }
-  async function bookmark() {
+  async function toggleBookmark() {
     if (!currentLecture) return;
+    const lectureKey = String(currentLecture._id);
+    const nextValue = !bookmarked.has(lectureKey);
     try {
-      await learningApi.bookmarkLecture(currentLecture._id);
-      toast.success("Lecture bookmarked.");
+      await learningApi.bookmarkLecture(currentLecture._id, { bookmarked: nextValue });
+      setBookmarked((previous) => {
+        const next = new Set(previous);
+        if (nextValue) next.add(lectureKey); else next.delete(lectureKey);
+        return next;
+      });
+      toast.success(nextValue ? "Lecture bookmarked." : "Bookmark removed.");
     } catch (error) { toast.error(error.message || "Bookmark failed"); }
+  }
+  async function markIncomplete() {
+    if (!currentLecture) return;
+    setSaving(true);
+    try {
+      await learningApi.saveProgress(currentLecture._id, { completed: false });
+      setCompleted((previous) => {
+        const next = new Set(previous);
+        next.delete(String(currentLecture._id));
+        return next;
+      });
+      toast.success("Lecture marked incomplete.");
+    } catch (error) {
+      toast.error(error.message || "Progress failed");
+    } finally {
+      setSaving(false);
+    }
   }
   if (loading) return <PageLoader label="Loading learning room" />;
   if (!course) return <EmptyPanel title="No course selected" description="Open My Courses and start a course to enter the learning room." />;
@@ -174,16 +205,16 @@ export default function LearningRoomPage() {
             </div>
 
             <Tabs defaultValue="desc" className="mt-6">
-              <TabsList className="rounded-xl bg-muted/60">
-                <TabsTrigger value="desc" className="rounded-lg">Description</TabsTrigger>
-                <TabsTrigger value="notes" className="rounded-lg">Notes</TabsTrigger>
-                <TabsTrigger value="res" className="rounded-lg">Resources</TabsTrigger>
-                <TabsTrigger value="dl" className="rounded-lg">Downloads</TabsTrigger>
+              <TabsList className="grid h-auto w-full grid-cols-4 gap-0.5 rounded-xl bg-muted/60 p-1">
+                <TabsTrigger value="desc" className="min-w-0 rounded-lg px-1 text-[11px] sm:text-xs">Description</TabsTrigger>
+                <TabsTrigger value="notes" className="min-w-0 rounded-lg px-1 text-[11px] sm:text-xs">Notes</TabsTrigger>
+                <TabsTrigger value="res" className="min-w-0 rounded-lg px-1 text-[11px] sm:text-xs">Resources</TabsTrigger>
+                <TabsTrigger value="dl" className="min-w-0 rounded-lg px-1 text-[11px] sm:text-xs">Downloads</TabsTrigger>
               </TabsList>
               <TabsContent value="desc" className="mt-4 text-sm text-muted-foreground">
                 <AnimatePresence mode="wait">
                   <motion.p key={currentLecture?._id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                    {currentLecture?.description || course?.description || "Continue the lesson."}
+                    {currentLecture?.description || "No description has been added for this lecture yet."}
                   </motion.p>
                 </AnimatePresence>
               </TabsContent>
@@ -198,23 +229,26 @@ export default function LearningRoomPage() {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              <Button onClick={() => previousLecture && selectLecture(previousLecture._id)} disabled={!previousLecture} variant="outline" className="rounded-xl disabled:opacity-40">
-                <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+            <div
+              className="mt-6 w-full items-center gap-2"
+              style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.45fr) minmax(0, 1fr)" }}
+            >
+              <Button onClick={() => previousLecture && selectLecture(previousLecture._id)} disabled={!previousLecture} variant="outline" className="min-w-0 whitespace-nowrap rounded-xl px-2 text-xs disabled:opacity-40 sm:px-3 sm:text-sm">
+                <ChevronLeft className="mr-0.5 h-4 w-4 sm:mr-1" /> Previous
               </Button>
 
               {completed.has(String(currentLecture?._id)) ? (
-                <Button onClick={() => setCompleted((prev) => { const next = new Set(prev); next.delete(String(currentLecture?._id)); return next; })} variant="outline" className="rounded-xl">
-                  <RotateCcw className="mr-2 h-4 w-4" /> Mark incomplete
+                <Button onClick={markIncomplete} disabled={saving} variant="outline" className="min-w-0 whitespace-nowrap rounded-xl px-1 text-xs sm:px-3 sm:text-sm">
+                  <RotateCcw className="mr-1 h-4 w-4 sm:mr-2" /> Mark incomplete
                 </Button>
               ) : (
-                <Button onClick={markComplete} disabled={saving} className="rounded-xl gradient-primary border-0 text-primary-foreground">
-                  <CheckCircle2 className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Mark complete"}
+                <Button onClick={markComplete} disabled={saving} className="min-w-0 whitespace-nowrap rounded-xl gradient-primary border-0 px-1 text-xs text-primary-foreground sm:px-3 sm:text-sm">
+                  <CheckCircle2 className="mr-1 h-4 w-4 sm:mr-2" /> {saving ? "Saving..." : "Mark complete"}
                 </Button>
               )}
 
-              <Button onClick={() => nextLecture && selectLecture(nextLecture._id)} disabled={!nextLecture} variant="outline" className="rounded-xl disabled:opacity-40">
-                Next <ChevronRight className="ml-1 h-4 w-4" />
+              <Button onClick={() => nextLecture && selectLecture(nextLecture._id)} disabled={!nextLecture} variant="outline" className="min-w-0 whitespace-nowrap rounded-xl px-2 text-xs disabled:opacity-40 sm:px-3 sm:text-sm">
+                Next <ChevronRight className="ml-0.5 h-4 w-4 sm:ml-1" />
               </Button>
             </div>
           </div>
@@ -230,13 +264,20 @@ export default function LearningRoomPage() {
             <Progress value={progress} className="mt-2 h-2" />
           </div>
 
-          <div className="rounded-2xl card-premium p-5">
+          <div
+            className={`rounded-2xl card-premium p-5 ${instructorId ? "cursor-pointer transition-all hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/30" : ""}`}
+            onClick={() => instructorId && navigate(`/dashboard/messages?contact=${encodeURIComponent(instructorId)}`)}
+            onKeyDown={(event) => { if (instructorId && (event.key === "Enter" || event.key === " ")) navigate(`/dashboard/messages?contact=${encodeURIComponent(instructorId)}`); }}
+            role={instructorId ? "button" : undefined}
+            tabIndex={instructorId ? 0 : undefined}
+          >
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-display text-base font-semibold">Instructor</h3>
-              <Bookmark className="h-4 w-4 text-muted-foreground" />
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12 ring-2 ring-primary/30">
+                <AvatarImage src={instructorAvatar} alt={instructorName} />
                 <AvatarFallback>{initials(instructorName)}</AvatarFallback>
               </Avatar>
               <div>
@@ -245,6 +286,7 @@ export default function LearningRoomPage() {
               </div>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">{course?.description || "Follow the modules and complete each lecture to update your progress."}</p>
+            {instructorId && <p className="mt-2 text-[11px] font-medium text-primary">Click to message instructor</p>}
           </div>
 
           <div className="rounded-2xl card-premium p-5">
@@ -252,9 +294,20 @@ export default function LearningRoomPage() {
               <h3 className="font-display text-base font-semibold">Bookmarks</h3>
               <StickyNote className="h-4 w-4 text-muted-foreground" />
             </div>
-            <Button variant="outline" className="w-full rounded-xl" onClick={bookmark}>
-              <Bookmark className="mr-2 h-4 w-4" /> Bookmark current lecture
+            <Button variant="outline" className="w-full rounded-xl" onClick={toggleBookmark}>
+              <Bookmark className={`mr-2 h-4 w-4 ${bookmarked.has(String(currentLecture?._id)) ? "fill-current text-primary" : ""}`} />
+              {bookmarked.has(String(currentLecture?._id)) ? "Remove bookmark" : "Bookmark current lecture"}
             </Button>
+            {bookmarked.size > 0 && (
+              <div className="mt-3 space-y-1 border-t border-border/60 pt-3">
+                {lectures.filter((lecture) => bookmarked.has(String(lecture._id))).map((lecture) => (
+                  <button key={lecture._id} onClick={() => selectLecture(lecture._id)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs hover:bg-muted/60">
+                    <Bookmark className="h-3.5 w-3.5 shrink-0 fill-current text-primary" />
+                    <span className="truncate">{lecture.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl card-premium p-5 text-center">
@@ -407,6 +460,5 @@ function resourceList(lecture) {
 }
 function downloadList(lecture) {
   const downloads = resourceList(lecture).filter((resource) => resource.url);
-  if (lecture?.videoUrl && isDirectVideo(assetUrl(lecture.videoUrl))) downloads.unshift({ title: "Lecture video", type: "Video", url: lecture.videoUrl });
   return downloads.length ? downloads : [{ title: "No downloads added", type: "Download", url: "" }];
 }

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   Award,
   BookOpen,
@@ -36,13 +37,14 @@ import { useAuth } from "@/context/AuthContext";
 import {
   student,
   stats,
-  continueLearning,
   weeklyActivity,
   masteryRadar,
   upcoming,
   leaderboard,
   courses,
 } from "@/features/student/data/mock";
+import { learningApi } from "@/services/learningApi";
+import { assetUrl } from "@/services/api";
 export default function DashboardHome() {
   const { user } = useAuth();
   const studentName = user?.name || student.name;
@@ -405,7 +407,43 @@ export default function DashboardHome() {
   );
 }
 function ContinueHero() {
-  const { course, lecture, chapter, remaining } = continueLearning;
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadContinueLearning() {
+      try {
+        const enrollment = await learningApi.getContinueLearning();
+        const course = enrollment?.course;
+        const courseId = course?._id || course?.id || course;
+        if (!courseId) {
+          if (mounted) setData(null);
+          return;
+        }
+        const modules = await learningApi.getCourseModules(courseId);
+        if (!mounted) return;
+        const lectures = (modules || []).flatMap((module) => (module.lectures || []).map((lecture) => ({ ...lecture, moduleTitle: module.title })));
+        const lastLectureId = enrollment?.lastLecture?._id || enrollment?.lastLecture;
+        const lecture = lectures.find((item) => String(item._id) === String(lastLectureId)) || lectures[0] || null;
+        setData({ enrollment, course, courseId, lecture, totalLectures: lectures.length });
+      } catch {
+        if (mounted) setData(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    loadContinueLearning();
+    return () => { mounted = false; };
+  }, []);
+
+  if (loading) return <div className="h-72 animate-pulse rounded-3xl bg-muted/40" />;
+  if (!data) return null;
+
+  const { enrollment, course, courseId, lecture, totalLectures } = data;
+  const progress = Math.max(0, Math.min(100, Number(enrollment?.progress || 0)));
+  const resumeUrl = lecture?._id ? `/dashboard/learn/${courseId}/${lecture._id}` : `/dashboard/learn/${courseId}`;
+  const completedEstimate = totalLectures ? Math.round((progress / 100) * totalLectures) : 0;
   return (
     <motion.section
       initial={{ opacity: 0, y: 14 }}
@@ -415,37 +453,37 @@ function ContinueHero() {
     >
       <div className="grid md:grid-cols-[1.1fr_1fr]">
         <div className="relative aspect-[16/9] md:aspect-auto">
-          <img src={course.cover} alt={course.title} className="h-full w-full object-cover" />
+          <img src={assetUrl(course.thumbnail || course.image) || "/assets/images/course/course-1/1.png"} alt={course.title} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent md:bg-gradient-to-r" />
-          <button className="absolute inset-0 grid place-items-center" aria-label="Resume">
+          <Link to={resumeUrl} className="absolute inset-0 grid place-items-center" aria-label="Resume">
             <span className="grid h-20 w-20 place-items-center rounded-full gradient-primary shadow-glow animate-float">
               <PlayCircle className="h-10 w-10 text-primary-foreground" />
             </span>
-          </button>
+          </Link>
         </div>
         <div className="relative bg-card p-6 md:p-10">
           <Badge className="mb-3 border-0 bg-accent/15 text-accent">
             Continue where you left off
           </Badge>
           <h2 className="font-display text-2xl font-semibold md:text-3xl">{course.title}</h2>
-          <div className="mt-1 text-sm text-muted-foreground">{chapter}</div>
-          <div className="mt-4 text-lg font-medium">{lecture}</div>
+          <div className="mt-1 text-sm text-muted-foreground">{lecture?.moduleTitle || "Course content"}</div>
+          <div className="mt-4 text-lg font-medium">{lecture?.title || "Start this course"}</div>
 
           <div className="mt-6 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Course progress</span>
-              <span className="font-semibold text-primary">{course.progress}%</span>
+              <span className="font-semibold text-primary">{progress}%</span>
             </div>
-            <Progress value={course.progress} className="h-2" />
-            <div className="text-xs text-muted-foreground">{remaining}</div>
+            <Progress value={progress} className="h-2" />
+            <div className="text-xs text-muted-foreground">{completedEstimate}/{totalLectures} lectures completed</div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button className="rounded-xl gradient-primary border-0 text-primary-foreground shadow-glow hover:opacity-90">
-              <PlayCircle className="mr-2 h-4 w-4" /> Resume lecture
+            <Button asChild className="rounded-xl gradient-primary border-0 text-primary-foreground shadow-glow hover:opacity-90">
+              <Link to={resumeUrl}><PlayCircle className="mr-2 h-4 w-4" /> Resume lecture</Link>
             </Button>
-            <Button variant="outline" className="rounded-xl">
-              View syllabus
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link to={`/dashboard/learn/${courseId}`}>View syllabus</Link>
             </Button>
           </div>
         </div>

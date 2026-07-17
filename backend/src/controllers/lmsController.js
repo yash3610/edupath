@@ -249,7 +249,38 @@ export const studentAnalytics = asyncHandler(async (req, res) => {
     },
   });
 });
-export const continueLearning = asyncHandler(async (req, res) => ok(res, await Enrollment.findOne({ student: userId(req) }).populate("course")));
+export const continueLearning = asyncHandler(async (req, res) => {
+  const student = userId(req);
+  const activeCourseIds = await Enrollment.find({ student, status: { $ne: "cancelled" } }).distinct("course");
+  const availableModuleIds = await Module.find({
+    course: { $in: activeCourseIds },
+    published: { $ne: false },
+  }).distinct("_id");
+  const availableLectures = await Lecture.find({
+    course: { $in: activeCourseIds },
+    module: { $in: availableModuleIds },
+    published: { $ne: false },
+  }).select("_id course").lean();
+  const availableLectureIds = availableLectures.map((lecture) => lecture._id);
+  const coursesWithLectures = [...new Set(availableLectures.map((lecture) => String(lecture.course)))];
+  const latestProgress = availableLectureIds.length
+    ? await LectureProgress.findOne({ student, lecture: { $in: availableLectureIds } }).sort({ updatedAt: -1 }).lean()
+    : null;
+  const fallbackEnrollment = !latestProgress && coursesWithLectures.length
+    ? await Enrollment.findOne({ student, status: { $ne: "cancelled" }, course: { $in: coursesWithLectures } }).sort({ updatedAt: -1 }).lean()
+    : null;
+  const selectedCourseId = latestProgress?.course || fallbackEnrollment?.course;
+  const enrollment = selectedCourseId
+    ? await Enrollment.findOne({ student, status: { $ne: "cancelled" }, course: selectedCourseId }).populate("course").lean()
+    : null;
+
+  ok(res, enrollment ? {
+    ...enrollment,
+    lastLecture: latestProgress && String(latestProgress.course) === String(enrollment.course?._id || enrollment.course)
+      ? latestProgress.lecture
+      : availableLectures.find((lecture) => String(lecture.course) === String(enrollment.course?._id || enrollment.course))?._id || null,
+  } : null);
+});
 export const recommendedCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).sort({ featured: -1, rating: -1 }).limit(6)));
 export const upcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(8)));
 export const recentNotifications = asyncHandler(async (req, res) => ok(res, await Notification.find({ user: userId(req) }).sort({ createdAt: -1 }).limit(10)));
@@ -292,7 +323,7 @@ export const courseProgress = asyncHandler(async (req, res) => ok(res, await Lec
 export const learningCourse = asyncHandler(async (req, res) => {
   const enrollment = await Enrollment.findOne({ student: userId(req), course: req.params.courseId });
   if (!enrollment) throw new ApiError(403, "Enroll in this course to access the learning room");
-  const course = await Course.findOne({ _id: req.params.courseId, status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).populate("instructor", "name");
+  const course = await Course.findOne({ _id: req.params.courseId, status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).populate("instructor", "name avatar");
   if (!course) throw new ApiError(404, "Course is unavailable");
   ok(res, course);
 });
@@ -354,7 +385,12 @@ export const bookmarkLecture = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
   if (!lecture) throw new ApiError(404, "Lecture not found");
   await requireStudentEnrollment(req, lecture.course);
-  ok(res, await LectureProgress.findOneAndUpdate({ student: userId(req), lecture: req.params.lectureId }, { $set: { bookmarked: true, course: lecture.course } }, { new: true, upsert: true }), "Bookmarked");
+  const bookmarked = req.body.bookmarked !== false;
+  ok(res, await LectureProgress.findOneAndUpdate(
+    { student: userId(req), lecture: req.params.lectureId },
+    { $set: { bookmarked, course: lecture.course } },
+    { new: true, upsert: true },
+  ), bookmarked ? "Bookmarked" : "Bookmark removed");
 });
 export const watchTime = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).select("course");
@@ -1240,6 +1276,22 @@ export const instructorUploadLectureResource = asyncHandler(async (req, res) => 
   await markCourseContentInProgress(lecture.course);
 
   ok(res, resource, "Resource uploaded successfully");
+});
+export const instructorUploadLectureVideo = asyncHandler(async (req, res) => {
+  const lecture = await Lecture.findById(req.params.lectureId);
+  if (!lecture || !(await Course.exists({ _id: lecture.course, instructor: userId(req) }))) throw new ApiError(404, "Lecture not found");
+  if (!req.file) throw new ApiError(400, "Video file is required");
+  if (!String(req.file.mimetype || "").startsWith("video/")) throw new ApiError(400, "Only video files are allowed");
+
+  const upload = await uploadBuffer(req.file, `courses/${lecture.course}/videos`);
+  const durationSeconds = Math.max(0, Math.round(Number(req.body.durationSeconds || 0)));
+  const updated = await Lecture.findByIdAndUpdate(
+    lecture._id,
+    { videoUrl: upload.url, type: "video", durationSeconds },
+    { new: true, runValidators: true },
+  );
+  await markCourseContentInProgress(lecture.course);
+  ok(res, updated, "Lecture video uploaded successfully");
 });
 export const instructorReplaceLectureResource = asyncHandler(async (req, res) => {
   const lecture = await Lecture.findById(req.params.lectureId).lean();

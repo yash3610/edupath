@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import EmojiPicker from "emoji-picker-react";
 import { motion } from "framer-motion";
 import { FileText, Paperclip, Send, Smile } from "lucide-react";
@@ -112,6 +113,8 @@ function DateSeparator({ value }) {
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const requestedContactId = searchParams.get("contact") || "";
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
   const currentUserId = idOf(user);
   const [threads, setThreads] = useState([]);
@@ -176,8 +179,19 @@ export default function MessagesPage() {
         const nextContacts = contactResult.data || [];
         const nextThreads = (conversationResult.data || []).map((item) => mapConversation(item, currentUserId));
         setContacts(nextContacts);
-        setThreads(nextThreads.length ? nextThreads : nextContacts.map(mapContact));
-        setActiveId((current) => current || nextThreads[0]?.id || "");
+        if (requestedContactId) {
+          const result = await apiRequest("/api/messages/conversations", {
+            method: "POST",
+            body: JSON.stringify({ participantId: requestedContactId }),
+          });
+          if (ignore) return;
+          const requestedThread = mapConversation(result.data, currentUserId);
+          setThreads([requestedThread, ...nextThreads.filter((item) => item.id !== requestedThread.id)]);
+          setActiveId(requestedThread.id);
+        } else {
+          setThreads(nextThreads.length ? nextThreads : nextContacts.map(mapContact));
+          setActiveId((current) => current || nextThreads[0]?.id || "");
+        }
       } catch (error) {
         if (!ignore) toast.error(error.message || "Unable to load messages.");
       } finally {
@@ -188,7 +202,7 @@ export default function MessagesPage() {
     return () => {
       ignore = true;
     };
-  }, [currentUserId]);
+  }, [currentUserId, requestedContactId]);
 
   useEffect(() => {
     const socket = getSocket();

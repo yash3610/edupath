@@ -41,6 +41,19 @@ export default function InstructorCourses() {
   const rows = useMemo(() => list.filter((c) => status === "all" || c.status === status), [list, status]);
   const liveCount = list.filter((c) => c.status === "published").length;
 
+  function previewCourse(course) {
+    const isPublic = ["published", "approved"].includes(course.rawStatus);
+    if (!isPublic) {
+      toast.info("Preview will be available after this course is published.");
+      return;
+    }
+    if (!course.slug) {
+      toast.error("This course does not have a preview link yet.");
+      return;
+    }
+    window.open(`/course/${encodeURIComponent(course.slug)}`, "_blank", "noopener,noreferrer");
+  }
+
   const cols = [
     {
       key: "title",
@@ -169,7 +182,7 @@ export default function InstructorCourses() {
                       <Edit3 className="mr-1 h-3.5 w-3.5" /> Manage
                     </Button>
                   </Link>
-                  <Button size="sm" variant="outline" className="h-8 rounded-lg border-border/60 text-xs" onClick={() => toast("Preview opened")}>
+                  <Button size="sm" variant="outline" className="h-8 rounded-lg border-border/60 text-xs" onClick={() => previewCourse(c)}>
                     Preview
                   </Button>
                 </div>
@@ -184,7 +197,7 @@ export default function InstructorCourses() {
           searchKeys={["title", "category", "status"]}
           actions={[
             { label: "Edit", onClick: (r) => window.location.assign(`/instructor/dashboard/builder?course=${r.id}`) },
-            { label: "Preview", onClick: () => toast("Preview opened") },
+            { label: "Preview", onClick: previewCourse },
           ]}
         />
       )}

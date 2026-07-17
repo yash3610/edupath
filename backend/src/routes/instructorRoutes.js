@@ -24,6 +24,7 @@ import {
   instructorSubmissions, instructorUpcomingClasses, instructorUpdateLecture,
   instructorUpdateModule, instructorSubmitCourseForReview, instructorResources,
   instructorCreateCourse, instructorUpdateCourse, instructorUploadLectureResource,
+  instructorUploadLectureVideo,
   instructorReplaceLectureResource, instructorDeleteLectureResource,
 } from "../controllers/lmsController.js";
 import {
@@ -75,6 +76,7 @@ router.post("/modules/:moduleId/lectures", instructorCreateLecture);
 router.get("/modules/:moduleId/lectures", instructorLectures);
 router.patch("/modules/:moduleId/lectures/reorder", instructorReorderLectures);
 router.patch("/lectures/:lectureId", instructorUpdateLecture);
+router.post("/lectures/:lectureId/video", courseUpload.single("file"), instructorUploadLectureVideo);
 router.post("/lectures/:lectureId/resources", courseUpload.single("file"), instructorUploadLectureResource);
 router.patch("/lectures/:lectureId/resources/:resourceIndex", courseUpload.single("file"), instructorReplaceLectureResource);
 router.delete("/lectures/:lectureId/resources/:resourceIndex", instructorDeleteLectureResource);
