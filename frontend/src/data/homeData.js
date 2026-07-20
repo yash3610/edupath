@@ -7,36 +7,6 @@ export const services = [
   ["6.svg", "Inspiring Young Learners", "service-6"],
 ];
 
-export const pricingPlans = [
-  {
-    title: "Primary",
-    amount: "20.7$",
-    duration: "(5-10Years)",
-    icon: "icon-1.svg",
-    cardClass: "pricing-1",
-    colorClass: "ep5-color",
-    bgClass: "ep5-bg-light",
-  },
-  {
-    title: "Pro Primary",
-    amount: "40.5$",
-    duration: "(11-15Years)",
-    icon: "icon-2.svg",
-    cardClass: "pricing-2",
-    colorClass: "ep2-color",
-    bgClass: "ep2-bg-light",
-  },
-  {
-    title: "Middle School",
-    amount: "50.7$",
-    duration: "(11-15Years)",
-    icon: "icon-3.svg",
-    cardClass: "pricing-3",
-    colorClass: "ep1-color",
-    bgClass: "ep1-bg-light",
-  },
-];
-
 export const fallbackCourses = [
   {
     title: "Best course For You",

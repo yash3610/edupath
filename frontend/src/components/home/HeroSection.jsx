@@ -29,7 +29,7 @@ export default function HeroSection() {
                 <img src="/assets/images/hero/home-2/hero-img.png" alt="hero-img" />
               </div>
               <div className="ep-hero__overview-card updown-ani">
-                <h4><span>2</span>k+</h4>
+                <h4><span className="counter">2k+</span></h4>
                 <p>Full Time Student</p>
               </div>
             </div>
