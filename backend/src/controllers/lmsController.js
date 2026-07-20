@@ -1102,6 +1102,15 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     { status: "active", enrolledAt: new Date() },
     { upsert: true, new: true }
   )));
+  const paidCourses = await Course.find({ _id: { $in: courseIds } }).select("title").lean();
+  const courseNames = paidCourses.map((course) => course.title).filter(Boolean).join(", ");
+  await notifyCourseUsers([userId(req)], {
+    type: "payment",
+    title: "Payment successful",
+    message: courseNames
+      ? `You are now enrolled in ${courseNames}.`
+      : "Your payment was verified and enrollment is active.",
+  });
 
   ok(res, { order, payment, enrolledCourses: courseIds }, "Payment verified and enrollment completed");
 });
@@ -1116,13 +1125,21 @@ export const freeEnrollment = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, status: { $in: PUBLIC_COURSE_STATUSES }, pricingType: "free" });
   if (!course) throw new ApiError(404, "Published free course not found");
   const enrollment = await Enrollment.findOneAndUpdate({ student: userId(req), course: course._id }, { status: "active", enrolledAt: new Date() }, { upsert: true, new: true });
-  await notifyCourseUsers([course.instructor], { title: "Student enrolled", message: `A student enrolled in ${course.title}.` });
+  await Promise.all([
+    notifyCourseUsers([course.instructor], { title: "Student enrolled", message: `A student enrolled in ${course.title}.` }),
+    notifyCourseUsers([userId(req)], { type: "enrollment", title: "Enrollment successful", message: `You are now enrolled in ${course.title}.` }),
+  ]);
   created(res, enrollment);
 });
 export const paidEnrollment = asyncHandler(async (req, res) => {
   const course = await Course.findOne({ _id: req.params.courseId, status: { $in: PUBLIC_COURSE_STATUSES }, pricingType: "paid" });
   if (!course) throw new ApiError(404, "Published paid course not found");
-  created(res, await Enrollment.findOneAndUpdate({ student: userId(req), course: course._id }, { status: "active", enrolledAt: new Date() }, { upsert: true, new: true }));
+  const enrollment = await Enrollment.findOneAndUpdate({ student: userId(req), course: course._id }, { status: "active", enrolledAt: new Date() }, { upsert: true, new: true });
+  await Promise.all([
+    notifyCourseUsers([course.instructor], { title: "Student enrolled", message: `A student enrolled in ${course.title}.` }),
+    notifyCourseUsers([userId(req)], { type: "enrollment", title: "Enrollment successful", message: `You are now enrolled in ${course.title}.` }),
+  ]);
+  created(res, enrollment);
 });
 export const checkEnrollment = asyncHandler(async (req, res) => ok(res, { enrolled: Boolean(await Enrollment.findOne({ student: userId(req), course: req.params.courseId })) }));
 export const myEnrollments = asyncHandler(async (req, res) => ok(res, await Enrollment.find({ student: userId(req) }).populate("course")));
