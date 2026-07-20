@@ -34,21 +34,50 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/context/AuthContext";
-import {
-  student,
-  stats,
-  weeklyActivity,
-  masteryRadar,
-  upcoming,
-  leaderboard,
-  courses,
-} from "@/features/student/data/mock";
 import { learningApi } from "@/services/learningApi";
-import { assetUrl } from "@/services/api";
+import { apiRequest, assetUrl } from "@/services/api";
 export default function DashboardHome() {
   const { user } = useAuth();
-  const studentName = user?.name || student.name;
-  const goalPct = Math.round((student.xp / student.xpToNext) * 100);
+  const [dashboard, setDashboard] = useState({
+    stats: { enrolledCourses: 0, completedCourses: 0, learningHours: 0, certificates: 0, quizAverage: 0 },
+    student: { streak: 0, rank: "Bronze", level: 1, xp: 0, xpToNext: 1000 },
+    weeklyActivity: [], masteryRadar: [], upcoming: [], leaderboard: [], courses: [], completedLectures: 0,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      apiRequest("/api/student/dashboard-stats"),
+      apiRequest("/api/student/analytics"),
+      apiRequest("/api/student/upcoming-classes"),
+      apiRequest("/api/student/recommended-courses"),
+    ]).then(([statsResult, analyticsResult, upcomingResult, coursesResult]) => {
+      if (!mounted) return;
+      const statsData = statsResult.data || {};
+      const analytics = analyticsResult.data || {};
+      setDashboard({
+        stats: statsData,
+        student: statsData.student || { streak: 0, rank: "Bronze", level: 1, xp: 0, xpToNext: 1000 },
+        weeklyActivity: (analytics.weeklyActivity || []).map((item) => ({ ...item, hours: Number((Number(item.minutes || 0) / 60).toFixed(1)) })),
+        masteryRadar: analytics.topicMastery || [],
+        upcoming: (upcomingResult.data || []).map((item) => ({ id: item._id || item.id, title: item.title, date: formatUpcomingDate(item.startAt), type: item.type === "live-class" ? "live" : item.type })),
+        leaderboard: statsData.leaderboard || [],
+        courses: (coursesResult.data || []).map(mapRecommendedCourse),
+        completedLectures: Number(analytics.summary?.completedLectures || 0),
+      });
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  const { stats, student, weeklyActivity, masteryRadar, upcoming, leaderboard, courses, completedLectures } = dashboard;
+  const studentName = user?.name || "Student";
+  const currentLevelFloor = Math.max(0, (Number(student.level || 1) - 1) * 1000);
+  const levelProgress = Math.max(0, Number(student.xp || 0) - currentLevelFloor);
+  const levelTarget = Math.max(1, Number(student.xpToNext || 1000) - currentLevelFloor);
+  const goalPct = Math.min(100, Math.round((levelProgress / levelTarget) * 100));
+  const recentHours = weeklyActivity.slice(-3).reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  const previousHours = weeklyActivity.slice(-6, -3).reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  const activityDelta = previousHours ? Math.round(((recentHours - previousHours) / previousHours) * 100) : recentHours ? 100 : 0;
   return (
     <div className="mx-auto max-w-[1400px] space-y-8">
       {/* Welcome hero */}
@@ -75,7 +104,7 @@ export default function DashboardHome() {
             </h1>
             <p className="mt-3 max-w-xl text-sm text-muted-foreground md:text-base">
               “The expert in anything was once a beginner.” Keep the momentum —
-              you're 18% ahead of last week.
+              you're {Math.abs(activityDelta)}% {activityDelta >= 0 ? "ahead of" : "behind"} your previous learning pace.
             </p>
 
             <div className="mt-6 max-w-md">
@@ -87,7 +116,7 @@ export default function DashboardHome() {
               </div>
               <Progress value={goalPct} className="h-2" />
               <div className="mt-2 text-xs text-muted-foreground">
-                {student.xp.toLocaleString()} / {student.xpToNext.toLocaleString()} XP this week
+                {Number(student.xp || 0).toLocaleString()} / {Number(student.xpToNext || 0).toLocaleString()} XP toward next level
               </div>
             </div>
 
@@ -152,22 +181,22 @@ export default function DashboardHome() {
       <section className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <StatCard
           label="Enrolled"
-          value={stats.enrolled}
+          value={stats.enrolledCourses}
           icon={BookOpen}
           accent="primary"
           delay={0.05}
         />
         <StatCard
           label="Completed"
-          value={stats.completed}
+          value={stats.completedCourses}
           icon={CheckCircle2}
           accent="success"
           delay={0.1}
-          hint="+2 this week"
+          hint={`${completedLectures} lectures completed`}
         />
         <StatCard
           label="Learning Hrs"
-          value={stats.hours}
+          value={stats.learningHours}
           icon={Clock}
           accent="accent"
           delay={0.15}
@@ -181,7 +210,7 @@ export default function DashboardHome() {
         />
         <StatCard
           label="Quiz Avg"
-          value={stats.quizAvg}
+          value={stats.quizAverage}
           suffix="%"
           icon={Trophy}
           accent="warning"
@@ -214,7 +243,7 @@ export default function DashboardHome() {
               <p className="text-xs text-muted-foreground">Hours studied · last 7 days</p>
             </div>
             <Badge className="border-0 bg-success/15 text-success">
-              <TrendingUp className="mr-1 h-3 w-3" /> +18%
+              <TrendingUp className="mr-1 h-3 w-3" /> {activityDelta >= 0 ? "+" : ""}{activityDelta}%
             </Badge>
           </div>
           <div className="h-64">
@@ -329,8 +358,8 @@ export default function DashboardHome() {
                   <div className="truncate font-medium">{u.title}</div>
                   <div className="text-xs text-muted-foreground">{u.date}</div>
                 </div>
-                <Button size="sm" variant="ghost" className="rounded-lg">
-                  <ArrowRight className="h-4 w-4" />
+                <Button asChild size="sm" variant="ghost" className="rounded-lg">
+                  <Link to="/dashboard/calendar"><ArrowRight className="h-4 w-4" /></Link>
                 </Button>
               </motion.li>
             ))}
@@ -380,7 +409,7 @@ export default function DashboardHome() {
         </div>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {courses.slice(0, 3).map((c, i) => (
-            <Link key={c.id} to="/dashboard/courses" className="block">
+            <Link key={c.id} to={c.slug ? `/course/${c.slug}` : "/dashboard/courses"} className="block">
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -497,5 +526,32 @@ function ContinueHero() {
       </div>
     </motion.section>
   );
+}
+
+function formatUpcomingDate(value) {
+  if (!value) return "Upcoming";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Upcoming";
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  const day = date.toDateString() === today.toDateString()
+    ? "Today"
+    : date.toDateString() === tomorrow.toDateString()
+      ? "Tomorrow"
+      : date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  return `${day} · ${date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`;
+}
+
+function mapRecommendedCourse(course = {}) {
+  const instructor = typeof course.instructor === "object" ? course.instructor?.name : course.instructor;
+  return {
+    ...course,
+    id: course._id || course.id,
+    cover: assetUrl(course.thumbnail || course.image) || "/assets/images/course/course-1/1.png",
+    instructor: instructor || "EduPath Instructor",
+    category: course.category || "Course",
+    duration: course.duration || (course.durationHours ? `${course.durationHours} hrs` : "Self-paced"),
+  };
 }
 

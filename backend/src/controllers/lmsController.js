@@ -155,7 +155,7 @@ async function issueCertificateIfEligible(student, courseId, progress) {
 
 export const dashboardStats = asyncHandler(async (req, res) => {
   const student = userId(req);
-  const [enrollments, watchTime, certificates, quizScores] = await Promise.all([
+  const [enrollments, watchTime, certificates, quizScores, profile, rankingRows] = await Promise.all([
     Enrollment.find({ student }).select("status progress").lean(),
     LectureProgress.aggregate([
       { $match: { student } },
@@ -163,22 +163,59 @@ export const dashboardStats = asyncHandler(async (req, res) => {
     ]),
     Certificate.countDocuments({ student }),
     QuizAttempt.find({ student, status: { $in: ["submitted", "auto-submitted", "passed", "failed"] } }).select("percentage score").lean(),
+    StudentProfile.findOne({ user: student }).lean(),
+    LectureProgress.aggregate([
+      { $group: {
+        _id: "$student",
+        completed: { $sum: { $cond: ["$completed", 1, 0] } },
+        watchSeconds: { $sum: { $ifNull: ["$watchTimeSeconds", 0] } },
+      } },
+      { $addFields: { xp: { $add: [{ $multiply: ["$completed", 100] }, { $floor: { $divide: ["$watchSeconds", 60] } }] } } },
+      { $sort: { xp: -1 } },
+      { $limit: 10 },
+    ]),
   ]);
   const quizAverage = quizScores.length
     ? Math.round(quizScores.reduce((sum, item) => sum + Number(item.percentage ?? item.score ?? 0), 0) / quizScores.length)
     : 0;
+  const rankedUserIds = [...new Set([...rankingRows.map((item) => String(item._id)), String(student)])];
+  const rankedUsers = await User.find({ _id: { $in: rankedUserIds }, role: "student" }).select("name avatar").lean();
+  const usersById = new Map(rankedUsers.map((item) => [String(item._id), item]));
+  const currentRanking = rankingRows.find((item) => String(item._id) === String(student));
+  const currentXp = Number(currentRanking?.xp || 0);
+  const leaderboard = rankingRows
+    .filter((item) => usersById.has(String(item._id)))
+    .slice(0, 5)
+    .map((item, index) => ({
+      rank: index + 1,
+      id: item._id,
+      name: usersById.get(String(item._id))?.name || "Student",
+      avatar: usersById.get(String(item._id))?.avatar || "",
+      xp: Number(item.xp || 0),
+    }));
+  const level = Math.floor(currentXp / 1000) + 1;
+  const rankLabel = currentXp >= 10000 ? "Diamond" : currentXp >= 5000 ? "Platinum" : currentXp >= 2500 ? "Gold" : currentXp >= 1000 ? "Silver" : "Bronze";
+
   ok(res, {
     enrolledCourses: enrollments.length,
     completedCourses: enrollments.filter((item) => item.status === "completed" || item.progress >= 100).length,
     learningHours: Number(((watchTime[0]?.seconds || 0) / 3600).toFixed(1)),
     certificates,
     quizAverage,
+    student: {
+      streak: Number(profile?.streak || 0),
+      xp: currentXp,
+      xpToNext: level * 1000,
+      level,
+      rank: rankLabel,
+    },
+    leaderboard,
   });
 });
 export const studentAnalytics = asyncHandler(async (req, res) => {
   const student = userId(req);
   const [enrollments, progress, attempts, certificateCount] = await Promise.all([
-    Enrollment.find({ student }).populate("course", "title thumbnail tags").sort({ updatedAt: -1 }).lean(),
+    Enrollment.find({ student }).populate("course", "title thumbnail tags category").sort({ updatedAt: -1 }).lean(),
     LectureProgress.find({ student }).select("course completed watchTimeSeconds watchedPercentage updatedAt").lean(),
     QuizAttempt.find({ student, status: { $in: ["submitted", "auto-submitted", "passed", "failed"] } })
       .populate("quiz", "title")
@@ -225,6 +262,21 @@ export const studentAnalytics = asyncHandler(async (req, res) => {
     title: item.quiz?.title || `Quiz ${index + 1}`,
     score: Math.round(Number(item.percentage ?? item.score ?? 0)),
   }));
+  const masteryGroups = new Map();
+  enrollments.forEach((item) => {
+    const topics = item.course?.tags?.length ? item.course.tags : [item.course?.category || "General"];
+    topics.slice(0, 3).forEach((topic) => {
+      const key = String(topic || "General");
+      const current = masteryGroups.get(key) || { total: 0, count: 0 };
+      current.total += Number(item.progress || 0);
+      current.count += 1;
+      masteryGroups.set(key, current);
+    });
+  });
+  const topicMastery = [...masteryGroups.entries()].slice(0, 6).map(([topic, value]) => ({
+    topic,
+    score: Math.round(value.total / value.count),
+  }));
 
   ok(res, {
     summary: {
@@ -239,6 +291,7 @@ export const studentAnalytics = asyncHandler(async (req, res) => {
     weeklyActivity: [...activityByDay.values()],
     courseProgress,
     quizTrend,
+    topicMastery,
     insights: {
       engagement: totalWatchSeconds > 5 * 3600 ? "High" : totalWatchSeconds > 3600 ? "Growing" : "Getting started",
       completionProbability: Math.min(100, Math.round(averageProgress * 0.7 + Math.min(completedLectures, 20) * 1.5)),
@@ -281,7 +334,7 @@ export const continueLearning = asyncHandler(async (req, res) => {
       : availableLectures.find((lecture) => String(lecture.course) === String(enrollment.course?._id || enrollment.course))?._id || null,
   } : null);
 });
-export const recommendedCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).sort({ featured: -1, rating: -1 }).limit(6)));
+export const recommendedCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).populate("instructor", "name").sort({ featured: -1, rating: -1 }).limit(6)));
 export const upcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(8)));
 export const recentNotifications = asyncHandler(async (req, res) => ok(res, await Notification.find({ user: userId(req) }).sort({ createdAt: -1 }).limit(10)));
 export const achievements = asyncHandler(async (req, res) => ok(res, { streak: 18, badges: ["Quiz Champion", "Fast Finisher"], student: userId(req) }));
