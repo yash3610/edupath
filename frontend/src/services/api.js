@@ -229,4 +229,5 @@ export const api = {
   dashboardStats: () => apiRequest("/api/student/dashboard-stats"),
   achievements: () => apiRequest("/api/student/achievements"),
   instructorStats: () => apiRequest("/api/instructor/stats"),
+  instructorAnalytics: () => apiRequest("/api/instructor/analytics"),
 };

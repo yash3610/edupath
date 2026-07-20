@@ -1226,6 +1226,68 @@ export const instructorStudentEngagement = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
   ok(res, await LectureProgress.aggregate([{ $match: { course: { $in: courseIds } } }, { $group: { _id: "$course", watchTimeSeconds: { $sum: "$watchTimeSeconds" }, completedLectures: { $sum: { $cond: ["$completed", 1, 0] } } } }]));
 });
+export const instructorAnalytics = asyncHandler(async (req, res) => {
+  const courses = await Course.find({ instructor: userId(req) }).select("title rating").lean();
+  const courseIds = courses.map((course) => course._id);
+  const [enrollments, lectureProgress, quizAttempts, reviews] = await Promise.all([
+    Enrollment.find({ course: { $in: courseIds }, status: { $ne: "cancelled" } }).select("course student progress").lean(),
+    LectureProgress.find({ course: { $in: courseIds } }).select("course student completed watchTimeSeconds updatedAt").lean(),
+    QuizAttempt.find({ course: { $in: courseIds }, status: { $in: ["submitted", "auto-submitted", "passed", "failed"] } }).select("percentage score isPassed status").lean(),
+    Review.find({ course: { $in: courseIds } }).select("rating").lean(),
+  ]);
+
+  const completion = enrollments.length
+    ? Math.round(enrollments.reduce((sum, item) => sum + Number(item.progress || 0), 0) / enrollments.length)
+    : 0;
+  const totalWatchSeconds = lectureProgress.reduce((sum, item) => sum + Number(item.watchTimeSeconds || 0), 0);
+  const passedAttempts = quizAttempts.filter((item) => item.isPassed || item.status === "passed" || Number(item.percentage ?? item.score ?? 0) >= 40).length;
+  const quizPass = quizAttempts.length ? Math.round((passedAttempts / quizAttempts.length) * 100) : 0;
+  const averageRating = reviews.length
+    ? Number((reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviews.length).toFixed(2))
+    : 0;
+
+  const dayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+  const engagementMap = new Map();
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - offset);
+    engagementMap.set(date.toISOString().slice(0, 10), { d: dayFormatter.format(date), students: new Set(), watchSeconds: 0 });
+  }
+  lectureProgress.forEach((item) => {
+    const key = new Date(item.updatedAt).toISOString().slice(0, 10);
+    const row = engagementMap.get(key);
+    if (!row) return;
+    if (item.student) row.students.add(String(item.student));
+    row.watchSeconds += Number(item.watchTimeSeconds || 0);
+  });
+  const engagement = [...engagementMap.values()].map((row) => ({
+    d: row.d,
+    active: row.students.size,
+    watch: Number((row.watchSeconds / 3600).toFixed(1)),
+  }));
+
+  const completionByCourse = courses.map((course) => {
+    const rows = enrollments.filter((item) => String(item.course) === String(course._id));
+    return {
+      id: course._id,
+      name: course.title || "Course",
+      value: rows.length ? Math.round(rows.reduce((sum, item) => sum + Number(item.progress || 0), 0) / rows.length) : 0,
+    };
+  }).sort((a, b) => b.value - a.value).slice(0, 6);
+
+  const ratingDistribution = [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    count: reviews.filter((review) => Math.round(Number(review.rating || 0)) === star).length,
+  }));
+
+  ok(res, {
+    summary: { completion, watchHours: Number((totalWatchSeconds / 3600).toFixed(1)), quizPass, averageRating },
+    engagement,
+    completionByCourse,
+    ratingDistribution,
+  });
+});
 export const instructorPendingTasks = asyncHandler(async (req, res) => {
   const courseIds = await Course.find({ instructor: userId(req) }).distinct("_id");
   const assignmentIds = await Assignment.find({ course: { $in: courseIds } }).distinct("_id");

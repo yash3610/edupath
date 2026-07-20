@@ -16,7 +16,7 @@ import {
 import {
   instructorAssignments, instructorCoursePerformance, instructorCreateAssignment,
   instructorCreateLecture, instructorCreateModule, instructorCreateQuiz,
-  instructorCourseAnalytics, instructorCourseDetails, instructorDashboard, instructorDeleteAssignment, instructorDeleteLecture,
+  instructorAnalytics, instructorCourseAnalytics, instructorCourseDetails, instructorDashboard, instructorDeleteAssignment, instructorDeleteLecture,
   instructorDeleteModule, instructorDoubts, instructorEarnings,
   instructorEarningsAnalytics, instructorGradeAssignment, instructorLectures,
   instructorModules, instructorMyCourses, instructorPayouts, instructorPendingTasks, instructorRecentActivity,
@@ -60,6 +60,7 @@ router.patch("/courses/:courseId", courseThumbnailUpload.single("thumbnailFile")
 router.get("/course-performance", instructorCoursePerformance);
 router.get("/earnings-analytics", instructorEarningsAnalytics);
 router.get("/student-engagement", instructorStudentEngagement);
+router.get("/analytics", instructorAnalytics);
 router.get("/pending-tasks", instructorPendingTasks);
 router.get("/recent-activity", instructorRecentActivity);
 router.get("/upcoming-classes", instructorUpcomingClasses);
