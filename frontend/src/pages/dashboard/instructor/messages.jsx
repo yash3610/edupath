@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import EmojiPicker from "emoji-picker-react";
 import { motion } from "framer-motion";
 import { FileText, Paperclip, Send, Smile } from "lucide-react";
@@ -378,7 +379,7 @@ export default function MessagesPage() {
 
   return (
     <div className="mx-auto max-w-[1300px]">
-      {emojiOpen && (
+      {emojiOpen && createPortal((
         <div
           ref={emojiPickerRef}
           className="fixed z-[1000] overflow-hidden rounded-2xl border border-border/70 bg-background shadow-lg"
@@ -392,7 +393,7 @@ export default function MessagesPage() {
             previewConfig={{ showPreview: false }}
           />
         </div>
-      )}
+      ), document.body)}
       <LmsPageHeader eyebrow="Account" title="Messages" description="Conversations with your students." />
       <div
         className="grid gap-4 lg:grid-cols-[320px_1fr] lg:overflow-hidden"
