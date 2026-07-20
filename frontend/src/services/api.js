@@ -227,5 +227,6 @@ export const api = {
   order: (payload) => apiRequest("/api/orders", { method: "POST", body: JSON.stringify(payload) }),
   myOrders: () => apiRequest("/api/orders/my"),
   dashboardStats: () => apiRequest("/api/student/dashboard-stats"),
+  achievements: () => apiRequest("/api/student/achievements"),
   instructorStats: () => apiRequest("/api/instructor/stats"),
 };

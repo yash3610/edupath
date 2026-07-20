@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Brain, Crown, Flame, Gem, Moon, Sparkles, Trophy, Users, Lock } from "lucide-react";
 import { PageHeader } from "@/features/student/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { achievements, leaderboard, student } from "@/features/student/data/mock";
+import { api } from "@/services/api";
+import { toast } from "sonner";
 const icons = { Sparkles, Flame, Trophy, Crown, Moon, Brain, Users, Gem };
 const tierStyle = {
   bronze: "from-amber-700 to-amber-500",
@@ -13,6 +15,25 @@ const tierStyle = {
   platinum: "from-violet-300 via-fuchsia-300 to-sky-300",
 };
 export default function AchievementsPage() {
+  const [achievements, setAchievements] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [student, setStudent] = useState({ name: "Student", streak: 0, rank: "Bronze", level: 1, xp: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    api.achievements()
+      .then((result) => {
+        if (!active) return;
+        setAchievements(result.data?.badges || []);
+        setLeaderboard(result.data?.leaderboard || []);
+        setStudent((current) => ({ ...current, ...(result.data?.student || {}) }));
+      })
+      .catch((error) => toast.error(error.message || "Could not load achievements"))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []);
+
   const earned = achievements.filter((a) => a.earned).length;
   return (
     <div className="mx-auto max-w-[1400px]">
@@ -31,7 +52,7 @@ export default function AchievementsPage() {
             <div className="font-display text-4xl font-semibold text-gradient">
               {earned} / {achievements.length}
             </div>
-            <Progress value={(earned / achievements.length) * 100} className="mt-3 h-2" />
+            <Progress value={achievements.length ? (earned / achievements.length) * 100 : 0} className="mt-3 h-2" />
           </div>
           <div>
             <div className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -55,6 +76,7 @@ export default function AchievementsPage() {
       </div>
 
       <h2 className="mb-4 font-display text-xl font-semibold">Badges</h2>
+      {loading && <div className="mb-5 rounded-2xl card-premium p-8 text-center text-sm text-muted-foreground">Loading achievements...</div>}
       <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         {achievements.map((a, i) => {
           const Icon = icons[a.icon] ?? Sparkles;
@@ -97,8 +119,8 @@ export default function AchievementsPage() {
         <ul className="divide-y divide-border/60">
           {leaderboard.map((l) => (
             <li
-              key={l.rank}
-              className={`flex items-center gap-4 rounded-xl p-3 ${l.name === student.name ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+              key={l.id || l.rank}
+              className={`flex items-center gap-4 rounded-xl p-3 ${l.isCurrentUser ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
             >
               <div
                 className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold ${l.rank === 1 ? "gradient-primary text-primary-foreground" : l.rank === 2 ? "bg-secondary text-secondary-foreground" : l.rank === 3 ? "bg-warning/30 text-warning-foreground" : "bg-muted text-foreground"}`}
@@ -107,11 +129,11 @@ export default function AchievementsPage() {
               </div>
               <Avatar className="h-10 w-10">
                 <AvatarImage src={l.avatar} alt={l.name} />
-                <AvatarFallback>{l.name[0]}</AvatarFallback>
+                <AvatarFallback>{l.name?.[0] || "S"}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{l.name}</div>
-                <div className="text-xs text-muted-foreground">{l.xp.toLocaleString()} XP</div>
+                <div className="text-xs text-muted-foreground">{Number(l.xp || 0).toLocaleString()} XP</div>
               </div>
               {l.rank === 1 && <Crown className="h-5 w-5 text-primary" />}
             </li>

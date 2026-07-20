@@ -337,7 +337,55 @@ export const continueLearning = asyncHandler(async (req, res) => {
 export const recommendedCourses = asyncHandler(async (_req, res) => ok(res, await Course.find({ status: { $in: PUBLIC_COURSE_STATUSES }, disabled: { $ne: true } }).populate("instructor", "name").sort({ featured: -1, rating: -1 }).limit(6)));
 export const upcomingClasses = asyncHandler(async (req, res) => ok(res, await CalendarEvent.find({ user: userId(req), startAt: { $gte: new Date() } }).sort({ startAt: 1 }).limit(8)));
 export const recentNotifications = asyncHandler(async (req, res) => ok(res, await Notification.find({ user: userId(req) }).sort({ createdAt: -1 }).limit(10)));
-export const achievements = asyncHandler(async (req, res) => ok(res, { streak: 18, badges: ["Quiz Champion", "Fast Finisher"], student: userId(req) }));
+export const achievements = asyncHandler(async (req, res) => {
+  const studentId = userId(req);
+  const submittedStatuses = ["submitted", "auto-submitted", "passed", "failed"];
+  const [student, profile, progress, completedCourses, quizAttempts, aiUses, communityAnswers, rankingRows] = await Promise.all([
+    User.findById(studentId).select("name avatar").lean(),
+    StudentProfile.findOne({ user: studentId }).lean(),
+    LectureProgress.find({ student: studentId }).select("completed watchTimeSeconds updatedAt").lean(),
+    Enrollment.countDocuments({ student: studentId, $or: [{ status: "completed" }, { progress: { $gte: 100 } }] }),
+    QuizAttempt.find({ student: studentId, status: { $in: submittedStatuses } }).select("percentage score").lean(),
+    AIChat.countDocuments({ user: studentId }),
+    DiscussionAnswer.countDocuments({ user: studentId }),
+    LectureProgress.aggregate([
+      { $group: { _id: "$student", completed: { $sum: { $cond: ["$completed", 1, 0] } }, watchSeconds: { $sum: { $ifNull: ["$watchTimeSeconds", 0] } } } },
+      { $addFields: { xp: { $add: [{ $multiply: ["$completed", 100] }, { $floor: { $divide: ["$watchSeconds", 60] } }] } } },
+      { $sort: { xp: -1 } },
+      { $limit: 10 },
+    ]),
+  ]);
+  const completedLectures = progress.filter((item) => item.completed).length;
+  const watchSeconds = progress.reduce((sum, item) => sum + Number(item.watchTimeSeconds || 0), 0);
+  const xp = completedLectures * 100 + Math.floor(watchSeconds / 60);
+  const level = Math.floor(xp / 1000) + 1;
+  const rank = xp >= 10000 ? "Diamond" : xp >= 5000 ? "Platinum" : xp >= 2500 ? "Gold" : xp >= 1000 ? "Silver" : "Bronze";
+  const streak = Number(profile?.streak || 0);
+  const highQuizScores = quizAttempts.filter((item) => Number(item.percentage ?? item.score ?? 0) >= 90).length;
+  const lateNightSessions = progress.filter((item) => {
+    const hour = new Date(item.updatedAt).getHours();
+    return hour >= 0 && hour < 5;
+  }).length;
+  const badges = [
+    { id: "a1", name: "First Steps", desc: "Completed your first lecture", icon: "Sparkles", earned: completedLectures >= 1, tier: "bronze" },
+    { id: "a2", name: "Week Warrior", desc: "7-day learning streak", icon: "Flame", earned: streak >= 7, tier: "silver" },
+    { id: "a3", name: "Quiz Master", desc: "Score 90%+ on 10 quizzes", icon: "Trophy", earned: highQuizScores >= 10, tier: "gold" },
+    { id: "a4", name: "Course Conqueror", desc: "Complete 10 courses", icon: "Crown", earned: completedCourses >= 10, tier: "gold" },
+    { id: "a5", name: "Night Owl", desc: "Study past midnight 5 times", icon: "Moon", earned: lateNightSessions >= 5, tier: "silver" },
+    { id: "a6", name: "AI Pioneer", desc: "Use AI Tutor 50 times", icon: "Brain", earned: aiUses >= 50, tier: "platinum" },
+    { id: "a7", name: "Mentor", desc: "Answer 25 community questions", icon: "Users", earned: communityAnswers >= 25, tier: "gold" },
+    { id: "a8", name: "Diamond Mind", desc: "Reach Diamond rank", icon: "Gem", earned: rank === "Diamond", tier: "platinum" },
+  ];
+  const rankedIds = rankingRows.map((item) => item._id);
+  const rankedUsers = await User.find({ _id: { $in: rankedIds }, role: "student" }).select("name avatar").lean();
+  const usersById = new Map(rankedUsers.map((item) => [String(item._id), item]));
+  const leaderboard = rankingRows.filter((item) => usersById.has(String(item._id))).slice(0, 5).map((item, index) => ({
+    rank: index + 1, id: item._id, name: usersById.get(String(item._id))?.name || "Student",
+    avatar: usersById.get(String(item._id))?.avatar || "", xp: Number(item.xp || 0),
+    isCurrentUser: String(item._id) === String(studentId),
+  }));
+  ok(res, { badges, student: { id: studentId, name: student?.name || "Student", avatar: student?.avatar || "", streak, rank, level, xp }, leaderboard });
+});
 
 export const myCourses = asyncHandler(async (req, res) => {
   const query = { student: userId(req) };
