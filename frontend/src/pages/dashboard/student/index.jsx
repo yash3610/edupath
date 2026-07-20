@@ -241,11 +241,18 @@ export default function DashboardHome() {
                   axisLine={false}
                 />
                 <Tooltip
+                  cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
                   contentStyle={{
-                    background: "oklch(0.18 0.025 270)",
-                    border: "1px solid oklch(1 0 0 / 0.1)",
+                    background: "var(--card)",
+                    color: "var(--card-foreground)",
+                    border: "1px solid var(--border)",
                     borderRadius: 12,
+                    boxShadow: "var(--shadow-md)",
+                    padding: "8px 12px",
                   }}
+                  labelStyle={{ display: "none" }}
+                  itemStyle={{ color: "var(--card-foreground)", fontSize: 12, fontWeight: 600 }}
+                  formatter={(value) => [`${value} hrs`, "Learning time"]}
                 />
                 <Area
                   type="monotone"

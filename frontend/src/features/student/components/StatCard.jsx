@@ -44,25 +44,25 @@ export function StatCard({
           ring,
         )}
       />
-      <div className="relative flex items-start justify-between p-5">
-        <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="relative p-4 sm:p-5">
+        <div className="flex min-h-10 items-start justify-between gap-2">
+          <div className="min-w-0 break-words text-[10px] font-medium uppercase leading-4 tracking-[0.12em] text-muted-foreground sm:text-[11px] sm:tracking-[0.14em]">
             {label}
           </div>
-          <div className="mt-2 font-display text-3xl font-semibold tracking-tight">
-            <AnimatedNumber value={value} />
-            {suffix && <span className="text-base text-muted-foreground"> {suffix}</span>}
+          <div
+            className={cn(
+              "grid h-10 w-10 shrink-0 place-items-center rounded-xl shadow-soft sm:h-11 sm:w-11",
+              iconBg,
+            )}
+          >
+            <Icon className="h-5 w-5" />
           </div>
-          {hint && <div className="mt-1 text-xs text-success">{hint}</div>}
         </div>
-        <div
-          className={cn(
-            "grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-soft",
-            iconBg,
-          )}
-        >
-          <Icon className="h-5 w-5" />
+        <div className="mt-1 font-display text-3xl font-semibold tracking-tight">
+          <AnimatedNumber value={value} />
+          {suffix && <span className="text-base text-muted-foreground"> {suffix}</span>}
         </div>
+        {hint && <div className="mt-1 text-xs text-success">{hint}</div>}
       </div>
     </motion.div>
   );
